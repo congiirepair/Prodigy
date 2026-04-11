@@ -3717,6 +3717,7 @@
   </div>
 
   <!-- APP LOGIC -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -4511,197 +4512,203 @@
       return driver ? `${driver.seed}-${driver.registrationNumber}-${driver.name}` : "";
     }
 
-    function buildResultsPdfHtml(eventMeta, results, rankedDrivers) {
-      const podiumRows = [
-        ["1st Place", results.championName ? `#${results.championSeed} ${results.championName}` : "Waiting for winner"],
-        ["2nd Place", results.runnerUpName ? `#${results.runnerUpSeed} ${results.runnerUpName}` : "Waiting for finalist"],
-        ["3rd Place", results.thirdPlaceName ? `#${results.thirdPlaceSeed} ${results.thirdPlaceName}` : "Waiting for 3rd place battle"],
-      ].map(([label, value]) => `
-        <div class="podium-item">
-          <span>${escapeHtml(label)}</span>
-          <strong>${escapeHtml(value)}</strong>
-        </div>
-      `).join("");
-
-      const standingsRows = rankedDrivers.length
-        ? rankedDrivers.map((driver, index) => {
-            const run1 = getRunAverage(driver, 1);
-            const run2 = getRunAverage(driver, 2);
-            const best = getBestScore(run1, run2);
-            return `
-              <tr>
-                <td>${index + 1}</td>
-                <td>${escapeHtml(String(driver.reg || driver.signUpPosition || "-"))}</td>
-                <td>${escapeHtml(driver.name || "Unnamed Driver")}</td>
-                <td>${escapeHtml(driver.teamName || "-")}</td>
-                <td>${escapeHtml(driver.chassis || "-")}</td>
-                <td>${escapeHtml(formatScore(run1))}</td>
-                <td>${escapeHtml(formatScore(run2))}</td>
-                <td>${escapeHtml(formatScore(best))}</td>
-              </tr>
-            `;
-          }).join("")
-        : `<tr><td colspan="8">No standings available yet.</td></tr>`;
-
-      return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>${escapeHtml(eventMeta.name)} Results</title>
-  <style>
-    @page { size: auto; margin: 16mm; }
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      color: #111;
-      background: #fff;
-    }
-    .sheet {
-      max-width: 980px;
-      margin: 0 auto;
-    }
-    .header {
-      border-bottom: 3px solid #111;
-      padding-bottom: 18px;
-      margin-bottom: 22px;
-    }
-    .header img {
-      max-width: 320px;
-      display: block;
-      margin-bottom: 12px;
-    }
-    .eyebrow {
-      margin: 0 0 6px;
-      font-size: 12px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.18em;
-      color: #666;
-    }
-    h1 {
-      margin: 0 0 10px;
-      font-size: 36px;
-      line-height: 1;
-    }
-    .meta {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 12px;
-      margin-bottom: 22px;
-    }
-    .meta-card, .podium-item {
-      border: 2px solid #111;
-      padding: 12px;
-    }
-    .meta-card span, .podium-item span {
-      display: block;
-      margin-bottom: 6px;
-      font-size: 12px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      color: #666;
-    }
-    .meta-card strong, .podium-item strong {
-      display: block;
-      font-size: 18px;
-      line-height: 1.35;
-    }
-    .podium {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 12px;
-      margin-bottom: 24px;
-    }
-    h2 {
-      margin: 0 0 12px;
-      font-size: 22px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-    th, td {
-      border: 1px solid #111;
-      padding: 9px 10px;
-      text-align: left;
-      font-size: 13px;
-    }
-    th {
-      background: #efefef;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-    }
-    .footer {
-      margin-top: 18px;
-      font-size: 12px;
-      color: #666;
-    }
-  </style>
-</head>
-<body>
-  <div class="sheet">
-    <div class="header">
-      <img src="${escapeHtml(new URL("./assets/prodigy-rc-logo-transparent.png", window.location.href).href)}" alt="Prodigy RC Drift Arena" />
-      <p class="eyebrow">Competition Results</p>
-      <h1>${escapeHtml(eventMeta.name || "Event Results")}</h1>
-      <div>${escapeHtml(formatEventDate(eventMeta.date))}</div>
-    </div>
-
-    <div class="meta">
-      <div class="meta-card"><span>Format</span><strong>${escapeHtml(results.planDescription || "Waiting for qualifying scores.")}</strong></div>
-      <div class="meta-card"><span>Total Drivers</span><strong>${escapeHtml(String(results.totalDrivers || rankedDrivers.length || 0))}</strong></div>
-      <div class="meta-card"><span>Qualified Drivers</span><strong>${escapeHtml(String(results.qualifiedCount || 0))}</strong></div>
-      <div class="meta-card"><span>Completed</span><strong>${escapeHtml(formatDateTimeForExport(results.completedAt || results.updatedAt))}</strong></div>
-    </div>
-
-    <h2>Podium</h2>
-    <div class="podium">${podiumRows}</div>
-
-    <h2>Qualifying Standings</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>Pos</th>
-          <th>Reg #</th>
-          <th>Driver</th>
-          <th>Team</th>
-          <th>Chassis</th>
-          <th>Run 1</th>
-          <th>Run 2</th>
-          <th>Best</th>
-        </tr>
-      </thead>
-      <tbody>${standingsRows}</tbody>
-    </table>
-
-    <div class="footer">Use your browser's destination setting to save this page as a PDF.</div>
-  </div>
-</body>
-</html>`;
-    }
-
     function exportResultsPdf() {
       if (!activeEventMeta) return;
+      const jsPdfApi = window.jspdf?.jsPDF;
+      if (!jsPdfApi) {
+        window.alert("PDF exporter is still loading. Please try again in a moment.");
+        return;
+      }
       const liveResults = buildEventResults();
       const results = {
         ...(activeEventMeta.results || buildEmptyEventResults()),
         ...liveResults,
       };
       const rankedDrivers = rankDrivers(appDrivers);
-      const exportWindow = window.open("", "_blank", "noopener,noreferrer");
-      if (!exportWindow) {
-        window.alert("Pop-up blocked. Please allow pop-ups to export the PDF.");
-        return;
-      }
-      exportWindow.document.open();
-      exportWindow.document.write(buildResultsPdfHtml(activeEventMeta, results, rankedDrivers));
-      exportWindow.document.close();
-      exportWindow.focus();
-      setTimeout(() => {
-        exportWindow.print();
-      }, 300);
+      const doc = new jsPdfApi({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      });
+
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margin = 14;
+      const contentWidth = pageWidth - margin * 2;
+      const ensurePage = (y, needed = 10) => {
+        if (y + needed <= pageHeight - margin) return y;
+        doc.addPage();
+        return margin;
+      };
+      const drawWrappedText = (text, x, y, maxWidth, lineHeight = 5.2) => {
+        const lines = doc.splitTextToSize(String(text), maxWidth);
+        lines.forEach((line, index) => {
+          doc.text(line, x, y + index * lineHeight);
+        });
+        return y + lines.length * lineHeight;
+      };
+
+      let y = margin;
+      doc.setDrawColor(17, 17, 17);
+      doc.setTextColor(17, 17, 17);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(24);
+      doc.text("Prodigy RC Drift Arena", margin, y);
+      y += 8;
+      doc.setFontSize(10);
+      doc.setTextColor(90, 90, 90);
+      doc.text("Competition Results", margin, y);
+      y += 6;
+      doc.setFontSize(18);
+      doc.setTextColor(17, 17, 17);
+      doc.text(activeEventMeta.name || "Event Results", margin, y);
+      y += 6;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.setTextColor(70, 70, 70);
+      doc.text(formatEventDate(activeEventMeta.date), margin, y);
+      y += 4;
+      doc.setLineWidth(0.6);
+      doc.line(margin, y, pageWidth - margin, y);
+      y += 8;
+
+      const metaCards = [
+        ["Format", results.planDescription || "Waiting for qualifying scores."],
+        ["Total Drivers", String(results.totalDrivers || rankedDrivers.length || 0)],
+        ["Qualified Drivers", String(results.qualifiedCount || 0)],
+        ["Completed", formatDateTimeForExport(results.completedAt || results.updatedAt)],
+      ];
+      const metaGap = 4;
+      const metaWidth = (contentWidth - metaGap * 3) / 4;
+      const metaHeight = 24;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      metaCards.forEach(([label, value], index) => {
+        const x = margin + index * (metaWidth + metaGap);
+        doc.roundedRect(x, y, metaWidth, metaHeight, 2.2, 2.2);
+        doc.setTextColor(100, 100, 100);
+        doc.text(label.toUpperCase(), x + 3, y + 5);
+        doc.setTextColor(17, 17, 17);
+        doc.setFontSize(11);
+        drawWrappedText(value, x + 3, y + 11, metaWidth - 6, 4.6);
+        doc.setFontSize(8);
+      });
+      y += metaHeight + 10;
+
+      y = ensurePage(y, 34);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(14);
+      doc.text("Podium", margin, y);
+      y += 5;
+      const podiumCards = [
+        ["1st Place", results.championName ? `#${results.championSeed} ${results.championName}` : "Waiting for winner"],
+        ["2nd Place", results.runnerUpName ? `#${results.runnerUpSeed} ${results.runnerUpName}` : "Waiting for finalist"],
+        ["3rd Place", results.thirdPlaceName ? `#${results.thirdPlaceSeed} ${results.thirdPlaceName}` : "Waiting for 3rd place battle"],
+      ];
+      const podiumGap = 4;
+      const podiumWidth = (contentWidth - podiumGap * 2) / 3;
+      const podiumHeight = 24;
+      podiumCards.forEach(([label, value], index) => {
+        const x = margin + index * (podiumWidth + podiumGap);
+        doc.roundedRect(x, y, podiumWidth, podiumHeight, 2.2, 2.2);
+        doc.setFontSize(8);
+        doc.setTextColor(100, 100, 100);
+        doc.text(label.toUpperCase(), x + 3, y + 5);
+        doc.setFontSize(11);
+        doc.setTextColor(17, 17, 17);
+        drawWrappedText(value, x + 3, y + 11, podiumWidth - 6, 4.6);
+      });
+      y += podiumHeight + 10;
+
+      y = ensurePage(y, 12);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(14);
+      doc.text("Qualifying Standings", margin, y);
+      y += 7;
+
+      const columns = [
+        { key: "pos", label: "Pos", width: 10, align: "left" },
+        { key: "reg", label: "Reg", width: 14, align: "left" },
+        { key: "driver", label: "Driver", width: 45, align: "left" },
+        { key: "team", label: "Team", width: 34, align: "left" },
+        { key: "chassis", label: "Chassis", width: 34, align: "left" },
+        { key: "run1", label: "Run 1", width: 16, align: "right" },
+        { key: "run2", label: "Run 2", width: 16, align: "right" },
+        { key: "best", label: "Best", width: 16, align: "right" },
+      ];
+      const rowHeight = 7;
+      const drawStandingsHeader = () => {
+        doc.setFillColor(239, 239, 239);
+        doc.rect(margin, y, contentWidth, rowHeight, "F");
+        doc.setDrawColor(17, 17, 17);
+        doc.rect(margin, y, contentWidth, rowHeight);
+        let x = margin;
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8);
+        doc.setTextColor(17, 17, 17);
+        columns.forEach((column) => {
+          doc.text(column.label.toUpperCase(), x + 1.5, y + 4.6);
+          x += column.width;
+        });
+        y += rowHeight;
+      };
+      drawStandingsHeader();
+
+      const rows = rankedDrivers.length
+        ? rankedDrivers.map((driver, index) => {
+            const run1 = getRunAverage(driver, 1);
+            const run2 = getRunAverage(driver, 2);
+            const best = getBestScore(run1, run2);
+            return {
+              pos: String(index + 1),
+              reg: String(driver.reg || driver.signUpPosition || "-"),
+              driver: driver.name || "Unnamed Driver",
+              team: driver.teamName || "-",
+              chassis: driver.chassis || "-",
+              run1: formatScore(run1),
+              run2: formatScore(run2),
+              best: formatScore(best),
+            };
+          })
+        : [{
+            pos: "-",
+            reg: "-",
+            driver: "No standings available yet.",
+            team: "-",
+            chassis: "-",
+            run1: "-",
+            run2: "-",
+            best: "-",
+          }];
+
+      rows.forEach((row) => {
+        y = ensurePage(y, rowHeight + 1);
+        if (y === margin) {
+          drawStandingsHeader();
+        }
+        let x = margin;
+        doc.setDrawColor(17, 17, 17);
+        doc.rect(margin, y, contentWidth, rowHeight);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8.5);
+        doc.setTextColor(17, 17, 17);
+        columns.forEach((column) => {
+          const text = String(row[column.key] ?? "");
+          const textX = column.align === "right" ? x + column.width - 1.5 : x + 1.5;
+          doc.text(text, textX, y + 4.6, { align: column.align === "right" ? "right" : "left", maxWidth: column.width - 3 });
+          x += column.width;
+        });
+        y += rowHeight;
+      });
+
+      y = ensurePage(y + 6, 8);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(100, 100, 100);
+      doc.text(`Generated ${formatDateTimeForExport(new Date().toISOString())}`, margin, y);
+
+      const safeFileName = `${(activeEventMeta.name || "event-results").replace(/[<>:"/\\|?*]+/g, "").trim().replace(/\s+/g, "-").toLowerCase() || "event-results"}-results.pdf`;
+      doc.save(safeFileName);
     }
 
     function nextPowerOfTwo(value) {
