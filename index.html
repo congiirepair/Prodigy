@@ -3399,6 +3399,33 @@
       judgeScores.submitted[runKey] = judgeScores[runKey];
     }
 
+    function confirmJudgeScoreSubmission(driverId, role = currentRole, runRef = null) {
+      const driver = appDrivers.find((entry) => entry.id === driverId);
+      if (!driver || !role?.startsWith("j")) return false;
+      const judgeScores = driver.scores?.[role];
+      if (!judgeScores) return false;
+      const driverName = driver.name || "this driver";
+
+      if (runRef) {
+        const runKey = getRunKey(runRef);
+        const scoreValue = judgeScores?.[runKey];
+        if (scoreValue === null || scoreValue === undefined) return false;
+        const runLabel = runKey === "run1" ? "Run 1" : runKey === "run2" ? "Run 2" : "Runoff";
+        return window.confirm(
+          `Are you sure you want to submit a score of ${formatScore(scoreValue)} for ${driverName} (${runLabel})?`
+        );
+      }
+
+      const parts = [];
+      if (judgeScores.run1 !== null && judgeScores.run1 !== undefined) parts.push(`Run 1: ${formatScore(judgeScores.run1)}`);
+      if (judgeScores.run2 !== null && judgeScores.run2 !== undefined) parts.push(`Run 2: ${formatScore(judgeScores.run2)}`);
+      if (judgeScores.runoff !== null && judgeScores.runoff !== undefined) parts.push(`Runoff: ${formatScore(judgeScores.runoff)}`);
+      if (!parts.length) return false;
+      return window.confirm(
+        `Are you sure you want to submit these scores for ${driverName}?\n\n${parts.join("\n")}`
+      );
+    }
+
     function hasSubmittedRequiredRuns(driver, role) {
       const judgeScores = driver?.scores?.[role]?.submitted;
       if (!judgeScores) return false;
@@ -6430,6 +6457,7 @@
           document.activeElement.blur();
         }
         const id = e.target.closest("tr").dataset.id;
+        if (!confirmJudgeScoreSubmission(id, currentRole)) return;
         submitJudgeScores(id, currentRole);
         maybeAdvanceQualifyingAfterSubmit(id);
         await syncJudgeSubmission(id, currentRole);
@@ -6560,6 +6588,7 @@
         if (document.activeElement?.classList?.contains("score-input") && typeof document.activeElement.blur === "function") {
           document.activeElement.blur();
         }
+        if (!confirmJudgeScoreSubmission(card.dataset.id, currentRole)) return;
         submitJudgeScores(card.dataset.id, currentRole);
         maybeAdvanceQualifyingAfterSubmit(card.dataset.id);
         await syncJudgeSubmission(card.dataset.id, currentRole);
@@ -6574,6 +6603,7 @@
           document.activeElement.blur();
         }
         const runKey = submitRunButton.dataset.run;
+        if (!confirmJudgeScoreSubmission(card.dataset.id, currentRole, runKey)) return;
         submitJudgeRun(card.dataset.id, runKey, currentRole);
         maybeAdvanceQualifyingAfterRunSubmit(card.dataset.id, runKey);
         await syncJudgeSubmission(card.dataset.id, currentRole, runKey);
