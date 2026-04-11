@@ -4176,6 +4176,7 @@
   </div>
 
   <!-- APP LOGIC -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -5070,7 +5071,7 @@
       return { lines, tableHeader };
     }
 
-    function buildPdfFromTextPages(pages) {
+    function buildPdfFromTextPagesLegacy(pages) {
       const pageWidth = 595.28;
       const pageHeight = 841.89;
       const marginLeft = 36;
@@ -5117,58 +5118,115 @@
       return new Blob([pdf], { type: "application/pdf" });
     }
 
+    function buildPdfFromTextPages(pages) {
+      const JsPdfCtor = window?.jspdf?.jsPDF;
+      if (!JsPdfCtor) {
+        return buildPdfFromTextPagesLegacy(pages);
+      }
+
+      try {
+        const doc = new JsPdfCtor({
+          orientation: "portrait",
+          unit: "pt",
+          format: "letter",
+          compress: true,
+        });
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const marginLeft = 36;
+        const marginTop = 44;
+        const lineHeight = 13;
+
+        doc.setFont("courier", "normal");
+        doc.setFontSize(10);
+
+        pages.forEach((lines, pageIndex) => {
+          if (pageIndex > 0) doc.addPage("letter", "portrait");
+          lines.forEach((line, lineIndex) => {
+            const y = pageHeight - marginTop - (lineIndex * lineHeight);
+            if (y < 36) return;
+            doc.text(String(line ?? ""), marginLeft, y, {
+              baseline: "alphabetic",
+              maxWidth: pageWidth - (marginLeft * 2),
+            });
+          });
+        });
+
+        return doc.output("blob");
+      } catch (error) {
+        console.warn("jsPDF generation failed, falling back to legacy PDF builder", error);
+        return buildPdfFromTextPagesLegacy(pages);
+      }
+    }
+
     function triggerPdfDownload(blob, fileName) {
       if (!blob) return false;
-      return showPdfPreview(
+      const previewShown = showPdfPreview(
         blob,
         fileName,
         prefersPdfPreviewModal()
           ? "The PDF was generated successfully. Use Download PDF or Open PDF below."
           : "The PDF was generated successfully. Use Download PDF or Open PDF below."
       );
+      if (!prefersPdfPreviewModal()) {
+        startDirectBlobDownload(blob, fileName);
+      }
+      return previewShown;
     }
 
     function exportResultsPdf() {
-      if (!activeEventMeta) return;
-      const liveResults = buildEventResults();
-      const results = {
-        ...(activeEventMeta.results || buildEmptyEventResults()),
-        ...liveResults,
-      };
-      const rankedDrivers = rankDrivers(appDrivers);
-      const { lines, tableHeader } = buildResultsPdfLines(activeEventMeta, results, rankedDrivers);
-      const maxLinesPerPage = 54;
-      const pages = [];
-      let pageLines = [];
-      let standingsContinued = false;
+      try {
+        if (!activeEventMeta) {
+          window.alert("Select an event before exporting results.");
+          return;
+        }
+        const liveResults = buildEventResults();
+        const results = {
+          ...(activeEventMeta.results || buildEmptyEventResults()),
+          ...liveResults,
+        };
+        const rankedDrivers = rankDrivers(appDrivers);
+        const { lines, tableHeader } = buildResultsPdfLines(activeEventMeta, results, rankedDrivers);
+        const maxLinesPerPage = 54;
+        const pages = [];
+        let pageLines = [];
+        let standingsContinued = false;
 
-      const flushPage = () => {
-        if (pageLines.length) pages.push(pageLines);
-        pageLines = [];
-      };
+        const flushPage = () => {
+          if (pageLines.length) pages.push(pageLines);
+          pageLines = [];
+        };
 
-      lines.forEach((line) => {
-        if (pageLines.length >= maxLinesPerPage) {
-          flushPage();
-          if (standingsContinued) {
-            pageLines.push("QUALIFYING STANDINGS (CONT.)");
-            pageLines.push("-".repeat(96));
-            pageLines.push(tableHeader);
-            pageLines.push("-".repeat(96));
+        lines.forEach((line) => {
+          if (pageLines.length >= maxLinesPerPage) {
+            flushPage();
+            if (standingsContinued) {
+              pageLines.push("QUALIFYING STANDINGS (CONT.)");
+              pageLines.push("-".repeat(96));
+              pageLines.push(tableHeader);
+              pageLines.push("-".repeat(96));
+            }
           }
-        }
-        pageLines.push(line);
-        if (line === "QUALIFYING STANDINGS") {
-          standingsContinued = true;
-        }
-      });
-      flushPage();
+          pageLines.push(line);
+          if (line === "QUALIFYING STANDINGS") {
+            standingsContinued = true;
+          }
+        });
+        flushPage();
 
-      const blob = buildPdfFromTextPages(pages);
-      const safeFileName = `${(activeEventMeta.name || "event-results").replace(/[<>:"/\\|?*]+/g, "").trim().replace(/\s+/g, "-").toLowerCase() || "event-results"}-results.pdf`;
-      const downloadStarted = triggerPdfDownload(blob, safeFileName);
-      if (!downloadStarted) {
-        window.alert("PDF export could not start on this browser yet.");
+        const blob = buildPdfFromTextPages(pages);
+        if (!(blob instanceof Blob) || !blob.size) {
+          window.alert("The PDF file could not be generated for this event.");
+          return;
+        }
+        const safeFileName = `${(activeEventMeta.name || "event-results").replace(/[<>:"/\\|?*]+/g, "").trim().replace(/\s+/g, "-").toLowerCase() || "event-results"}-results.pdf`;
+        const downloadStarted = triggerPdfDownload(blob, safeFileName);
+        if (!downloadStarted) {
+          window.alert("PDF export could not start on this browser yet.");
+        }
+      } catch (error) {
+        console.error("Results PDF export failed", error);
+        window.alert(`Results PDF export failed: ${error?.message || "Unknown error"}`);
       }
     }
 
@@ -6699,6 +6757,25 @@
       const platform = navigator.platform || "";
       const touchMac = platform === "MacIntel" && navigator.maxTouchPoints > 1;
       return /iPhone|iPad|iPod/i.test(ua) || touchMac;
+    }
+
+    function startDirectBlobDownload(blob, fileName) {
+      try {
+        const downloadUrl = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = downloadUrl;
+        anchor.download = fileName;
+        anchor.rel = "noopener";
+        anchor.style.display = "none";
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        setTimeout(() => URL.revokeObjectURL(downloadUrl), 4000);
+        return true;
+      } catch (error) {
+        console.warn("Direct PDF download attempt failed", error);
+        return false;
+      }
     }
 
     function showWebsiteAdminModal() {
