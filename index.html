@@ -3453,6 +3453,7 @@
       const localRoleScores = JSON.parse(JSON.stringify(localDriver.scores?.[role] || {}));
       lastLocalPush = Date.now();
       let transactionResult = null;
+      judgeSubmissionInFlight = true;
 
       try {
         await runTransaction(db, async (transaction) => {
@@ -3550,6 +3551,8 @@
         console.error("Judge submission sync failed:", error);
         publishState();
         return false;
+      } finally {
+        judgeSubmissionInFlight = false;
       }
     }
 
@@ -4628,9 +4631,11 @@
     }
 
     let deferredInteractiveRenderPending = false;
+    let judgeSubmissionInFlight = false;
 
     function isJudgeEditingScoreInput() {
       if (!currentRole?.startsWith("j")) return false;
+      if (judgeSubmissionInFlight) return false;
       const activeEl = document.activeElement;
       return Boolean(activeEl && activeEl.classList?.contains("score-input"));
     }
@@ -6381,6 +6386,9 @@
       const submitButton = e.target.closest("[data-action='submit-judge-scores']");
       if (submitButton) {
         if (!userCanEdit() || currentRole === "admin" || currentRole === "spectator") return;
+        if (document.activeElement?.classList?.contains("score-input") && typeof document.activeElement.blur === "function") {
+          document.activeElement.blur();
+        }
         const id = e.target.closest("tr").dataset.id;
         submitJudgeScores(id, currentRole);
         maybeAdvanceQualifyingAfterSubmit(id);
@@ -6509,6 +6517,9 @@
       const submitButton = e.target.closest("[data-action='submit-judge-scores']");
       if (submitButton) {
         if (!userCanEdit() || currentRole === "admin" || currentRole === "spectator") return;
+        if (document.activeElement?.classList?.contains("score-input") && typeof document.activeElement.blur === "function") {
+          document.activeElement.blur();
+        }
         submitJudgeScores(card.dataset.id, currentRole);
         maybeAdvanceQualifyingAfterSubmit(card.dataset.id);
         await syncJudgeSubmission(card.dataset.id, currentRole);
@@ -6519,6 +6530,9 @@
       const submitRunButton = e.target.closest("[data-action='submit-judge-run']");
       if (submitRunButton) {
         if (!userCanEdit() || currentRole === "admin" || currentRole === "spectator") return;
+        if (document.activeElement?.classList?.contains("score-input") && typeof document.activeElement.blur === "function") {
+          document.activeElement.blur();
+        }
         const runKey = submitRunButton.dataset.run;
         submitJudgeRun(card.dataset.id, runKey, currentRole);
         maybeAdvanceQualifyingAfterRunSubmit(card.dataset.id, runKey);
