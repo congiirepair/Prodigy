@@ -282,6 +282,27 @@
       padding: 10px 12px;
     }
 
+    body[data-role="admin"] #view-registration > .hero {
+      grid-template-columns: 1fr;
+      justify-items: center;
+      text-align: center;
+    }
+
+    body[data-role="admin"] #view-registration > .hero .hero-copy-block {
+      width: min(920px, 100%);
+      display: grid;
+      justify-items: center;
+    }
+
+    body[data-role="admin"] #view-registration > .hero .hero-copy {
+      max-width: 38ch;
+    }
+
+    body[data-role="admin"] #view-registration > .hero .hero-actions,
+    body[data-role="admin"] #view-registration > .hero .hero-meta-inline {
+      justify-content: center;
+    }
+
     .spectator-shop-button {
       position: fixed;
       right: 18px;
@@ -2787,24 +2808,6 @@
                 <option value="sdc-top-32">SDC bracket Top 32</option>
               </select>
             </label>
-          </div>
-        </div>
-        <div class="hero-card hero-card-grid">
-          <div class="hero-stat">
-            <span class="hero-stat-label">Event</span>
-            <strong id="registrationHeroEventName">Main Event</strong>
-          </div>
-          <div class="hero-stat">
-            <span class="hero-stat-label">Event Date</span>
-            <strong id="registrationHeroEventDate">TBD</strong>
-          </div>
-          <div class="hero-stat">
-            <span class="hero-stat-label">Registered Drivers</span>
-            <strong id="registrationDriverCount">0</strong>
-          </div>
-          <div class="hero-stat hero-stat-emphasis">
-            <span class="hero-stat-label">Flow</span>
-            <strong>Register first, qualify second</strong>
           </div>
         </div>
       </header>
@@ -5502,9 +5505,9 @@
       const orderedDrivers = [...normalizeDriverList(appDrivers)].sort((left, right) => (right.signUpPosition || 0) - (left.signUpPosition || 0));
       const canEditRegistration = registrationCanEdit();
 
-      registrationHeroEventName.textContent = activeEventMeta?.name || "Main Event";
-      registrationHeroEventDate.textContent = formatEventDate(activeEventMeta?.date);
-      registrationDriverCount.textContent = String(getRegisteredDrivers(appDrivers).length);
+      if (registrationHeroEventName) registrationHeroEventName.textContent = activeEventMeta?.name || "Main Event";
+      if (registrationHeroEventDate) registrationHeroEventDate.textContent = formatEventDate(activeEventMeta?.date);
+      if (registrationDriverCount) registrationDriverCount.textContent = String(getRegisteredDrivers(appDrivers).length);
 
       registrationForms.innerHTML = orderedDrivers.map((driver) => {
         const displayName = driver.name?.trim() ? escapeHtml(driver.name) : "New Driver";
@@ -7121,7 +7124,7 @@
       } else {
         return;
       }
-      registrationDriverCount.textContent = String(getRegisteredDrivers(appDrivers).length);
+      if (registrationDriverCount) registrationDriverCount.textContent = String(getRegisteredDrivers(appDrivers).length);
       publishState();
       if (!document.getElementById("view-registration").classList.contains("is-active")) {
         renderDriversTable();
