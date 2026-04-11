@@ -482,6 +482,32 @@
       color: var(--text);
     }
 
+    @media (max-width: 960px) {
+      body[data-theme="dark"] .qualifying-live-card {
+        background: linear-gradient(180deg, rgba(24, 24, 28, 0.98), rgba(12, 12, 16, 0.96)) !important;
+        border-color: rgba(255, 255, 255, 0.18) !important;
+        color: var(--text) !important;
+      }
+
+      body[data-theme="dark"] .qualifying-live-stat {
+        background: linear-gradient(180deg, rgba(30, 30, 33, 0.98), rgba(16, 16, 18, 0.96)) !important;
+        border-color: rgba(255, 255, 255, 0.12) !important;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.06) !important;
+        color: var(--text) !important;
+      }
+
+      body[data-theme="dark"] .qualifying-live-stat span,
+      body[data-theme="dark"] .qualifying-live-note,
+      body[data-theme="dark"] .qualifying-live-meta {
+        color: var(--text-soft) !important;
+      }
+
+      body[data-theme="dark"] .qualifying-live-stat strong,
+      body[data-theme="dark"] .qualifying-live-driver {
+        color: var(--text) !important;
+      }
+    }
+
     body[data-theme="dark"] .qualifying-results-simple li.is-dimmed {
       opacity: 0.62;
       color: var(--text-soft);
