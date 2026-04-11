@@ -2023,6 +2023,10 @@
       font-weight: 800;
       line-height: 1;
       text-transform: uppercase;
+      touch-action: manipulation;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
     }
 
     .score-deduction-btn:hover,
@@ -2042,6 +2046,16 @@
       min-height: 48px;
       width: 100%;
       font-size: 0.92rem;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .judge-score-card .micro-button,
+    .judge-lane-submitbar .button,
+    .judge-score-card input,
+    .score-input {
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
     }
 
     .judge-score-actions {
