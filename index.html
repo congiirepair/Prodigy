@@ -6979,6 +6979,8 @@
     ].filter(Boolean);
     let pdfPreviewUrl = "";
     let resultsPdfLogoDataUrlPromise = null;
+    let websiteAdminTapCount = 0;
+    let websiteAdminTapResetTimer = null;
 
     function applyTheme(theme = "light") {
       const normalizedTheme = theme === "dark" ? "dark" : "light";
@@ -7131,6 +7133,36 @@
       closeModal(websiteAdminModal);
       websiteAdminPasswordInput.value = "";
       websiteAdminError.style.display = "none";
+    }
+
+    function openWebsiteAdminAccess() {
+      if (isWebsiteAdmin) {
+        switchView("website-admin");
+      } else {
+        showWebsiteAdminModal();
+      }
+    }
+
+    function resetWebsiteAdminTapSequence() {
+      websiteAdminTapCount = 0;
+      if (websiteAdminTapResetTimer) {
+        clearTimeout(websiteAdminTapResetTimer);
+        websiteAdminTapResetTimer = null;
+      }
+    }
+
+    function registerWebsiteAdminHiddenTap() {
+      websiteAdminTapCount += 1;
+      if (websiteAdminTapResetTimer) {
+        clearTimeout(websiteAdminTapResetTimer);
+      }
+      websiteAdminTapResetTimer = setTimeout(() => {
+        resetWebsiteAdminTapSequence();
+      }, 1800);
+      if (websiteAdminTapCount >= 5) {
+        resetWebsiteAdminTapSequence();
+        openWebsiteAdminAccess();
+      }
     }
 
     function formatClaimedAt(value) {
@@ -7902,13 +7934,7 @@
     createEventCancelBtn.addEventListener("click", hideCreateEventModal);
     judgeCountInput.addEventListener("change", syncCreateEventJudgeFields);
     newEventBtn.addEventListener("click", showCreateEventModal);
-    websiteAdminBtn.addEventListener("click", () => {
-      if (isWebsiteAdmin) {
-        switchView("website-admin");
-      } else {
-        showWebsiteAdminModal();
-      }
-    });
+    websiteAdminBtn.addEventListener("click", openWebsiteAdminAccess);
     themeToggleBtn?.addEventListener("click", () => {
       applyTheme(document.body.dataset.theme === "dark" ? "light" : "dark");
     });
@@ -7932,6 +7958,13 @@
     websiteAdminPasswordInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter") websiteAdminSubmitBtn.click();
       if (e.key === "Escape") hideWebsiteAdminModal();
+    });
+    buildLabel?.addEventListener("click", registerWebsiteAdminHiddenTap);
+    document.addEventListener("keydown", (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && String(e.key).toLowerCase() === "a") {
+        e.preventDefault();
+        openWebsiteAdminAccess();
+      }
     });
     pdfPreviewCloseBtn?.addEventListener("click", hidePdfPreview);
     pdfPreviewModal?.addEventListener("click", (e) => {
