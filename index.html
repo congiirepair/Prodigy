@@ -5006,6 +5006,32 @@
         .replaceAll(")", "\\)");
     }
 
+    function blobToDataUrl(blob) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(String(reader.result || ""));
+        reader.onerror = () => reject(reader.error || new Error("Unable to read blob as data URL."));
+        reader.readAsDataURL(blob);
+      });
+    }
+
+    async function getResultsPdfLogoDataUrl() {
+      if (!resultsPdfLogoDataUrlPromise) {
+        resultsPdfLogoDataUrlPromise = (async () => {
+          try {
+            const response = await fetch("./assets/prodigy-rc-logo-transparent.png", { cache: "force-cache" });
+            if (!response.ok) throw new Error(`Logo request failed with ${response.status}`);
+            const blob = await response.blob();
+            return await blobToDataUrl(blob);
+          } catch (error) {
+            console.warn("Results PDF logo unavailable", error);
+            return null;
+          }
+        })();
+      }
+      return await resultsPdfLogoDataUrlPromise;
+    }
+
     function padPdfCell(value, width, align = "left") {
       const text = normalizePdfText(value);
       const clipped = text.length > width ? `${text.slice(0, Math.max(width - 3, 0))}...` : text;
@@ -5094,7 +5120,7 @@
 
       pages.forEach((lines) => {
         const commands = lines.map((line, index) => {
-          const y = pageHeight - marginTop - (index * lineHeight);
+          const y = pageHeight - (marginTop + (index * lineHeight));
           return `BT\n/F1 10 Tf\n1 0 0 1 ${marginLeft.toFixed(2)} ${y.toFixed(2)} Tm\n(${escapePdfText(line)}) Tj\nET`;
         }).join("\n");
         const stream = `${commands}\n`;
@@ -5147,8 +5173,8 @@
         pages.forEach((lines, pageIndex) => {
           if (pageIndex > 0) doc.addPage("letter", "portrait");
           lines.forEach((line, lineIndex) => {
-            const y = pageHeight - marginTop - (lineIndex * lineHeight);
-            if (y < 36) return;
+            const y = marginTop + (lineIndex * lineHeight);
+            if (y > pageHeight - 36) return;
             doc.text(String(line ?? ""), marginLeft, y, {
               baseline: "alphabetic",
               maxWidth: pageWidth - (marginLeft * 2),
@@ -5163,34 +5189,10 @@
       }
     }
 
-    function triggerPdfDownload(blob, fileName) {
-      if (!blob) return false;
-      const previewShown = showPdfPreview(
-        blob,
-        fileName,
-        prefersPdfPreviewModal()
-          ? "The PDF was generated successfully. Use Download PDF or Open PDF below."
-          : "The PDF was generated successfully. Use Download PDF or Open PDF below."
-      );
-      if (!prefersPdfPreviewModal()) {
-        startDirectBlobDownload(blob, fileName);
-      }
-      return previewShown;
-    }
-
-    function exportResultsPdf() {
-      try {
-        if (!activeEventMeta) {
-          window.alert("Select an event before exporting results.");
-          return;
-        }
-        const liveResults = buildEventResults();
-        const results = {
-          ...(activeEventMeta.results || buildEmptyEventResults()),
-          ...liveResults,
-        };
-        const rankedDrivers = rankDrivers(appDrivers);
-        const { lines, tableHeader } = buildResultsPdfLines(activeEventMeta, results, rankedDrivers);
+    async function buildResultsPdfBlob(eventMeta, results, rankedDrivers) {
+      const JsPdfCtor = window?.jspdf?.jsPDF;
+      if (!JsPdfCtor) {
+        const { lines, tableHeader } = buildResultsPdfLines(eventMeta, results, rankedDrivers);
         const maxLinesPerPage = 54;
         const pages = [];
         let pageLines = [];
@@ -5212,13 +5214,341 @@
             }
           }
           pageLines.push(line);
-          if (line === "QUALIFYING STANDINGS") {
-            standingsContinued = true;
-          }
+          if (line === "QUALIFYING STANDINGS") standingsContinued = true;
         });
         flushPage();
+        return buildPdfFromTextPages(pages);
+      }
 
-        const blob = buildPdfFromTextPages(pages);
+      const doc = new JsPdfCtor({
+        orientation: "portrait",
+        unit: "pt",
+        format: "letter",
+        compress: true,
+      });
+
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const marginX = 38;
+      const contentWidth = pageWidth - (marginX * 2);
+      const footerY = pageHeight - 22;
+      const cardGap = 12;
+      const sectionGap = 18;
+      const logoDataUrl = await getResultsPdfLogoDataUrl();
+      const generatedAtLabel = formatDateTimeForExport(new Date().toISOString());
+      let cursorY = 34;
+
+      const truncatePdfWidth = (value, width) => {
+        const safe = normalizePdfText(value || "-");
+        if (!safe) return "-";
+        if (doc.getTextWidth(safe) <= width) return safe;
+        let base = safe;
+        while (base.length > 1 && doc.getTextWidth(`${base}...`) > width) {
+          base = base.slice(0, -1);
+        }
+        return `${base}...`;
+      };
+
+      const drawSectionHeader = (title) => {
+        doc.setFillColor(10, 10, 10);
+        doc.roundedRect(marginX, cursorY, contentWidth, 22, 8, 8, "F");
+        doc.setTextColor(255, 255, 255);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10);
+        doc.text(normalizePdfText(title).toUpperCase(), marginX + 12, cursorY + 14);
+        cursorY += 32;
+      };
+
+      const drawInfoCard = (x, y, w, h, label, value) => {
+        doc.setDrawColor(24, 24, 24);
+        doc.setFillColor(252, 252, 252);
+        doc.roundedRect(x, y, w, h, 10, 10, "FD");
+        doc.setTextColor(110, 110, 110);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8);
+        doc.text(normalizePdfText(label).toUpperCase(), x + 12, y + 16);
+        doc.setTextColor(18, 18, 18);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(12);
+        const lines = doc.splitTextToSize(normalizePdfText(value || "-"), w - 24).slice(0, 2);
+        lines.forEach((line, lineIndex) => {
+          doc.text(line, x + 12, y + 34 + (lineIndex * 14));
+        });
+      };
+
+      const drawPodiumCard = (x, y, w, h, place, driver, fallback) => {
+        doc.setDrawColor(20, 20, 20);
+        doc.setFillColor(place === "1st Place" ? 245 : 251, place === "1st Place" ? 245 : 251, place === "1st Place" ? 245 : 251);
+        doc.roundedRect(x, y, w, h, 12, 12, "FD");
+        doc.setTextColor(95, 95, 95);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8);
+        doc.text(normalizePdfText(place).toUpperCase(), x + 12, y + 16);
+        doc.setTextColor(12, 12, 12);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(12);
+        const primary = driver
+          ? `#${driver.seed} ${normalizePdfText(driver.name)}`
+          : normalizePdfText(fallback);
+        doc.text(doc.splitTextToSize(primary, w - 24).slice(0, 2), x + 12, y + 34);
+        doc.setTextColor(110, 110, 110);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        const secondary = driver?.teamName?.trim()
+          ? `Team ${normalizePdfText(driver.teamName.trim())}`
+          : driver
+            ? `Qual ${formatScore(driver.bestScore ?? null)}`
+            : "Waiting for result";
+        doc.text(doc.splitTextToSize(secondary, w - 24).slice(0, 2), x + 12, y + h - 16);
+      };
+
+      const rowHeights = {
+        header: 24,
+        body: 22,
+      };
+      const tableColumns = [
+        { key: "pos", label: "Pos", width: 28, align: "center" },
+        { key: "reg", label: "Reg", width: 34, align: "center" },
+        { key: "driver", label: "Driver", width: 148, align: "left" },
+        { key: "team", label: "Team", width: 96, align: "left" },
+        { key: "chassis", label: "Chassis", width: 92, align: "left" },
+        { key: "run1", label: "Run 1", width: 44, align: "right" },
+        { key: "run2", label: "Run 2", width: 44, align: "right" },
+        { key: "best", label: "Best", width: 44, align: "right" },
+      ];
+
+      const drawTableHeader = () => {
+        let x = marginX;
+        doc.setFillColor(14, 14, 14);
+        doc.roundedRect(marginX, cursorY, contentWidth, rowHeights.header, 8, 8, "F");
+        tableColumns.forEach((column) => {
+          doc.setTextColor(255, 255, 255);
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(8.5);
+          const textX = column.align === "right"
+            ? x + column.width - 8
+            : column.align === "center"
+              ? x + (column.width / 2)
+              : x + 8;
+          doc.text(column.label.toUpperCase(), textX, cursorY + 15, {
+            align: column.align === "right" ? "right" : column.align === "center" ? "center" : "left",
+          });
+          x += column.width;
+        });
+        cursorY += rowHeights.header + 8;
+      };
+
+      const drawTableRow = (row, rowIndex) => {
+        let x = marginX;
+        doc.setDrawColor(222, 222, 222);
+        doc.setFillColor(rowIndex % 2 === 0 ? 253 : 245, rowIndex % 2 === 0 ? 253 : 245, rowIndex % 2 === 0 ? 253 : 245);
+        doc.roundedRect(marginX, cursorY, contentWidth, rowHeights.body, 6, 6, "FD");
+        tableColumns.forEach((column) => {
+          const rawText = row[column.key] ?? "-";
+          doc.setTextColor(18, 18, 18);
+          doc.setFont("helvetica", column.key === "driver" ? "bold" : "normal");
+          doc.setFontSize(9);
+          const availableWidth = column.width - 14;
+          const displayText = truncatePdfWidth(rawText, availableWidth);
+          const textX = column.align === "right"
+            ? x + column.width - 7
+            : column.align === "center"
+              ? x + (column.width / 2)
+              : x + 7;
+          doc.text(displayText, textX, cursorY + 14, {
+            align: column.align === "right" ? "right" : column.align === "center" ? "center" : "left",
+          });
+          x += column.width;
+        });
+        cursorY += rowHeights.body + 6;
+      };
+
+      const beginNewPage = (repeatStandingsHeader = false) => {
+        doc.addPage("letter", "portrait");
+        cursorY = 30;
+        doc.setDrawColor(222, 222, 222);
+        doc.line(marginX, cursorY + 36, pageWidth - marginX, cursorY + 36);
+        if (logoDataUrl) {
+          try {
+            const props = doc.getImageProperties(logoDataUrl);
+            const ratio = props.width / props.height;
+            const logoW = 138;
+            const logoH = logoW / ratio;
+            doc.addImage(logoDataUrl, "PNG", marginX, cursorY, logoW, logoH, undefined, "FAST");
+          } catch (error) {
+            console.warn("Unable to add results PDF logo on additional page", error);
+          }
+        }
+        doc.setTextColor(30, 30, 30);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(13);
+        doc.text(normalizePdfText(eventMeta.name || "Competition Results"), pageWidth - marginX, cursorY + 16, { align: "right" });
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(110, 110, 110);
+        doc.text("Qualifying Standings", pageWidth - marginX, cursorY + 30, { align: "right" });
+        cursorY += 52;
+        if (repeatStandingsHeader) {
+          drawSectionHeader("Qualifying Standings");
+          drawTableHeader();
+        }
+      };
+
+      if (logoDataUrl) {
+        try {
+          const props = doc.getImageProperties(logoDataUrl);
+          const ratio = props.width / props.height;
+          const logoW = Math.min(220, contentWidth * 0.45);
+          const logoH = logoW / ratio;
+          doc.addImage(logoDataUrl, "PNG", (pageWidth - logoW) / 2, cursorY, logoW, logoH, undefined, "FAST");
+          cursorY += logoH + 12;
+        } catch (error) {
+          console.warn("Unable to add results PDF logo", error);
+          cursorY += 12;
+        }
+      }
+
+      doc.setTextColor(12, 12, 12);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(24);
+      doc.text("Competition Results", pageWidth / 2, cursorY, { align: "center" });
+      cursorY += 16;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.setTextColor(110, 110, 110);
+      doc.text(normalizePdfText(formatEventDate(eventMeta.date)), pageWidth / 2, cursorY, { align: "center" });
+      cursorY += 16;
+      doc.setDrawColor(22, 22, 22);
+      doc.line(marginX, cursorY, pageWidth - marginX, cursorY);
+      cursorY += sectionGap;
+
+      drawSectionHeader("Event Summary");
+      const summaryCards = [
+        ["Event", eventMeta.name || "Event Results"],
+        ["Date", formatEventDate(eventMeta.date)],
+        ["Format", results.planDescription || "Waiting for qualifying scores."],
+        ["Completed", formatDateTimeForExport(results.completedAt || results.updatedAt)],
+        ["Total Drivers", String(results.totalDrivers || rankedDrivers.length || 0)],
+        ["Qualified Drivers", String(results.qualifiedCount || 0)],
+      ];
+      const summaryCardWidth = (contentWidth - cardGap) / 2;
+      const summaryCardHeight = 56;
+      summaryCards.forEach(([label, value], index) => {
+        const col = index % 2;
+        const row = Math.floor(index / 2);
+        drawInfoCard(
+          marginX + (col * (summaryCardWidth + cardGap)),
+          cursorY + (row * (summaryCardHeight + 10)),
+          summaryCardWidth,
+          summaryCardHeight,
+          label,
+          value,
+        );
+      });
+      cursorY += (Math.ceil(summaryCards.length / 2) * (summaryCardHeight + 10)) - 10 + sectionGap;
+
+      drawSectionHeader("Podium");
+      const rankedLookup = new Map(rankedDrivers.map((driver) => [`${driver.seed}:${driver.name}`, driver]));
+      const podiumCards = [
+        ["1st Place", results.championName ? (rankedLookup.get(`${results.championSeed}:${results.championName}`) || { seed: results.championSeed, name: results.championName, bestScore: null, teamName: "" }) : null, "Waiting for winner"],
+        ["2nd Place", results.runnerUpName ? (rankedLookup.get(`${results.runnerUpSeed}:${results.runnerUpName}`) || { seed: results.runnerUpSeed, name: results.runnerUpName, bestScore: null, teamName: "" }) : null, "Waiting for finalist"],
+        ["3rd Place", results.thirdPlaceName ? (rankedLookup.get(`${results.thirdPlaceSeed}:${results.thirdPlaceName}`) || { seed: results.thirdPlaceSeed, name: results.thirdPlaceName, bestScore: null, teamName: "" }) : null, "Waiting for 3rd place battle"],
+      ];
+      const podiumWidth = (contentWidth - (cardGap * 2)) / 3;
+      const podiumHeight = 78;
+      podiumCards.forEach(([place, driver, fallback], index) => {
+        drawPodiumCard(
+          marginX + (index * (podiumWidth + cardGap)),
+          cursorY,
+          podiumWidth,
+          podiumHeight,
+          place,
+          driver,
+          fallback,
+        );
+      });
+      cursorY += podiumHeight + sectionGap;
+
+      drawSectionHeader("Qualifying Standings");
+      drawTableHeader();
+
+      const tableRows = rankedDrivers.length
+        ? rankedDrivers.map((driver, index) => {
+            const run1 = getRunAverage(driver, 1);
+            const run2 = getRunAverage(driver, 2);
+            const best = getBestScore(run1, run2);
+            return {
+              pos: String(index + 1),
+              reg: String(driver.reg || driver.signUpPosition || "-"),
+              driver: normalizePdfText(driver.name || "Unnamed Driver"),
+              team: normalizePdfText(driver.teamName || "-"),
+              chassis: normalizePdfText(driver.chassis || "-"),
+              run1: formatScore(run1),
+              run2: formatScore(run2),
+              best: formatScore(best),
+            };
+          })
+        : [{
+            pos: "-",
+            reg: "-",
+            driver: "No standings available yet.",
+            team: "-",
+            chassis: "-",
+            run1: "-",
+            run2: "-",
+            best: "-",
+          }];
+
+      tableRows.forEach((row, index) => {
+        if (cursorY + rowHeights.body + 28 > footerY) {
+          beginNewPage(true);
+        }
+        drawTableRow(row, index);
+      });
+
+      const pageCount = doc.getNumberOfPages();
+      for (let pageIndex = 1; pageIndex <= pageCount; pageIndex += 1) {
+        doc.setPage(pageIndex);
+        doc.setDrawColor(224, 224, 224);
+        doc.line(marginX, footerY - 8, pageWidth - marginX, footerY - 8);
+        doc.setTextColor(110, 110, 110);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.text(`Generated ${generatedAtLabel}`, marginX, footerY);
+        doc.text(`Page ${pageIndex} of ${pageCount}`, pageWidth - marginX, footerY, { align: "right" });
+      }
+
+      return doc.output("blob");
+    }
+
+    function triggerPdfDownload(blob, fileName) {
+      if (!blob) return false;
+      const previewShown = showPdfPreview(
+        blob,
+        fileName,
+        prefersPdfPreviewModal()
+          ? "The PDF was generated successfully. Use Download PDF or Open PDF below."
+          : "The PDF was generated successfully. Use Download PDF or Open PDF below."
+      );
+      if (!prefersPdfPreviewModal()) {
+        startDirectBlobDownload(blob, fileName);
+      }
+      return previewShown;
+    }
+
+    async function exportResultsPdf() {
+      try {
+        if (!activeEventMeta) {
+          window.alert("Select an event before exporting results.");
+          return;
+        }
+        const liveResults = buildEventResults();
+        const results = {
+          ...(activeEventMeta.results || buildEmptyEventResults()),
+          ...liveResults,
+        };
+        const rankedDrivers = rankDrivers(appDrivers);
+        const blob = await buildResultsPdfBlob(activeEventMeta, results, rankedDrivers);
         if (!(blob instanceof Blob) || !blob.size) {
           window.alert("The PDF file could not be generated for this event.");
           return;
@@ -6648,6 +6978,7 @@
       judge3InviteInput?.closest(".modal-field"),
     ].filter(Boolean);
     let pdfPreviewUrl = "";
+    let resultsPdfLogoDataUrlPromise = null;
 
     function applyTheme(theme = "light") {
       const normalizedTheme = theme === "dark" ? "dark" : "light";
