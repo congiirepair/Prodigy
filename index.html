@@ -4947,6 +4947,8 @@
       const localRoleScores = JSON.parse(JSON.stringify(localDriver.scores?.[role] || {}));
       lastLocalPush = Date.now();
       let transactionResult = null;
+      let remoteJudgeLocked = false;
+      let lockedRemotePayload = null;
       judgeSubmissionInFlight = true;
 
       try {
@@ -4955,7 +4957,11 @@
           const eventSnap = await transaction.get(eventRef);
           const remotePayload = eventSnap.exists() ? eventSnap.data() : {};
           const remoteMeta = extractEventMeta(remotePayload, activeEventId) || cloneEventMeta(eventDirectory[activeEventId] || activeEventMeta);
-          if (isJudgeAccessLocked(remoteMeta)) return;
+          if (isJudgeAccessLocked(remoteMeta)) {
+            remoteJudgeLocked = true;
+            lockedRemotePayload = remotePayload;
+            return;
+          }
           const remoteDrivers = Array.isArray(remotePayload.drivers) && remotePayload.drivers.length
             ? sanitizeLoadedDrivers(remotePayload.drivers)
             : createDriverSet();
@@ -4986,8 +4992,8 @@
             if (shouldAdvanceAfterAllRuns || shouldAdvanceAfterRun2) {
               const queue = getRegisteredDrivers(remoteDrivers);
               const currentIndex = Math.max(0, queue.findIndex((entry) => entry.id === driverId));
-              const nextIndex = Math.min(queue.length - 1, currentIndex + 1);
-              nextQualifyingFlow.currentDriverId = queue[nextIndex]?.id || queue[queue.length - 1]?.id || null;
+              const nextIndex = currentIndex + 1;
+              nextQualifyingFlow.currentDriverId = nextIndex < queue.length ? (queue[nextIndex]?.id || null) : null;
               nextQualifyingFlow.readyRoles = {};
             }
           }
@@ -5040,6 +5046,15 @@
           eventDirectory[activeEventId] = cloneEventMeta(activeEventMeta);
           saveDirectoryCache();
           saveEventStateCache();
+        } else if (remoteJudgeLocked) {
+          if (lockedRemotePayload) {
+            applyRemoteEventState(lockedRemotePayload);
+          }
+          window.alert("Judging is locked for this event now. Your last submission was not saved.");
+          applyRoleChange("spectator");
+          switchView("qualifying");
+          renderDriversTable();
+          return false;
         }
         return true;
       } catch (error) {
@@ -6713,9 +6728,17 @@
       }
 
       const currentIndex = Math.max(0, queue.findIndex((driver) => driver.id === qualifyingFlow.currentDriverId));
-      const nextIndex = Math.min(queue.length - 1, currentIndex + 1);
+      const nextIndex = currentIndex + 1;
+      if (nextIndex >= queue.length) {
+        qualifyingFlow = {
+          currentDriverId: null,
+          readyRoles: {},
+        };
+        judgeLaneIndex = Math.max(0, queue.length - 1);
+        return;
+      }
       qualifyingFlow = {
-        currentDriverId: queue[nextIndex]?.id || queue[queue.length - 1].id,
+        currentDriverId: queue[nextIndex]?.id || null,
         readyRoles: {},
       };
       judgeLaneIndex = nextIndex;
@@ -6834,6 +6857,13 @@
       if (!eventId || !role || role === "spectator") return false;
       const unlockMap = readRoleUnlockMap();
       return Boolean(unlockMap?.[eventId]?.[role]);
+    }
+
+    function canApplyRoleForEvent(eventId, role, eventMeta = activeEventMeta) {
+      if (!role || role === "spectator") return true;
+      if (!isRoleAvailableForEvent(role, eventMeta)) return false;
+      if (role?.startsWith("j") && isJudgeAccessLocked(eventMeta)) return false;
+      return isRoleUnlockedForEvent(eventId, role);
     }
 
     function setRoleUnlockedForEvent(eventId, role, unlocked) {
@@ -7100,23 +7130,33 @@
       eventDirectory[activeEventId] = cloneEventMeta(activeEventMeta);
       saveDirectoryCache();
 
+      const publishEventId = activeEventId;
+      const publishEventMeta = cloneEventMeta(activeEventMeta);
+      const publishDrivers = JSON.parse(JSON.stringify(appDrivers));
+      const publishBracket = tournamentState ? JSON.parse(JSON.stringify(tournamentState)) : null;
+      const publishQualifyingFlow = JSON.parse(JSON.stringify(qualifyingFlow));
+      const publishFormatMode = bracketModeSelect.value;
+      const publishLowerCount = String(getRequestedSdcMainBracketSize(bracketModeSelect.value) || 0);
+      const publishDirectory = JSON.parse(JSON.stringify(eventDirectory));
+      const publishSyncStamp = lastLocalPush;
+
       clearTimeout(syncTimeout);
       syncTimeout = setTimeout(async () => {
         try {
           await Promise.all([
-            setDoc(getEventDocRef(activeEventId), {
-              ...activeEventMeta,
-              drivers: appDrivers,
-              bracket: tournamentState,
-              qualifyingFlow,
-              formatMode: bracketModeSelect.value,
-              lowerCount: String(getRequestedSdcMainBracketSize(bracketModeSelect.value) || 0),
-              syncStamp: lastLocalPush,
+            setDoc(getEventDocRef(publishEventId), {
+              ...publishEventMeta,
+              drivers: publishDrivers,
+              bracket: publishBracket,
+              qualifyingFlow: publishQualifyingFlow,
+              formatMode: publishFormatMode,
+              lowerCount: publishLowerCount,
+              syncStamp: publishSyncStamp,
             }),
             setDoc(getDirectoryDocRef(), {
-              events: eventDirectory,
-              activeEventId,
-              syncStamp: lastLocalPush,
+              events: publishDirectory,
+              activeEventId: publishEventId,
+              syncStamp: publishSyncStamp,
             }),
           ]);
         } catch (e) {
@@ -8184,6 +8224,9 @@
       if (!isRoleAvailableForEvent(newRole, activeEventMeta)) {
         newRole = "spectator";
       }
+      if (!canApplyRoleForEvent(activeEventId, newRole, activeEventMeta)) {
+        newRole = "spectator";
+      }
       if ((newRole?.startsWith("j") && isJudgeAccessLocked()) && newRole !== "spectator") {
         newRole = "spectator";
       }
@@ -8378,7 +8421,7 @@
       if (!nextId || nextId === activeEventId || !eventDirectory[nextId]) return;
       activeEventId = nextId;
       loadActiveEventStateFromCache();
-      applyRoleChange(getSavedRoleForEvent(activeEventId));
+      applyRoleChange(resolveRoleForActiveEventSwitch(activeEventId, currentRole));
       saveDirectoryCache();
       renderEventDirectory();
       renderRoleAdminPanel();
@@ -9172,7 +9215,7 @@
       }
 
       if (tieInfo) {
-        const names = tieInfo.tiedDrivers.map((driver) => driver.name || `Sign-up #${driver.signUpPosition}`).join(", ");
+        const names = tieInfo.tiedDrivers.map((driver) => driver.name || "Unnamed Driver").join(", ");
         topQualifierTiePanel.classList.remove("hidden");
         topQualifierTiePanel.textContent = tieInfo.requiresRunoff
           ? `Top qualifier tie: ${names}. Runoff scores are required before launching the bracket.`
