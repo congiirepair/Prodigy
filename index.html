@@ -317,6 +317,19 @@
       border-color: rgba(255,255,255,0.72);
     }
 
+    body[data-theme="dark"] .slot-button.loser,
+    body[data-theme="dark"] .driver-button.loser {
+      background: linear-gradient(180deg, rgba(72, 72, 78, 0.98), rgba(44, 44, 48, 0.96));
+      color: rgba(255, 255, 255, 0.55);
+      border-color: rgba(255, 255, 255, 0.14);
+    }
+
+    body[data-theme="dark"] .driver-button.loser small,
+    body[data-theme="dark"] .slot-button.loser .slot-team {
+      color: rgba(255, 255, 255, 0.4);
+      opacity: 1;
+    }
+
     body[data-theme="dark"] .seed-chip,
     body[data-theme="dark"] .final-battle-head,
     body[data-theme="dark"] .cutoff-label.qualified {
@@ -2720,6 +2733,13 @@
       box-shadow: none;
     }
     .slot-button.selected { background: #000; color: #fff; }
+    .slot-button.loser {
+      background: #d7d7d7;
+      color: #6a6a6a;
+    }
+    .slot-button.loser .slot-team {
+      opacity: 0.5;
+    }
     .slot-button.empty {
       color: #888;
       background: #f0f0f0;
@@ -2864,6 +2884,11 @@
       color: #fff;
     }
     .driver-button.selected small { color: #ccc; }
+    .driver-button.loser {
+      background: #d7d7d7;
+      color: #6a6a6a;
+    }
+    .driver-button.loser small { color: #7a7a7a; }
 
     .driver-button.empty {
       background: #f0f0f0;
@@ -8706,9 +8731,10 @@
         return `<button class="driver-button empty" type="button" disabled><span>${getEmptySlotText(bracketKey, roundIndex, matchIndex, side)}</span></button>`;
       }
       const selected = participantKey(driver) === participantKey(winner);
+      const loser = Boolean(winner) && !selected;
       const disabledHTML = (!adminCanEdit() || !canChoose) ? "disabled" : "";
       return `
-        <button class="driver-button ${selected ? "selected" : ""}" type="button" data-bracket="${bracketKey}" data-round="${roundIndex}" data-match="${matchIndex}" data-side="${side}" ${disabledHTML}>
+        <button class="driver-button ${selected ? "selected" : ""} ${loser ? "loser" : ""}" type="button" data-bracket="${bracketKey}" data-round="${roundIndex}" data-match="${matchIndex}" data-side="${side}" ${disabledHTML}>
           <strong>#${driver.seed} ${escapeHtml(driver.name)}</strong>
           <small>Qual ${formatScore(driver.bestScore)}</small>
         </button>
@@ -8736,9 +8762,10 @@
       if (!driver) return `<div class="main-battle-slot"><button class="slot-button empty" type="button" disabled>${getEmptySlotText(bracketKey, roundIndex, matchIndex, side)}</button></div>`;
       
       const selected = participantKey(driver) === participantKey(winner);
+      const loser = Boolean(winner) && !selected;
       const disabledHTML = (!adminCanEdit() || !canChoose) ? "disabled" : "";
       const teamMarkup = driver.teamName?.trim() ? `<span class="slot-team">${escapeHtml(driver.teamName.trim())}</span>` : "";
-      const button = `<button class="slot-button ${selected ? "selected" : ""}" type="button" data-bracket="${bracketKey}" data-round="${roundIndex}" data-match="${matchIndex}" data-side="${side}" ${disabledHTML}><span class="slot-name">${escapeHtml(driver.name)}</span>${teamMarkup}</button>`;
+      const button = `<button class="slot-button ${selected ? "selected" : ""} ${loser ? "loser" : ""}" type="button" data-bracket="${bracketKey}" data-round="${roundIndex}" data-match="${matchIndex}" data-side="${side}" ${disabledHTML}><span class="slot-name">${escapeHtml(driver.name)}</span>${teamMarkup}</button>`;
       const seedChip = `<span class="seed-chip">${driver.seed}</span>`;
 
       return align === "right" ? `<div class="main-battle-slot">${button}${seedChip}</div>` : `<div class="main-battle-slot">${seedChip}${button}</div>`;
