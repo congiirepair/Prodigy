@@ -957,6 +957,8 @@
     .judge-lane-shell {
       display: grid;
       gap: 14px;
+      min-height: calc(100dvh - 32px);
+      align-content: start;
     }
 
     .judge-lane-toolbar {
@@ -1039,6 +1041,7 @@
       display: grid;
       gap: 12px;
       grid-template-columns: 1fr;
+      align-content: start;
     }
 
     .mobile-score-grid {
@@ -2424,7 +2427,8 @@
       .battle-flow-option { min-height: 48px; }
       .judge-lane-toolbar {
         top: 4px;
-        padding: 14px;
+        padding: 12px;
+        gap: 10px;
       }
       .judge-lane-status-row {
         display: grid;
@@ -2439,6 +2443,99 @@
       .judge-lane-submitmeta {
         flex-direction: column;
         align-items: flex-start;
+      }
+      .judge-lane-shell {
+        min-height: calc(100dvh - 20px);
+        gap: 10px;
+      }
+      .mobile-driver-card[data-id] {
+        gap: 10px;
+        padding: 12px;
+      }
+      .judge-run-grid {
+        gap: 10px;
+      }
+      .judge-score-card {
+        gap: 8px;
+        padding: 12px;
+      }
+      .judge-score-card input {
+        min-height: 60px;
+        padding: 10px 12px;
+        font-size: 1.5rem;
+      }
+      .judge-score-head strong {
+        font-size: 0.92rem;
+      }
+      .judge-score-live {
+        min-height: 24px;
+        padding: 4px 8px;
+        font-size: 0.7rem;
+      }
+      .judge-score-caption,
+      .judge-score-help,
+      .judge-lane-note,
+      .judge-next-driver,
+      .helper-text {
+        font-size: 0.74rem;
+        line-height: 1.35;
+      }
+      .judge-lane-status-pill {
+        padding: 6px 8px;
+        font-size: 0.68rem;
+      }
+      .judge-lane-submitbar {
+        gap: 8px;
+        padding: 10px 12px;
+        margin-top: 0;
+      }
+      .judge-lane-submitbar .button {
+        min-height: 50px;
+        font-size: 0.92rem;
+      }
+    }
+
+    @media (max-width: 720px) and (max-height: 780px) {
+      .judge-lane-toolbar {
+        padding: 10px;
+        gap: 8px;
+      }
+      .judge-lane-meta strong {
+        font-size: 1.05rem;
+      }
+      .judge-lane-progress,
+      .mobile-driver-reg {
+        font-size: 0.74rem;
+      }
+      .mobile-driver-card[data-id] {
+        padding: 10px;
+        gap: 8px;
+      }
+      .judge-run-grid {
+        gap: 8px;
+      }
+      .judge-score-card {
+        padding: 10px;
+        gap: 7px;
+      }
+      .judge-score-card input {
+        min-height: 52px;
+        font-size: 1.3rem;
+      }
+      .judge-score-caption,
+      .judge-score-help,
+      .judge-lane-note,
+      .judge-next-driver,
+      .helper-text {
+        font-size: 0.7rem;
+        line-height: 1.28;
+      }
+      .judge-lane-submitbar {
+        padding: 9px 10px;
+      }
+      .judge-lane-submitbar .button {
+        min-height: 46px;
+        font-size: 0.88rem;
       }
     }
   </style>
