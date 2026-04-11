@@ -4780,17 +4780,12 @@
 
       const eventDoc = getEventDocRef(activeEventId);
       const subscribedEventId = activeEventId;
-      let hasReceivedInitialSnapshot = false;
       eventDocUnsubscribe = onSnapshot(eventDoc, (snap) => {
         if (!snap.exists()) return;
         const data = snap.data();
-        const shouldApplySnapshot = !hasReceivedInitialSnapshot || (data.syncStamp || 0) > lastLocalPush;
-        hasReceivedInitialSnapshot = true;
         if (subscribedEventId !== activeEventId) return;
-        if (shouldApplySnapshot) {
-          applyRemoteEventState(data);
-          renderAfterRemoteSync();
-        }
+        applyRemoteEventState(data);
+        renderAfterRemoteSync();
       }, (error) => {
         const statusEl = document.getElementById('syncStatus');
         statusEl.textContent = "Sync Error";
