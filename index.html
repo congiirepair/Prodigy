@@ -52,6 +52,10 @@
     body[data-role="j1"] .registration-admin-only,
     body[data-role="j2"] .registration-admin-only,
     body[data-role="j3"] .registration-admin-only { display: none !important; }
+
+    body[data-role="j1"] .spectator-admin-only,
+    body[data-role="j2"] .spectator-admin-only,
+    body[data-role="j3"] .spectator-admin-only { display: none !important; }
     
     body[data-role="j1"] .admin-only,
     body[data-role="j2"] .admin-only,
@@ -2669,10 +2673,10 @@
             Enter your personal scores for each driver. Your score will be averaged dynamically with the other judges to form the driver's final run score.
           </p>
 
-          <div class="hero-actions admin-action">
+          <div class="hero-actions spectator-admin-only">
             <button id="fullscreenQualifyingBtn" class="button button-secondary" type="button">Fullscreen Qualifying</button>
-            <button id="openBracketBtn" class="button button-accent" type="button">Launch Bracket</button>
-            <button id="loadSampleBtn" class="button button-secondary" type="button">Load Sample</button>
+            <button id="openBracketBtn" class="button button-accent admin-action" type="button">Launch Bracket</button>
+            <button id="loadSampleBtn" class="button button-secondary admin-action" type="button">Load Sample</button>
           </div>
           <div id="launchWarning" class="error-msg">You need at least 2 scored drivers to launch.</div>
           <div class="hero-meta-inline admin-only">
@@ -6054,6 +6058,7 @@
         fullscreenQualifyingBtn.textContent = isFullscreen ? "Exit Fullscreen" : "Fullscreen Qualifying";
       }
       updateQualifyingDensity();
+      syncQualifyingCurrentDriverIntoView();
     }
 
     fullscreenQualifyingBtn?.addEventListener("click", toggleQualifyingFullscreen);
@@ -6093,6 +6098,36 @@
         return;
       }
       judgeLaneIndex = Math.max(0, Math.min(judgeLaneIndex, appDrivers.length - 1));
+    }
+
+    function syncQualifyingCurrentDriverIntoView() {
+      if (!document.body.classList.contains("qualifying-fullscreen")) return;
+      if (!document.getElementById("view-qualifying")?.classList.contains("is-active")) return;
+      if (shouldUseJudgeLane()) return;
+
+      const currentRow = driversTableBody.querySelector("tr.is-current-driver");
+      if (currentRow && driversTableWrap) {
+        requestAnimationFrame(() => {
+          const rowTop = currentRow.offsetTop;
+          const rowCenter = rowTop - (driversTableWrap.clientHeight / 2) + (currentRow.offsetHeight / 2);
+          driversTableWrap.scrollTo({
+            top: Math.max(0, rowCenter),
+            behavior: "smooth",
+          });
+        });
+      }
+
+      const currentCard = mobileDriversList.querySelector(".mobile-driver-card.is-current-driver");
+      if (currentCard) {
+        requestAnimationFrame(() => {
+          const cardTop = currentCard.offsetTop;
+          const cardCenter = cardTop - (mobileDriversList.clientHeight / 2) + (currentCard.offsetHeight / 2);
+          mobileDriversList.scrollTo({
+            top: Math.max(0, cardCenter),
+            behavior: "smooth",
+          });
+        });
+      }
     }
 
     function shouldUseJudgeLane() {
@@ -6386,6 +6421,8 @@
             inputToFocus.value = val;
          }
       }
+
+      syncQualifyingCurrentDriverIntoView();
 
       applySearchFilter();
       updateQualifying();
