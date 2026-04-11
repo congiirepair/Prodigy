@@ -6654,6 +6654,14 @@
       return typeof currentRole === "string" && currentRole.startsWith("j");
     }
 
+    function syncWebsiteAdminButtonVisibility() {
+      if (!websiteAdminBtn) return;
+      const shouldShow = isWebsiteAdmin || currentRole === "admin";
+      websiteAdminBtn.classList.toggle("hidden", !shouldShow);
+      websiteAdminBtn.textContent = isWebsiteAdmin ? "Website Admin Panel" : "Website Admin";
+      websiteAdminBtn.classList.toggle("button-accent", isWebsiteAdmin);
+    }
+
     function syncThemeState() {
       const storedTheme = localStorage.getItem(THEME_STORAGE_KEY);
       const preferredTheme = storedTheme === "dark" ? "dark" : "light";
@@ -6665,9 +6673,7 @@
         themeToggleBtn.classList.toggle("hidden", isJudgeThemeLocked());
         themeToggleBtn.disabled = isJudgeThemeLocked();
       }
-      if (websiteAdminBtn) {
-        websiteAdminBtn.classList.toggle("hidden", false);
-      }
+      syncWebsiteAdminButtonVisibility();
     }
 
     function initializeTheme() {
@@ -6686,8 +6692,7 @@
     function setWebsiteAdminAccess(enabled) {
       isWebsiteAdmin = Boolean(enabled);
       document.body.dataset.siteAdmin = String(isWebsiteAdmin);
-      websiteAdminBtn.textContent = isWebsiteAdmin ? "Website Admin Panel" : "Website Admin";
-      websiteAdminBtn.classList.toggle("button-accent", isWebsiteAdmin);
+      syncWebsiteAdminButtonVisibility();
       if (isWebsiteAdmin) {
         sessionStorage.setItem(WEBSITE_ADMIN_STORAGE_KEY, "true");
       } else {
@@ -7462,6 +7467,7 @@
             switchView("qualifying");
           }
        }
+      syncWebsiteAdminButtonVisibility();
       updateEventChrome();
       renderRoleAdminPanel();
       renderDriversTable(); 
