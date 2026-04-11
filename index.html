@@ -3379,6 +3379,8 @@
     }
 
     function getRunKey(runRef) {
+      if (runRef === "r1") return "run1";
+      if (runRef === "r2") return "run2";
       return typeof runRef === "string" ? runRef : `run${runRef}`;
     }
 
