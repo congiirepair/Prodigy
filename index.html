@@ -190,6 +190,44 @@
       line-height: 1.32;
     }
 
+    body[data-role="spectator"] #view-qualifying > .hero {
+      margin-bottom: 14px;
+      padding: 16px 20px;
+    }
+
+    body[data-role="spectator"] #view-qualifying > .hero .hero-copy-block {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 18px;
+    }
+
+    body[data-role="spectator"] #view-qualifying > .hero .hero-logo-shell {
+      margin: 0;
+      max-width: 240px;
+    }
+
+    body[data-role="spectator"] #view-qualifying > .hero .hero-logo {
+      width: min(220px, 100%);
+    }
+
+    .spectator-qualifying-title {
+      display: grid;
+      gap: 4px;
+      align-content: center;
+    }
+
+    .spectator-qualifying-title h1 {
+      font-size: clamp(1.8rem, 3vw, 2.8rem);
+      line-height: 1;
+    }
+
+    body[data-role="spectator"] #view-qualifying > .hero .hero-actions {
+      margin-top: 0;
+      justify-self: end;
+      align-self: center;
+    }
+
     .spectator-shop-button {
       position: fixed;
       right: 18px;
@@ -2395,6 +2433,17 @@
     }
 
     @media (max-width: 960px) {
+      body[data-role="spectator"] #view-qualifying > .hero .hero-copy-block {
+        grid-template-columns: 1fr;
+        justify-items: start;
+      }
+      body[data-role="spectator"] #view-qualifying > .hero .hero-actions {
+        justify-self: stretch;
+        width: 100%;
+      }
+      body[data-role="spectator"] #view-qualifying > .hero .hero-logo-shell {
+        max-width: 210px;
+      }
       .spectator-shop-button {
         right: 12px;
         left: 12px;
@@ -2718,6 +2767,10 @@
       <header class="hero hero-simple">
         <div class="hero-copy-block">
           <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png" alt="Prodigy RC Drift Arena" /></div>
+          <div class="spectator-qualifying-title spectator-only">
+            <p class="eyebrow">Live Event</p>
+            <h1>Qualifying Standings</h1>
+          </div>
           <p class="eyebrow admin-only">RC Drift Admin</p>
           <p class="eyebrow judge-only">Scoring Mode</p>
           <h1 class="admin-only">Qualifying Board</h1>
