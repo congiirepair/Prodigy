@@ -1138,6 +1138,34 @@
       opacity: 0.96;
     }
 
+    .page-shell,
+    .panel,
+    .hero,
+    .toolbar,
+    .table-wrap,
+    .registration-card,
+    .mobile-driver-card,
+    .qualifying-live-card,
+    .qualifying-live-stat,
+    .battle-flow-card,
+    .podium-card,
+    .champion-banner,
+    .slot-button,
+    .button,
+    .micro-button,
+    input[type="text"],
+    input[type="number"],
+    input[type="search"],
+    select {
+      transition:
+        background-color 220ms ease,
+        color 220ms ease,
+        border-color 220ms ease,
+        box-shadow 220ms ease,
+        opacity 220ms ease,
+        transform 180ms ease;
+    }
+
     .eyebrow, .section-kicker {
       margin: 0 0 8px;
       text-transform: uppercase;
@@ -1154,6 +1182,58 @@
       font-size: clamp(2.8rem, 5vw, 5rem);
       line-height: 1.1;
       text-transform: uppercase;
+    }
+
+    .view-section.is-active > .hero .hero-logo-shell {
+      animation: heroLogoReveal 520ms cubic-bezier(0.18, 0.88, 0.22, 1) both;
+    }
+
+    .view-section.is-active > .hero .eyebrow,
+    .view-section.is-active > .hero .section-kicker {
+      animation: heroTextReveal 480ms 80ms cubic-bezier(0.18, 0.88, 0.22, 1) both;
+    }
+
+    .view-section.is-active > .hero h1 {
+      animation: heroHeadlineReveal 620ms 120ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    @keyframes heroLogoReveal {
+      0% {
+        opacity: 0;
+        transform: translateY(18px) scale(0.96);
+        filter: blur(6px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        filter: blur(0);
+      }
+    }
+
+    @keyframes heroTextReveal {
+      0% {
+        opacity: 0;
+        transform: translateY(12px);
+        letter-spacing: 0.24em;
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+        letter-spacing: 0.18em;
+      }
+    }
+
+    @keyframes heroHeadlineReveal {
+      0% {
+        opacity: 0;
+        transform: translateY(24px) rotate(-1deg);
+        filter: blur(8px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0) rotate(0deg);
+        filter: blur(0);
+      }
     }
 
     h2, .round-label {
@@ -1273,6 +1353,10 @@
       box-shadow: var(--panel-shadow);
     }
 
+    .qualifying-live-card.is-advancing {
+      animation: standingsRiseIn 420ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
     .qualifying-live-head {
       display: grid;
       grid-template-columns: auto 1fr auto;
@@ -1377,6 +1461,10 @@
     .qualifying-ready-pill.is-ready {
       background: #000;
       color: #fff;
+    }
+
+    .qualifying-ready-pill.just-submitted {
+      animation: judgeSubmitPulse 620ms cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     .qualifying-live-actions {
@@ -2097,6 +2185,23 @@
       opacity: 0.5;
     }
 
+    .qualifying-results-simple.is-animating li {
+      opacity: 0;
+      animation: standingsRiseIn 420ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation-delay: var(--standings-delay, 0ms);
+    }
+
+    @keyframes standingsRiseIn {
+      0% {
+        opacity: 0;
+        transform: translateY(14px) scale(0.98);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
     tr.is-current-driver {
       background: #fff5ea !important;
       outline: 3px solid #000;
@@ -2221,10 +2326,30 @@
       color: #fff;
     }
 
+    .micro-button.just-submitted,
+    .button.just-submitted {
+      animation: judgeSubmitPulse 620ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
     .micro-button:disabled {
       opacity: 0.45;
       cursor: not-allowed;
       box-shadow: none;
+    }
+
+    @keyframes judgeSubmitPulse {
+      0% {
+        transform: scale(0.96);
+        box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+      }
+      45% {
+        transform: scale(1.04);
+        box-shadow: 0 0 0 8px rgba(0, 0, 0, 0.08);
+      }
+      100% {
+        transform: scale(1);
+        box-shadow: var(--button-shadow);
+      }
     }
 
     .role-admin-grid {
@@ -2441,6 +2566,7 @@
     .battle-flow-card.current {
       background:
         linear-gradient(180deg, rgba(255,255,255,0.98), rgba(236,232,224,0.96));
+      animation: battleFlowBeacon 2.2s ease-in-out infinite;
     }
 
     .battle-flow-grid.is-animating .battle-flow-card.flow-slot-current {
@@ -2448,6 +2574,14 @@
     }
 
     .battle-flow-grid.is-animating .battle-flow-card.flow-slot-next {
+      animation: battleFlowNextShift 360ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    .bracket-flow-slot.is-animating .battle-flow-card.flow-slot-current {
+      animation: battleFlowCurrentIn 360ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    .bracket-flow-slot.is-animating .battle-flow-card.flow-slot-next {
       animation: battleFlowNextShift 360ms cubic-bezier(0.2, 0.8, 0.2, 1);
     }
 
@@ -2470,6 +2604,18 @@
       100% {
         opacity: 1;
         transform: translateX(0);
+      }
+    }
+
+    @keyframes battleFlowBeacon {
+      0%, 100% {
+        box-shadow: var(--card-shadow);
+      }
+      50% {
+        box-shadow:
+          0 0 0 2px rgba(0, 0, 0, 0.05),
+          0 0 0 9px rgba(0, 0, 0, 0.03),
+          0 16px 30px rgba(0, 0, 0, 0.16);
       }
     }
 
@@ -2525,6 +2671,10 @@
     .battle-flow-option.current:hover {
       transform: translate(2px, 2px);
       box-shadow: 2px 2px 0px #000;
+    }
+
+    .battle-flow-option.just-advanced {
+      animation: judgeSubmitPulse 620ms cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     .battle-flow-option.preview {
@@ -2828,6 +2978,12 @@
       box-shadow: none;
     }
     .slot-button.selected { background: #000; color: #fff; }
+    .slot-button.winner-just-selected {
+      animation: bracketWinnerPop 700ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .main-battle-slot.incoming-winner .slot-button {
+      animation: bracketWinnerLand 760ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
     .slot-button.loser {
       background: #d7d7d7;
       color: #6a6a6a;
@@ -2839,6 +2995,31 @@
       color: #888;
       background: #f0f0f0;
       font-weight: 600;
+    }
+
+    @keyframes bracketWinnerPop {
+      0% {
+        transform: scale(0.96);
+        box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+      }
+      45% {
+        transform: scale(1.04);
+        box-shadow: 0 0 0 10px rgba(0, 0, 0, 0.07);
+      }
+      100% {
+        transform: scale(1);
+      }
+    }
+
+    @keyframes bracketWinnerLand {
+      0% {
+        opacity: 0.2;
+        transform: translateY(-20px) scale(0.97);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
     }
 
     .main-battle.center { display: grid; align-self: center; }
@@ -2979,6 +3160,12 @@
       color: #fff;
     }
     .driver-button.selected small { color: #ccc; }
+    .driver-button.winner-just-selected {
+      animation: bracketWinnerPop 700ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .driver-button.incoming-winner {
+      animation: bracketWinnerLand 760ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
     .driver-button.loser {
       background: #d7d7d7;
       color: #6a6a6a;
@@ -3001,6 +3188,10 @@
       background: #fff;
       box-shadow: 8px 8px 0px #000;
       text-align: center;
+    }
+
+    .champion-banner.is-revealing {
+      animation: podiumBannerReveal 720ms cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     .champion-banner span,
@@ -3036,6 +3227,12 @@
       box-shadow: 4px 4px 0 #000;
     }
 
+    .podium-card.podium-reveal {
+      opacity: 0;
+      animation: podiumCardReveal 560ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation-delay: var(--podium-delay, 0ms);
+    }
+
     .podium-card span,
     .podium-card strong,
     .podium-card small {
@@ -3063,6 +3260,28 @@
       color: #555;
       font-size: 0.84rem;
       font-weight: 700;
+    }
+
+    @keyframes podiumBannerReveal {
+      0% {
+        opacity: 0;
+        transform: translateY(22px) scale(0.98);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @keyframes podiumCardReveal {
+      0% {
+        opacity: 0;
+        transform: translateY(24px) scale(0.96) rotate(-0.6deg);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0) scale(1) rotate(0deg);
+      }
     }
 
     .empty-state {
@@ -3181,6 +3400,17 @@
     }
 
     .hidden { display: none !important; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
 
     @media (max-width: 1180px) {
       .hero, .layout, .qualifying-layout, .qualifying-support-grid { grid-template-columns: 1fr; }
@@ -4594,6 +4824,7 @@
         run2: judgeScores.run2,
         runoff: runoffValue,
       };
+      triggerJudgeSubmissionFeedback(driverId, role, "all");
     }
 
     function submitJudgeRun(driverId, runRef, role = currentRole) {
@@ -4604,6 +4835,7 @@
       if (!judgeScores || !(runKey in judgeScores.submitted)) return;
       judgeScores[runKey] = getJudgeDraftScoreValue(driver, role, runKey);
       judgeScores.submitted[runKey] = judgeScores[runKey];
+      triggerJudgeSubmissionFeedback(driverId, role, runKey);
     }
 
     function confirmJudgeScoreSubmission(driverId, role = currentRole, runRef = null) {
@@ -4990,6 +5222,103 @@
 
     function participantKey(driver) {
       return driver ? `${driver.seed}-${driver.registrationNumber}-${driver.name}` : "";
+    }
+
+    function buildSlotSignature(bracketKey, roundIndex, matchIndex, side, driver) {
+      return driver ? `${bracketKey}:${roundIndex}:${matchIndex}:${side}:${participantKey(driver)}` : "";
+    }
+
+    function clearWinnerAnimationState() {
+      if (winnerAnimationTimer) {
+        clearTimeout(winnerAnimationTimer);
+        winnerAnimationTimer = null;
+      }
+      winnerAnimationState = null;
+    }
+
+    function triggerWinnerAnimation(state) {
+      clearWinnerAnimationState();
+      winnerAnimationState = state;
+      winnerAnimationTimer = setTimeout(() => {
+        winnerAnimationState = null;
+        winnerAnimationTimer = null;
+        if (document.getElementById("view-bracket")?.classList.contains("is-active")) {
+          renderBracket();
+        }
+      }, 920);
+    }
+
+    function buildWinnerAnimationState(bracketKey, roundIndex, matchIndex, side, selectedDriver) {
+      if (!selectedDriver) return null;
+      const selected = {
+        bracketKey,
+        roundIndex,
+        matchIndex,
+        side,
+        signature: buildSlotSignature(bracketKey, roundIndex, matchIndex, side, selectedDriver),
+      };
+      let target = null;
+
+      if (bracketKey === "third") {
+        return { selected, target: null };
+      }
+
+      if (
+        bracketKey === "lower"
+        && tournamentState?.lowerBracket?.rounds
+        && roundIndex === tournamentState.lowerBracket.rounds.length - 1
+        && tournamentState.lowerBracket.feedsInto
+      ) {
+        const feed = tournamentState.lowerBracket.feedsInto;
+        target = {
+          bracketKey: "main",
+          roundIndex: 0,
+          matchIndex: feed.matchIndex,
+          side: feed.side,
+          signature: buildSlotSignature("main", 0, feed.matchIndex, feed.side, selectedDriver),
+        };
+        return { selected, target };
+      }
+
+      const rounds = bracketKey === "lower"
+        ? tournamentState?.lowerBracket?.rounds
+        : tournamentState?.mainBracket?.rounds;
+      const match = rounds?.[roundIndex]?.matches?.[matchIndex];
+      if (match && roundIndex < (rounds?.length || 0) - 1) {
+        const nextMatchIndex = match.nextMatchIndex ?? Math.floor(matchIndex / 2);
+        const nextSlot = match.nextSlot ?? (matchIndex % 2 === 0 ? "left" : "right");
+        target = {
+          bracketKey,
+          roundIndex: roundIndex + 1,
+          matchIndex: nextMatchIndex,
+          side: nextSlot,
+          signature: buildSlotSignature(bracketKey, roundIndex + 1, nextMatchIndex, nextSlot, selectedDriver),
+        };
+      }
+
+      return { selected, target };
+    }
+
+    function triggerJudgeSubmissionFeedback(driverId, role = currentRole, runKey = "all") {
+      if (!driverId || !role?.startsWith("j")) return;
+      if (judgeSubmissionFeedbackTimer) {
+        clearTimeout(judgeSubmissionFeedbackTimer);
+      }
+      judgeSubmissionFeedback = { driverId, role, runKey, stamp: Date.now() };
+      judgeSubmissionFeedbackTimer = setTimeout(() => {
+        judgeSubmissionFeedback = null;
+        judgeSubmissionFeedbackTimer = null;
+        renderDriversTable();
+      }, 760);
+    }
+
+    function isJudgeSubmissionFeedbackActive(driverId, role = currentRole, runKey = "all") {
+      return Boolean(
+        judgeSubmissionFeedback
+        && judgeSubmissionFeedback.driverId === driverId
+        && judgeSubmissionFeedback.role === role
+        && (judgeSubmissionFeedback.runKey === "all" || judgeSubmissionFeedback.runKey === runKey)
+      );
     }
 
     function normalizePdfText(value) {
@@ -6076,6 +6405,13 @@
     let judgeLaneIndex = 0;
     let qualifyingFlow = createEmptyQualifyingFlow();
     let lastBattleFlowSignature = null;
+    let lastStandingsSignature = null;
+    let lastPodiumSignature = null;
+    let winnerAnimationState = null;
+    let winnerAnimationTimer = null;
+    let judgeSubmissionFeedback = null;
+    let judgeSubmissionFeedbackTimer = null;
+    let lastQualifyingDriverId = null;
     let currentRole = "spectator"; // 'admin', 'spectator', 'j1', 'j2', 'j3'
     let isWebsiteAdmin = false;
     let eventDirectory = {};
@@ -8240,6 +8576,8 @@
       const activeRunValue = activeRunKey === "run1" ? myR1 : myR2;
       const activeRunButtonLabel = activeRunPending || !activeRunSubmitted ? `Submit ${activeRunLabel}` : `Waiting For ${activeRunLabel} Scores`;
       const activeRunDisabled = activeRunValue === null || (activeRunSubmitted && !activeRunPending);
+      const run1JustSubmitted = isJudgeSubmissionFeedbackActive(driver.id, currentRole, "run1");
+      const run2JustSubmitted = isJudgeSubmissionFeedbackActive(driver.id, currentRole, "run2");
       let submissionState = "Submit Run 1 to unlock Run 2.";
       if (run1SubmittedByMe && !run1AllSubmitted) {
         submissionState = `Run 1 submitted. Waiting on ${Math.max(0, totalJudgeCount - run1SubmitCount)} other judge${Math.max(0, totalJudgeCount - run1SubmitCount) === 1 ? "" : "s"}.`;
@@ -8280,7 +8618,7 @@
                   </div>
                   ${renderScoreDeductionButtons("r1")}
                 <div class="judge-score-help">Your submitted score: ${formatScore(driver.scores[currentRole].submitted.run1)}${run1Flag ? ` | Auto zero: ${run1Flag}` : ""}</div>
-                ${activeRunKey === "run1" ? `<button class="button button-accent judge-run-submit" type="button" data-action="submit-judge-run" data-run="run1" ${activeRunDisabled ? "disabled" : ""}>${activeRunButtonLabel}</button>` : ""}
+                ${activeRunKey === "run1" ? `<button class="button button-accent judge-run-submit ${run1JustSubmitted ? "just-submitted" : ""}" type="button" data-action="submit-judge-run" data-run="run1" ${activeRunDisabled ? "disabled" : ""}>${activeRunButtonLabel}</button>` : ""}
                 <button class="micro-button" type="button" data-action="clear-score" data-col="r1">Clear</button>
               </label>
               ${showRun2 ? `
@@ -8295,7 +8633,7 @@
                   </div>
                   ${renderScoreDeductionButtons("r2")}
                 <div class="judge-score-help">Your submitted score: ${formatScore(driver.scores[currentRole].submitted.run2)}${run2Flag ? ` | Auto zero: ${run2Flag}` : ""}</div>
-                  ${activeRunKey === "run2" ? `<button class="button button-accent judge-run-submit" type="button" data-action="submit-judge-run" data-run="run2" ${activeRunDisabled ? "disabled" : ""}>${activeRunButtonLabel}</button>` : ""}
+                  ${activeRunKey === "run2" ? `<button class="button button-accent judge-run-submit ${run2JustSubmitted ? "just-submitted" : ""}" type="button" data-action="submit-judge-run" data-run="run2" ${activeRunDisabled ? "disabled" : ""}>${activeRunButtonLabel}</button>` : ""}
                   <button class="micro-button" type="button" data-action="clear-score" data-col="r2">Clear</button>
                 </label>
               ` : `
@@ -8376,6 +8714,7 @@
         } else {
           const myR1 = getJudgeDraftScoreValue(driver, currentRole, "run1");
           const myR2 = getJudgeDraftScoreValue(driver, currentRole, "run2");
+          const submitFeedbackClass = isJudgeSubmissionFeedbackActive(driver.id, currentRole, "all") ? "just-submitted" : "";
           const submissionState = hasPendingJudgeChanges(driver, currentRole) ? "Changes not submitted" : "Submitted";
           tr.innerHTML = `
             <td class="row-index">${index + 1}</td>
@@ -8384,7 +8723,7 @@
             <td class="td-score"><input class="score-input r1 driver-row-input" data-col="r1" type="number" min="0" max="100" step="0.1" value="${myR1}" placeholder="100.0" />${renderScoreDeductionButtons("r1")}</td>
             <td class="td-score"><input class="score-input r2 driver-row-input" data-col="r2" type="number" min="0" max="100" step="0.1" value="${myR2}" placeholder="100.0" />${renderScoreDeductionButtons("r2")}</td>
             <td class="best-score admin-only">${formatScore(best)}</td>
-            <td class="td-actions"><button class="micro-button button-accent" type="button" data-action="submit-judge-scores" ${isJudgeSubmitWaiting(driver, currentRole) ? "disabled" : ""}>${getJudgeSubmitButtonLabel(driver, currentRole)}</button></td>
+            <td class="td-actions"><button class="micro-button button-accent ${submitFeedbackClass}" type="button" data-action="submit-judge-scores" ${isJudgeSubmitWaiting(driver, currentRole) ? "disabled" : ""}>${getJudgeSubmitButtonLabel(driver, currentRole)}</button></td>
           `;
         }
         driversTableBody.appendChild(tr);
@@ -8428,6 +8767,7 @@
           const myR1 = getJudgeDraftScoreValue(driver, currentRole, "run1");
           const myR2 = getJudgeDraftScoreValue(driver, currentRole, "run2");
           const myRunoff = driver.scores[currentRole].runoff;
+          const submitFeedbackClass = isJudgeSubmissionFeedbackActive(driver.id, currentRole, "all") ? "just-submitted" : "";
           const submissionState = hasPendingJudgeChanges(driver, currentRole) ? "Submit scores" : "Re-submit to update";
           const run1Flag = driver.runFlags.run1;
           const run2Flag = driver.runFlags.run2;
@@ -8475,7 +8815,7 @@
                 </label>
               ` : ""}
             </div>
-            <div class="mobile-card-actions"><button class="button button-accent" type="button" data-action="submit-judge-scores" ${isJudgeSubmitWaiting(driver, currentRole) ? "disabled" : ""}>${getJudgeSubmitButtonLabel(driver, currentRole)}</button></div>
+            <div class="mobile-card-actions"><button class="button button-accent ${submitFeedbackClass}" type="button" data-action="submit-judge-scores" ${isJudgeSubmitWaiting(driver, currentRole) ? "disabled" : ""}>${getJudgeSubmitButtonLabel(driver, currentRole)}</button></div>
           `;
         }
         mobileDriversList.appendChild(mobileCard);
@@ -8756,10 +9096,14 @@
     function renderQualifyingOrder(rankedDrivers, plan) {
       const qResults = document.getElementById("qualifyingResults");
       const tieInfo = getTopQualifierTieInfo(rankedDrivers);
+      const standingsSignature = rankedDrivers.map((driver, index) => `${index + 1}:${driver.id}:${formatScore(driver.bestScore)}`).join("|");
+      const shouldAnimateStandings = lastStandingsSignature !== null && standingsSignature !== lastStandingsSignature;
+      lastStandingsSignature = standingsSignature;
       qResults.innerHTML = "";
       qResults.classList.remove("empty-state");
 
       if (!rankedDrivers.length) {
+        lastStandingsSignature = null;
         topQualifierTiePanel.classList.add("hidden");
         topQualifierTiePanel.textContent = "";
         qResults.textContent = "Add driver names in registration, then enter scores to build the standings.";
@@ -8780,12 +9124,13 @@
 
       const cutoffCount = plan ? plan.qualifiedCount : rankedDrivers.length;
       const list = document.createElement("ol");
-      list.className = "qualifying-results-simple";
+      list.className = `qualifying-results-simple ${shouldAnimateStandings ? "is-animating" : ""}`;
 
       rankedDrivers.forEach((driver, index) => {
         const isQualified = index < cutoffCount;
         const item = document.createElement("li");
         if (!isQualified) item.classList.add("is-dimmed");
+        if (shouldAnimateStandings) item.style.setProperty("--standings-delay", `${Math.min(index * 38, 300)}ms`);
         item.textContent = `${index + 1}. ${driver.name} - Best score: ${formatScore(driver.bestScore)}`;
         list.appendChild(item);
       });
@@ -8810,6 +9155,7 @@
       const queue = getQualifyingDriverQueue();
       const currentDriver = getCurrentQualifyingDriver();
       if (!queue.length || !currentDriver) {
+        lastQualifyingDriverId = null;
         qualifyingLivePanel.innerHTML = `
           <div class="qualifying-live-card">
             <p class="qualifying-live-kicker">Now Qualifying</p>
@@ -8825,13 +9171,16 @@
       const run2Avg = getRunAverage(currentDriver, 2);
       const bestScore = getBestScore(run1Avg, run2Avg);
       const activeJudgeRoles = getActiveJudgeRoles(activeEventMeta);
+      const shouldAnimateCurrentDriver = lastQualifyingDriverId !== null && currentDriver.id !== lastQualifyingDriverId;
+      lastQualifyingDriverId = currentDriver.id;
       const readyMarkup = activeJudgeRoles.map((role) => {
         const isReady = hasSubmittedRequiredRuns(currentDriver, role);
-        return `<span class="qualifying-ready-pill ${isReady ? "is-ready" : ""}">${escapeHtml(getRoleDisplayName(role))} ${isReady ? "Submitted" : "Waiting"}</span>`;
+        const justSubmitted = isReady && isJudgeSubmissionFeedbackActive(currentDriver.id, role);
+        return `<span class="qualifying-ready-pill ${isReady ? "is-ready" : ""} ${justSubmitted ? "just-submitted" : ""}">${escapeHtml(getRoleDisplayName(role))} ${isReady ? "Submitted" : "Waiting"}</span>`;
       }).join("");
 
       qualifyingLivePanel.innerHTML = `
-        <div class="qualifying-live-card">
+        <div class="qualifying-live-card ${shouldAnimateCurrentDriver ? "is-advancing" : ""}">
           <div class="qualifying-live-head">
             <div>
               <p class="qualifying-live-kicker">Now Qualifying</p>
@@ -9201,6 +9550,9 @@
       const actionClass = isCurrent ? "current" : "preview";
       const canAdvance = isCurrent && adminCanEdit();
       const actionAttrs = isCurrent ? `data-flow-bracket="${entry.bracketKey}" data-flow-round="${entry.roundIndex}" data-flow-match="${entry.matchIndex}"` : "";
+      const selectedSignature = winnerAnimationState?.selected?.signature || "";
+      const leadSelected = selectedSignature && selectedSignature === buildSlotSignature(entry.bracketKey, entry.roundIndex, entry.matchIndex, leadSide, leadDriver);
+      const chaseSelected = selectedSignature && selectedSignature === buildSlotSignature(entry.bracketKey, entry.roundIndex, entry.matchIndex, chaseSide, chaseDriver);
 
       return `
         <article class="battle-flow-card ${isCurrent ? "current" : ""} ${slotClass}">
@@ -9208,11 +9560,11 @@
           <h4 class="battle-flow-title">${entry.title}</h4>
           <div class="battle-flow-meta">${entry.meta}</div>
           <div class="battle-flow-vs">
-            <button class="battle-flow-option ${actionClass}" type="button" ${actionAttrs} data-flow-side="${leadSide}" ${canAdvance ? "" : "disabled"}>
+            <button class="battle-flow-option ${actionClass} ${leadSelected ? "just-advanced" : ""}" type="button" ${actionAttrs} data-flow-side="${leadSide}" ${canAdvance ? "" : "disabled"}>
               <span>Lead | #${leadDriver.seed} ${escapeHtml(leadDriver.name)}</span>
               <small>Qual ${formatScore(leadDriver.bestScore)}</small>
             </button>
-            <button class="battle-flow-option ${actionClass}" type="button" ${actionAttrs} data-flow-side="${chaseSide}" ${canAdvance ? "" : "disabled"}>
+            <button class="battle-flow-option ${actionClass} ${chaseSelected ? "just-advanced" : ""}" type="button" ${actionAttrs} data-flow-side="${chaseSide}" ${canAdvance ? "" : "disabled"}>
               <span>Chase | #${chaseDriver.seed} ${escapeHtml(chaseDriver.name)}</span>
               <small>Qual ${formatScore(chaseDriver.bestScore)}</small>
             </button>
@@ -9221,12 +9573,20 @@
       `;
     }
 
-    function renderBattleFlowPair(currentSlot, nextSlot, entries) {
+    function renderBattleFlowPair(currentSlot, nextSlot, entries, shouldAnimate = false) {
       if (currentSlot) {
         currentSlot.innerHTML = renderBattleFlowCard(entries[0] || null, "Current Battle", true, "flow-slot-current");
+        currentSlot.classList.toggle("is-animating", shouldAnimate);
       }
       if (nextSlot) {
         nextSlot.innerHTML = renderBattleFlowCard(entries[1] || null, "Next Battle", false, "flow-slot-next");
+        nextSlot.classList.toggle("is-animating", shouldAnimate);
+      }
+      if (shouldAnimate) {
+        setTimeout(() => {
+          currentSlot?.classList.remove("is-animating");
+          nextSlot?.classList.remove("is-animating");
+        }, 420);
       }
     }
 
@@ -9267,12 +9627,12 @@
       panel.classList.remove("hidden");
       content.innerHTML = "";
       if (lowerEntries.length) {
-        renderBattleFlowPair(lowerCurrent, lowerNext, lowerEntries);
+        renderBattleFlowPair(lowerCurrent, lowerNext, lowerEntries, shouldAnimate && activeCompetitionBracketPage === "lower");
       } else {
         if (lowerCurrent) lowerCurrent.innerHTML = "";
         if (lowerNext) lowerNext.innerHTML = "";
       }
-      renderBattleFlowPair(mainCurrent, mainNext, mainEntries);
+      renderBattleFlowPair(mainCurrent, mainNext, mainEntries, shouldAnimate && (activeCompetitionBracketPage !== "lower" || !lowerEntries.length));
     }
 
     function renderSummary() {
@@ -9283,10 +9643,10 @@
       summaryStrip.style.display = "none";
     }
 
-    function renderPodiumCard(placeLabel, driver, fallbackText) {
+    function renderPodiumCard(placeLabel, driver, fallbackText, revealDelay = 0, shouldReveal = false) {
       if (!driver) {
         return `
-          <article class="podium-card">
+          <article class="podium-card ${shouldReveal ? "podium-reveal" : ""}" style="${shouldReveal ? `--podium-delay:${revealDelay}ms;` : ""}">
             <span>${placeLabel}</span>
             <strong>${fallbackText}</strong>
             <small>Waiting for result</small>
@@ -9295,7 +9655,7 @@
       }
 
       return `
-        <article class="podium-card">
+        <article class="podium-card ${shouldReveal ? "podium-reveal" : ""}" style="${shouldReveal ? `--podium-delay:${revealDelay}ms;` : ""}">
           <span>${placeLabel}</span>
           <strong>#${driver.seed} ${escapeHtml(driver.name)}</strong>
           <small>${driver.teamName?.trim() ? `Team ${escapeHtml(driver.teamName.trim())}` : `Qual ${formatScore(driver.bestScore)}`}</small>
@@ -9308,7 +9668,9 @@
       const banner = document.getElementById("championBanner");
       if (!champion) {
         banner.classList.add("hidden");
+        banner.classList.remove("is-revealing");
         banner.innerHTML = "";
+        lastPodiumSignature = null;
         return;
       }
       const finalMatch = tournamentState.mainBracket.rounds[tournamentState.mainBracket.rounds.length - 1]?.matches?.[0] || null;
@@ -9316,14 +9678,22 @@
       const thirdPlace = tournamentState.mainBracket.thirdPlaceMatch?.winner
         ? cloneDriver(tournamentState.mainBracket.thirdPlaceMatch.winner)
         : null;
+      const podiumSignature = [
+        participantKey(champion) || "none",
+        participantKey(runnerUp) || "none",
+        participantKey(thirdPlace) || "none",
+      ].join("|");
+      const shouldReveal = lastPodiumSignature !== null && podiumSignature !== lastPodiumSignature;
+      lastPodiumSignature = podiumSignature;
       banner.classList.remove("hidden");
+      banner.classList.toggle("is-revealing", shouldReveal);
       banner.innerHTML = `
         <span>Final Results</span>
         <strong>#${champion.seed} ${escapeHtml(champion.name)}</strong>
         <div class="podium-grid">
-          ${renderPodiumCard("1st Place", champion, "Waiting for winner")}
-          ${renderPodiumCard("2nd Place", runnerUp, "Waiting for finalist")}
-          ${renderPodiumCard("3rd Place", thirdPlace, "Waiting for 3rd place battle")}
+          ${renderPodiumCard("1st Place", champion, "Waiting for winner", 60, shouldReveal)}
+          ${renderPodiumCard("2nd Place", runnerUp, "Waiting for finalist", 150, shouldReveal)}
+          ${renderPodiumCard("3rd Place", thirdPlace, "Waiting for 3rd place battle", 240, shouldReveal)}
         </div>
       `;
     }
@@ -9345,8 +9715,11 @@
       const selected = participantKey(driver) === participantKey(winner);
       const loser = Boolean(winner) && !selected;
       const disabledHTML = (!adminCanEdit() || !canChoose) ? "disabled" : "";
+      const slotSignature = buildSlotSignature(bracketKey, roundIndex, matchIndex, side, driver);
+      const isWinnerBurst = winnerAnimationState?.selected?.signature === slotSignature && selected;
+      const isIncomingWinner = winnerAnimationState?.target?.signature === slotSignature;
       return `
-        <button class="driver-button ${selected ? "selected" : ""} ${loser ? "loser" : ""}" type="button" data-bracket="${bracketKey}" data-round="${roundIndex}" data-match="${matchIndex}" data-side="${side}" ${disabledHTML}>
+        <button class="driver-button ${selected ? "selected" : ""} ${loser ? "loser" : ""} ${isWinnerBurst ? "winner-just-selected" : ""} ${isIncomingWinner ? "incoming-winner" : ""}" type="button" data-bracket="${bracketKey}" data-round="${roundIndex}" data-match="${matchIndex}" data-side="${side}" ${disabledHTML}>
           <strong>#${driver.seed} ${escapeHtml(driver.name)}</strong>
           <small>Qual ${formatScore(driver.bestScore)}</small>
         </button>
@@ -9377,10 +9750,15 @@
       const loser = Boolean(winner) && !selected;
       const disabledHTML = (!adminCanEdit() || !canChoose) ? "disabled" : "";
       const teamMarkup = driver.teamName?.trim() ? `<span class="slot-team">${escapeHtml(driver.teamName.trim())}</span>` : "";
-      const button = `<button class="slot-button ${selected ? "selected" : ""} ${loser ? "loser" : ""}" type="button" data-bracket="${bracketKey}" data-round="${roundIndex}" data-match="${matchIndex}" data-side="${side}" ${disabledHTML}><span class="slot-name">${escapeHtml(driver.name)}</span>${teamMarkup}</button>`;
+      const slotSignature = buildSlotSignature(bracketKey, roundIndex, matchIndex, side, driver);
+      const isWinnerBurst = winnerAnimationState?.selected?.signature === slotSignature && selected;
+      const isIncomingWinner = winnerAnimationState?.target?.signature === slotSignature;
+      const button = `<button class="slot-button ${selected ? "selected" : ""} ${loser ? "loser" : ""} ${isWinnerBurst ? "winner-just-selected" : ""}" type="button" data-bracket="${bracketKey}" data-round="${roundIndex}" data-match="${matchIndex}" data-side="${side}" ${disabledHTML}><span class="slot-name">${escapeHtml(driver.name)}</span>${teamMarkup}</button>`;
       const seedChip = `<span class="seed-chip">${driver.seed}</span>`;
 
-      return align === "right" ? `<div class="main-battle-slot">${button}${seedChip}</div>` : `<div class="main-battle-slot">${seedChip}${button}</div>`;
+      return align === "right"
+        ? `<div class="main-battle-slot ${isIncomingWinner ? "incoming-winner" : ""}">${button}${seedChip}</div>`
+        : `<div class="main-battle-slot ${isIncomingWinner ? "incoming-winner" : ""}">${seedChip}${button}</div>`;
     }
 
     function renderMainBattle(bracketKey, roundIndex, matchIndex, match, align) {
@@ -9560,10 +9938,12 @@
         // If clicking the driver who is ALREADY the winner, undo it
         match.winner = null;
         match.winnerMode = null;
+        clearWinnerAnimationState();
       } else {
         // Otherwise, set them as the new winner
         match.winner = cloneDriver(selectedDriver);
         match.winnerMode = "manual";
+        triggerWinnerAnimation(buildWinnerAnimationState(bracketKey, roundIndex, matchIndex, side, selectedDriver));
       }
 
       publishState();
