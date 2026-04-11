@@ -447,6 +447,36 @@
       box-shadow: none;
     }
 
+    body[data-theme="dark"] #qualifyingResults,
+    body[data-theme="dark"] .qualifying-results-simple,
+    body[data-theme="dark"] .qualifying-results-simple li,
+    body[data-theme="dark"] .qualifying-side-column > .panel,
+    body[data-theme="dark"] .read-only-text,
+    body[data-theme="dark"] .read-only-score,
+    body[data-theme="dark"] .best-score {
+      background: transparent;
+      color: var(--text);
+    }
+
+    body[data-theme="dark"] .qualifying-results-simple li {
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    body[data-theme="dark"] .qualifying-results-simple li:last-child {
+      border-bottom: 0;
+    }
+
+    body[data-theme="dark"] .qualifying-results-simple li.is-dimmed {
+      opacity: 0.62;
+      color: var(--text-soft);
+    }
+
+    body[data-theme="dark"] .read-only-score,
+    body[data-theme="dark"] .best-score {
+      color: var(--text);
+    }
+
     button, input, select, a { font: inherit; }
     a { color: inherit; text-decoration: none; cursor: pointer; }
 
@@ -2000,6 +2030,10 @@
 
     .qualifying-results-simple li {
       margin: 0;
+    }
+
+    .qualifying-results-simple li.is-dimmed {
+      opacity: 0.5;
     }
 
     tr.is-current-driver {
@@ -8173,7 +8207,7 @@
       rankedDrivers.forEach((driver, index) => {
         const isQualified = index < cutoffCount;
         const item = document.createElement("li");
-        if (!isQualified) item.style.opacity = "0.5";
+        if (!isQualified) item.classList.add("is-dimmed");
         item.textContent = `${index + 1}. ${driver.name} - Best score: ${formatScore(driver.bestScore)}`;
         list.appendChild(item);
       });
