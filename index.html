@@ -3133,7 +3133,63 @@
       .hero-logo { width: min(260px, 78vw); }
       .main-bracket-panel::before { background-size: min(420px, 88%); opacity: 0.045; }
       .main-bracket-panel { padding: 18px 16px 24px; }
-      .bracket-header-bar { flex-direction: column; gap: 16px; align-items: stretch; }
+      #fullscreenQualifyingBtn,
+      #fullscreenBracketBtn {
+        display: none !important;
+      }
+      .bracket-header-bar {
+        padding: 10px 14px;
+        gap: 10px;
+        align-items: stretch;
+      }
+      .bracket-header-bar .brand-lockup {
+        display: none;
+      }
+      .bracket-header-bar .button-row {
+        width: 100%;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      #view-qualifying > .hero,
+      #view-registration > .hero,
+      #view-results > .hero {
+        padding: 12px 14px;
+        min-height: 0;
+      }
+      #view-qualifying > .hero .hero-logo-shell,
+      #view-registration > .hero .hero-logo-shell,
+      #view-results > .hero .hero-logo-shell {
+        display: none;
+      }
+      #view-qualifying > .hero .hero-copy,
+      #view-qualifying > .hero #qualifyingBoardCopy,
+      #view-qualifying > .hero #judgeBoardCopy,
+      #view-qualifying > .hero .hero-meta-inline,
+      #view-registration > .hero .hero-meta-inline,
+      #view-results > .hero .hero-copy {
+        display: none;
+      }
+      #view-qualifying > .hero .hero-copy-block,
+      #view-registration > .hero .hero-copy-block,
+      #view-results > .hero .hero-copy-block {
+        gap: 10px;
+      }
+      #view-qualifying > .hero h1,
+      #view-registration > .hero h1,
+      #view-results > .hero h1 {
+        margin: 0;
+        font-size: clamp(1.8rem, 8vw, 2.8rem);
+      }
+      #view-qualifying > .hero .eyebrow,
+      #view-registration > .hero .eyebrow,
+      #view-results > .hero .eyebrow {
+        margin: 0;
+      }
+      #view-qualifying > .hero .hero-actions,
+      #view-registration > .hero .hero-actions,
+      #view-results > .hero .hero-actions {
+        margin-top: 4px;
+      }
       .battle-flow-card { width: 100%; box-shadow: 5px 5px 0 #000; }
       .battle-flow-option { min-height: 48px; }
       .judge-lane-toolbar {
@@ -7205,6 +7261,7 @@
     document.getElementById("backToQualifyingBtn").addEventListener("click", () => switchView("qualifying"));
 
     async function toggleBracketFullscreen() {
+      if (window.innerWidth <= 720) return;
       const bracketView = document.getElementById("view-bracket");
       if (!bracketView) return;
 
@@ -7234,6 +7291,7 @@
     resultsExportPdfBtn?.addEventListener("click", exportResultsPdf);
 
     async function toggleQualifyingFullscreen() {
+      if (window.innerWidth <= 720) return;
       const qualifyingView = document.getElementById("view-qualifying");
       if (!qualifyingView) return;
 
