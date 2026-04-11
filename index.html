@@ -2350,7 +2350,7 @@
         display: none;
       }
       body[data-role^="j"] #qualifyingLivePanel {
-        padding: 16px 16px 0;
+        display: none;
       }
       body[data-role^="j"] .qualifying-layout {
         grid-template-columns: 1fr;
@@ -6010,12 +6010,7 @@
                   <div class="judge-score-caption">Tap the score box to overwrite quickly.</div>
                 </div>
                 <div class="judge-score-help">Your submitted score: ${formatScore(driver.scores[currentRole].submitted.run1)}${run1Flag ? ` | Auto zero: ${run1Flag}` : ""}</div>
-                <div class="judge-score-actions">
-                  <button class="micro-button" type="button" data-action="set-run-flag" data-run="run1" data-reason="Crash">0 Crash</button>
-                  <button class="micro-button" type="button" data-action="set-run-flag" data-run="run1" data-reason="Spin">0 Spin</button>
-                  <button class="micro-button" type="button" data-action="set-run-flag" data-run="run1" data-reason="Mechanical">0 Mechanical</button>
-                  <button class="micro-button" type="button" data-action="clear-score" data-col="r1">Clear</button>
-                </div>
+                <button class="micro-button" type="button" data-action="clear-score" data-col="r1">Clear</button>
               </label>
               ${showRun2 ? `
                 <label class="judge-score-card">
@@ -6028,12 +6023,7 @@
                     <div class="judge-score-caption">Run 2 unlocks right after your Run 1 submit.</div>
                   </div>
                   <div class="judge-score-help">Your submitted score: ${formatScore(driver.scores[currentRole].submitted.run2)}${run2Flag ? ` | Auto zero: ${run2Flag}` : ""}</div>
-                  <div class="judge-score-actions">
-                    <button class="micro-button" type="button" data-action="set-run-flag" data-run="run2" data-reason="Crash">0 Crash</button>
-                    <button class="micro-button" type="button" data-action="set-run-flag" data-run="run2" data-reason="Spin">0 Spin</button>
-                    <button class="micro-button" type="button" data-action="set-run-flag" data-run="run2" data-reason="Mechanical">0 Mechanical</button>
-                    <button class="micro-button" type="button" data-action="clear-score" data-col="r2">Clear</button>
-                  </div>
+                  <button class="micro-button" type="button" data-action="clear-score" data-col="r2">Clear</button>
                 </label>
               ` : `
                 <div class="judge-score-card runoff-card">
@@ -6188,12 +6178,7 @@
                 </div>
                 <input class="score-input r1 driver-row-input" data-col="r1" type="number" min="0" max="100" step="0.1" value="${myR1 !== null ? myR1 : ''}" placeholder="0.0" inputmode="decimal" />
                 <div class="judge-score-help">You can update this score at any time. Current average: ${formatScore(r1Avg)}${run1Flag ? ` | Auto zero: ${run1Flag}` : ""}</div>
-                <div class="button-row">
-                  <button class="micro-button" type="button" data-action="set-run-flag" data-run="run1" data-reason="Crash">Crash</button>
-                  <button class="micro-button" type="button" data-action="set-run-flag" data-run="run1" data-reason="Spin">Spin</button>
-                  <button class="micro-button" type="button" data-action="set-run-flag" data-run="run1" data-reason="Mechanical">Mechanical</button>
-                  <button class="micro-button" type="button" data-action="clear-run-flag" data-run="run1">Clear Zero</button>
-                </div>
+                <button class="micro-button" type="button" data-action="clear-score" data-col="r1">Clear</button>
               </label>
               <label class="judge-score-card">
                 <div class="judge-score-head">
@@ -6202,12 +6187,7 @@
                 </div>
                 <input class="score-input r2 driver-row-input" data-col="r2" type="number" min="0" max="100" step="0.1" value="${myR2 !== null ? myR2 : ''}" placeholder="0.0" inputmode="decimal" />
                 <div class="judge-score-help">You can update this score at any time. Current average: ${formatScore(r2Avg)}${run2Flag ? ` | Auto zero: ${run2Flag}` : ""}</div>
-                <div class="button-row">
-                  <button class="micro-button" type="button" data-action="set-run-flag" data-run="run2" data-reason="Crash">Crash</button>
-                  <button class="micro-button" type="button" data-action="set-run-flag" data-run="run2" data-reason="Spin">Spin</button>
-                  <button class="micro-button" type="button" data-action="set-run-flag" data-run="run2" data-reason="Mechanical">Mechanical</button>
-                  <button class="micro-button" type="button" data-action="clear-run-flag" data-run="run2">Clear Zero</button>
-                </div>
+                <button class="micro-button" type="button" data-action="clear-score" data-col="r2">Clear</button>
               </label>
               ${showRunoff ? `
                 <label class="judge-score-card">
@@ -6217,12 +6197,7 @@
                   </div>
                   <input class="score-input runoff driver-row-input" data-col="runoff" type="number" min="0" max="100" step="0.1" value="${myRunoff !== null ? myRunoff : ''}" placeholder="0.0" inputmode="decimal" />
                   <div class="judge-score-help">Required only to resolve the top qualifier tie.${runoffFlag ? ` Auto zero: ${runoffFlag}` : ""}</div>
-                  <div class="button-row">
-                    <button class="micro-button" type="button" data-action="set-run-flag" data-run="runoff" data-reason="Crash">Crash</button>
-                    <button class="micro-button" type="button" data-action="set-run-flag" data-run="runoff" data-reason="Spin">Spin</button>
-                    <button class="micro-button" type="button" data-action="set-run-flag" data-run="runoff" data-reason="Mechanical">Mechanical</button>
-                    <button class="micro-button" type="button" data-action="clear-run-flag" data-run="runoff">Clear Zero</button>
-                  </div>
+                  <button class="micro-button" type="button" data-action="clear-score" data-col="runoff">Clear</button>
                 </label>
               ` : ""}
             </div>
