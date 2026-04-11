@@ -232,6 +232,108 @@
       background: linear-gradient(180deg, rgba(36, 36, 40, 0.98), rgba(20, 20, 24, 0.96));
     }
 
+    body[data-theme="dark"] .bracket-header-bar,
+    body[data-theme="dark"] .main-bracket-panel,
+    body[data-theme="dark"] .battle-flow-card,
+    body[data-theme="dark"] .final-battle-card,
+    body[data-theme="dark"] .champion-banner,
+    body[data-theme="dark"] .competition-subtabs,
+    body[data-theme="dark"] .page-handoff,
+    body[data-theme="dark"] .summary-card,
+    body[data-theme="dark"] .launch-chip,
+    body[data-theme="dark"] .pill,
+    body[data-theme="dark"] .cutoff-label {
+      background: linear-gradient(180deg, rgba(28, 28, 31, 0.98), rgba(16, 16, 18, 0.96));
+      color: var(--text);
+      border-color: rgba(255, 255, 255, 0.18);
+      box-shadow: 0 16px 34px rgba(0, 0, 0, 0.32), 0 1px 0 rgba(255, 255, 255, 0.1);
+    }
+
+    body[data-theme="dark"] .bracket-workspace {
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.14)),
+        radial-gradient(circle at top right, rgba(255, 255, 255, 0.05), transparent 26%),
+        rgba(12, 12, 14, 0.92);
+    }
+
+    body[data-theme="dark"] .main-board-title,
+    body[data-theme="dark"] .main-board-label,
+    body[data-theme="dark"] .final-vs,
+    body[data-theme="dark"] .podium-card strong,
+    body[data-theme="dark"] .champion-banner strong,
+    body[data-theme="dark"] .battle-flow-title,
+    body[data-theme="dark"] .launch-title {
+      color: var(--text);
+    }
+
+    body[data-theme="dark"] .battle-flow-label,
+    body[data-theme="dark"] .podium-card span,
+    body[data-theme="dark"] .podium-card small,
+    body[data-theme="dark"] .champion-banner span,
+    body[data-theme="dark"] .battle-flow-meta,
+    body[data-theme="dark"] .summary-card span,
+    body[data-theme="dark"] .launch-chip span {
+      color: var(--text-soft);
+    }
+
+    body[data-theme="dark"] .battle-flow-option,
+    body[data-theme="dark"] .slot-button,
+    body[data-theme="dark"] .slot-button.empty,
+    body[data-theme="dark"] .main-battle-slot {
+      background: linear-gradient(180deg, rgba(34, 34, 38, 0.98), rgba(18, 18, 20, 0.96));
+      color: var(--text);
+      border-color: rgba(255, 255, 255, 0.22);
+      box-shadow: 0 10px 22px rgba(0, 0, 0, 0.28), 0 1px 0 rgba(255, 255, 255, 0.1);
+    }
+
+    body[data-theme="dark"] .battle-flow-option.preview {
+      background: linear-gradient(180deg, rgba(40, 40, 44, 0.98), rgba(22, 22, 26, 0.96));
+      color: var(--text);
+      border-color: rgba(255, 255, 255, 0.18);
+    }
+
+    body[data-theme="dark"] .battle-flow-empty {
+      background: rgba(255,255,255,0.04);
+      color: var(--text-soft);
+      border-color: rgba(255,255,255,0.18);
+    }
+
+    body[data-theme="dark"]:not([data-role="spectator"]) .slot-button:not(:disabled):hover,
+    body[data-theme="dark"]:not([data-role="spectator"]) .battle-flow-option.current:hover {
+      background: linear-gradient(180deg, rgba(52, 52, 58, 0.98), rgba(26, 26, 30, 0.96));
+      color: var(--text);
+    }
+
+    body[data-theme="dark"] .slot-button.selected,
+    body[data-theme="dark"] .battle-flow-option.current {
+      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(218,218,218,0.98));
+      color: #080808;
+      border-color: rgba(255,255,255,0.72);
+    }
+
+    body[data-theme="dark"] .seed-chip,
+    body[data-theme="dark"] .final-battle-head,
+    body[data-theme="dark"] .cutoff-label.qualified {
+      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(218,218,218,0.98));
+      color: #080808;
+      border-color: rgba(255,255,255,0.72);
+    }
+
+    body[data-theme="dark"] .main-battle.left .main-battle-slot::after,
+    body[data-theme="dark"] .main-battle.right .main-battle-slot::after,
+    body[data-theme="dark"] .main-battle.left .main-battle-stack::before,
+    body[data-theme="dark"] .main-battle.right .main-battle-stack::before,
+    body[data-theme="dark"] .main-battle.left .main-battle-stack::after,
+    body[data-theme="dark"] .main-battle.right .main-battle-stack::after,
+    body[data-theme="dark"] .main-battle.center .main-battle-slot::before,
+    body[data-theme="dark"] .main-battle.center .main-battle-slot::after {
+      background: rgba(255, 255, 255, 0.84);
+    }
+
+    body[data-theme="dark"] .main-bracket-panel::before {
+      opacity: 0.11;
+    }
+
     body[data-theme="dark"] .event-stat {
       background: rgba(255, 255, 255, 0.05);
       border-color: rgba(255, 255, 255, 0.16);
@@ -4932,6 +5034,26 @@
       );
     }
 
+    function openingMatchesMatchWithFeedAllowance(actualMatches, expectedMatches, feedTarget = null) {
+      if (!Array.isArray(actualMatches) || actualMatches.length !== expectedMatches.length) {
+        return false;
+      }
+
+      return actualMatches.every((match, index) => {
+        const expectedMatch = expectedMatches[index];
+        if (!expectedMatch) return false;
+
+        const leftMatches = !feedTarget || index !== feedTarget.matchIndex || feedTarget.side !== "left"
+          ? participantKey(match?.left) === participantKey(expectedMatch?.left)
+          : true;
+        const rightMatches = !feedTarget || index !== feedTarget.matchIndex || feedTarget.side !== "right"
+          ? participantKey(match?.right) === participantKey(expectedMatch?.right)
+          : true;
+
+        return leftMatches && rightMatches;
+      });
+    }
+
     function shouldRebuildTournamentState(state) {
       if (!state?.mainBracket?.rounds?.length) {
         return true;
@@ -4947,7 +5069,11 @@
         return true;
       }
 
-      if (!openingMatchesMatch(state.mainBracket.rounds[0]?.matches, rebuiltState.mainBracket.rounds[0].matches)) {
+      if (!openingMatchesMatchWithFeedAllowance(
+        state.mainBracket.rounds[0]?.matches,
+        rebuiltState.mainBracket.rounds[0].matches,
+        rebuiltState.lowerBracket?.feedsInto || state.lowerBracket?.feedsInto || null,
+      )) {
         return true;
       }
 
