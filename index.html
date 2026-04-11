@@ -2347,18 +2347,10 @@
         min-height: 100vh;
       }
       body[data-role^="j"] #view-qualifying > .hero {
-        margin: 0;
-        border-left: 0;
-        border-right: 0;
-        box-shadow: none;
-        position: sticky;
-        top: 0;
-        z-index: 6;
-        background: rgba(248, 244, 236, 0.98);
-        backdrop-filter: blur(8px);
+        display: none;
       }
       body[data-role^="j"] #qualifyingLivePanel {
-        padding: 12px 16px 0;
+        padding: 16px 16px 0;
       }
       body[data-role^="j"] .qualifying-layout {
         grid-template-columns: 1fr;
@@ -2433,21 +2425,6 @@
       .bracket-header-bar { flex-direction: column; gap: 16px; align-items: stretch; }
       .battle-flow-card { width: 100%; box-shadow: 5px 5px 0 #000; }
       .battle-flow-option { min-height: 48px; }
-      body[data-role^="j"] #view-qualifying > .hero {
-        padding: 12px 16px;
-      }
-      body[data-role^="j"] #view-qualifying .hero-logo-shell,
-      body[data-role^="j"] #view-qualifying #judgeBoardCopy,
-      body[data-role^="j"] #view-qualifying .hero-stat {
-        display: none;
-      }
-      body[data-role^="j"] #view-qualifying .hero-copy-block {
-        gap: 8px;
-      }
-      body[data-role^="j"] #view-qualifying .judge-only#judgeHeroTitle {
-        font-size: clamp(2rem, 12vw, 3.2rem);
-        line-height: 0.95;
-      }
       .judge-lane-toolbar {
         top: 4px;
         padding: 14px;
