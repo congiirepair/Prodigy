@@ -992,6 +992,10 @@
       gap: 10px;
     }
 
+    .judge-lane-nav .button:last-child {
+      grid-column: 1 / -1;
+    }
+
     .judge-lane-progress {
       color: var(--text-soft);
       font-size: 0.82rem;
@@ -4201,6 +4205,7 @@
     let tournamentState = null;
     let activeCompetitionBracketPage = "main";
     let judgeLaneIndex = 0;
+    let judgeLaneReviewMode = false;
     let qualifyingFlow = createEmptyQualifyingFlow();
     let lastBattleFlowSignature = null;
     let currentRole = "spectator"; // 'admin', 'spectator', 'j1', 'j2', 'j3'
@@ -4389,6 +4394,12 @@
       return getRegisteredDrivers(drivers);
     }
 
+    function getCurrentQualifyingQueueIndex(queue = getQualifyingDriverQueue()) {
+      if (!queue.length) return 0;
+      const liveIndex = queue.findIndex((driver) => driver.id === qualifyingFlow?.currentDriverId);
+      return liveIndex > -1 ? liveIndex : 0;
+    }
+
     function syncQualifyingFlowState() {
       const queue = getQualifyingDriverQueue();
       const activeJudgeRoles = getActiveJudgeRoles(activeEventMeta);
@@ -4398,6 +4409,7 @@
       if (!queue.length) {
         qualifyingFlow = createEmptyQualifyingFlow();
         judgeLaneIndex = 0;
+        judgeLaneReviewMode = false;
         return previousCurrentId !== null || Object.keys(previousReadyRoles).length > 0;
       }
 
@@ -4414,8 +4426,18 @@
       };
 
       const queueIndex = queue.findIndex((driver) => driver.id === currentDriverId);
-      if (queueIndex > -1) {
+      if (queueIndex > -1 && (!judgeLaneReviewMode || queueIndex === judgeLaneIndex)) {
         judgeLaneIndex = queueIndex;
+      }
+
+      if (judgeLaneReviewMode) {
+        const viewedDriverId = appDrivers[judgeLaneIndex]?.id || null;
+        if (!viewedDriverId || !queueIds.has(viewedDriverId)) {
+          judgeLaneReviewMode = false;
+          if (queueIndex > -1) {
+            judgeLaneIndex = queueIndex;
+          }
+        }
       }
 
       return previousCurrentId !== currentDriverId
@@ -4451,7 +4473,9 @@
         currentDriverId: queue[nextIndex]?.id || queue[queue.length - 1].id,
         readyRoles: {},
       };
-      judgeLaneIndex = nextIndex;
+      if (!judgeLaneReviewMode) {
+        judgeLaneIndex = nextIndex;
+      }
     }
 
     function markQualifyingRoleReady(role) {
@@ -4733,6 +4757,7 @@
       saveDirectoryCache();
       if (activeEventChanged) {
         judgeLaneIndex = 0;
+        judgeLaneReviewMode = false;
         switchView("qualifying");
         subscribeToActiveEvent();
       }
@@ -5729,6 +5754,7 @@
       
       if (currentRole.startsWith("j")) {
          judgeLaneIndex = 0;
+         judgeLaneReviewMode = false;
          document.getElementById("judgeHeroTitle").textContent = `${getRoleDisplayName(currentRole)} Input`;
          document.getElementById("thRun1").textContent = getAverageColumnLabel(1, currentRole, activeEventMeta);
          document.getElementById("thRun2").textContent = getAverageColumnLabel(2, currentRole, activeEventMeta);
@@ -6090,9 +6116,15 @@
       const run1Flag = driver.runFlags.run1;
       const run2Flag = driver.runFlags.run2;
       const queue = getQualifyingDriverQueue();
-      const nextDriver = queue[index + 1] || null;
+      const queueIndex = queue.findIndex((entry) => entry.id === driver.id);
+      const liveQueueIndex = getCurrentQualifyingQueueIndex(queue);
+      const isReviewMode = judgeLaneReviewMode || queueIndex !== liveQueueIndex;
+      const hasPreviousDriver = queueIndex > 0;
+      const hasNextDriver = queueIndex > -1 && queueIndex < queue.length - 1;
+      const displayPosition = queueIndex > -1 ? queueIndex + 1 : index + 1;
+      const nextDriver = queueIndex > -1 ? (queue[queueIndex + 1] || null) : null;
       const nextDriverLabel = nextDriver
-        ? `${escapeHtml(nextDriver.name || "Unnamed Driver")} - Reg #${escapeHtml(nextDriver.reg || nextDriver.signUpPosition || index + 2)}`
+        ? `${escapeHtml(nextDriver.name || "Unnamed Driver")} - Reg #${escapeHtml(nextDriver.reg || nextDriver.signUpPosition || queueIndex + 2)}`
         : "Final driver in qualifying queue";
       const activeRunKey = (!run1SubmittedByMe || run1Pending) ? "run1" : "run2";
       const activeRunLabel = activeRunKey === "run1" ? "Run 1" : "Run 2";
@@ -6117,16 +6149,22 @@
           <div class="judge-lane-toolbar">
             <div class="judge-lane-meta">
               <div>
-                <div class="judge-lane-progress">Driver ${index + 1} of ${total}</div>
+                <div class="judge-lane-progress">Driver ${displayPosition} of ${total}</div>
                 <strong>${escapeHtml(driver.name) || "Unnamed Driver"}</strong>
               </div>
               <div class="mobile-driver-reg">Reg / Sign-up #${driver.reg || driver.signUpPosition || index + 1}</div>
             </div>
             <div class="judge-lane-status-row">
+              <span class="judge-lane-status-pill ${isReviewMode ? "is-pending" : "is-live"}">${isReviewMode ? "Review Mode" : "Live Driver"}</span>
               <span class="judge-lane-status-pill ${run1SubmittedByMe ? "is-live" : "is-pending"}">Run 1 ${run1SubmitCount}/${totalJudgeCount}</span>
               <span class="judge-lane-status-pill ${run2SubmittedByMe ? "is-live" : "is-pending"}">Run 2 ${run2SubmitCount}/${totalJudgeCount}</span>
             </div>
-            <div class="judge-lane-note">This phone view is run-by-run. Submit Run 1 first, then Run 2. The live board only advances after all active judges submit Run 2 for this driver.</div>
+            <div class="judge-lane-nav">
+              <button class="button" type="button" data-action="judge-prev-driver" ${hasPreviousDriver ? "" : "disabled"}>Previous Driver</button>
+              <button class="button" type="button" data-action="judge-next-driver" ${hasNextDriver ? "" : "disabled"}>Next Driver</button>
+              ${isReviewMode ? `<button class="button button-accent" type="button" data-action="judge-jump-current">Return To Live Driver</button>` : `<button class="button button-accent" type="button" data-action="judge-jump-current" disabled>Viewing Live Driver</button>`}
+            </div>
+            <div class="judge-lane-note">${isReviewMode ? "You are reviewing a previous driver. Edit and resubmit if needed, then tap Return To Live Driver to jump back into the current queue." : "This phone view is run-by-run. Submit Run 1 first, then Run 2. The live board only advances after all active judges submit Run 2 for this driver."}</div>
           </div>
           <article class="mobile-driver-card" data-id="${driver.id}">
             <div class="judge-run-grid">
@@ -6195,10 +6233,11 @@
       if (shouldUseJudgeLane()) {
         clampJudgeLaneIndex();
         const laneDriver = appDrivers[judgeLaneIndex];
+        const queueTotal = getQualifyingDriverQueue().length || appDrivers.length;
         if (laneDriver) {
           const r1Avg = getRunAverage(laneDriver, 1);
           const r2Avg = getRunAverage(laneDriver, 2);
-          mobileDriversList.innerHTML = renderJudgeLaneCard(laneDriver, judgeLaneIndex, appDrivers.length, r1Avg, r2Avg, runoffEligibleIds);
+          mobileDriversList.innerHTML = renderJudgeLaneCard(laneDriver, judgeLaneIndex, queueTotal, r1Avg, r2Avg, runoffEligibleIds);
         } else {
           mobileDriversList.innerHTML = `<div class="empty-state">Add drivers first, then judges can score them here one at a time.</div>`;
         }
@@ -6500,6 +6539,45 @@
       const card = e.target.closest("[data-id]");
       if (!card) return;
       const readinessCleared = card.dataset.id === qualifyingFlow.currentDriverId && clearQualifyingReady(currentRole);
+
+      const navigateToJudgeLaneDriver = (queueOffset = 0) => {
+        const queue = getQualifyingDriverQueue();
+        if (!queue.length) return false;
+        const currentQueueIndex = queue.findIndex((driver) => driver.id === card.dataset.id);
+        if (currentQueueIndex === -1) return false;
+        const targetQueueIndex = Math.max(0, Math.min(queue.length - 1, currentQueueIndex + queueOffset));
+        const targetDriverId = queue[targetQueueIndex]?.id;
+        const targetAppIndex = appDrivers.findIndex((driver) => driver.id === targetDriverId);
+        if (targetAppIndex === -1) return false;
+        judgeLaneIndex = targetAppIndex;
+        judgeLaneReviewMode = targetDriverId !== qualifyingFlow.currentDriverId;
+        renderDriversTable();
+        return true;
+      };
+
+      const prevDriverButton = e.target.closest("[data-action='judge-prev-driver']");
+      if (prevDriverButton) {
+        navigateToJudgeLaneDriver(-1);
+        return;
+      }
+
+      const nextDriverButton = e.target.closest("[data-action='judge-next-driver']");
+      if (nextDriverButton) {
+        navigateToJudgeLaneDriver(1);
+        return;
+      }
+
+      const jumpCurrentButton = e.target.closest("[data-action='judge-jump-current']");
+      if (jumpCurrentButton) {
+        const liveDriverId = qualifyingFlow.currentDriverId;
+        const liveAppIndex = appDrivers.findIndex((driver) => driver.id === liveDriverId);
+        if (liveAppIndex > -1) {
+          judgeLaneIndex = liveAppIndex;
+          judgeLaneReviewMode = false;
+          renderDriversTable();
+        }
+        return;
+      }
 
       if (e.target.classList.contains("remove-driver")) {
         if (!adminCanEdit()) return;
