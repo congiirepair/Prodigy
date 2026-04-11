@@ -70,8 +70,11 @@
     body[data-theme="dark"] .panel,
     body[data-theme="dark"] .hero-card,
     body[data-theme="dark"] .table-wrap,
+    body[data-theme="dark"] .registration-card,
     body[data-theme="dark"] .registration-driver-card,
     body[data-theme="dark"] .registration-entry-panel,
+    body[data-theme="dark"] .registration-roster-panel,
+    body[data-theme="dark"] .mobile-driver-card,
     body[data-theme="dark"] .qualifying-live-card,
     body[data-theme="dark"] .battle-flow-card,
     body[data-theme="dark"] .bracket-stage-card,
@@ -157,7 +160,50 @@
 
     body[data-theme="dark"] th,
     body[data-theme="dark"] td {
+      color: var(--text);
       border-color: rgba(255, 255, 255, 0.12);
+    }
+
+    body[data-theme="dark"] thead {
+      background: rgba(255, 255, 255, 0.12);
+      border-bottom-color: rgba(255, 255, 255, 0.22);
+    }
+
+    body[data-theme="dark"] tbody tr:nth-child(even) {
+      background: rgba(255, 255, 255, 0.035);
+    }
+
+    body[data-theme="dark"] tr.is-current-driver {
+      background: rgba(255, 255, 255, 0.12) !important;
+      outline-color: rgba(255, 255, 255, 0.9);
+    }
+
+    body[data-theme="dark"] .mobile-driver-card.is-current-driver {
+      background: linear-gradient(180deg, rgba(40, 40, 44, 0.98), rgba(24, 24, 28, 0.96));
+    }
+
+    body[data-theme="dark"] .read-only-score,
+    body[data-theme="dark"] .best-score,
+    body[data-theme="dark"] .registration-card-title strong,
+    body[data-theme="dark"] .driver-meta strong,
+    body[data-theme="dark"] .mobile-driver-name,
+    body[data-theme="dark"] .modal-field strong {
+      color: var(--text);
+    }
+
+    body[data-theme="dark"] .registration-entry-panel .modal-field span,
+    body[data-theme="dark"] .registration-roster-panel .modal-field span,
+    body[data-theme="dark"] .registration-meta,
+    body[data-theme="dark"] .driver-meta small,
+    body[data-theme="dark"] .mobile-driver-subline,
+    body[data-theme="dark"] .mobile-driver-reg {
+      color: var(--text-soft);
+    }
+
+    body[data-theme="dark"] .table-wrap,
+    body[data-theme="dark"] .registration-card,
+    body[data-theme="dark"] .mobile-driver-card {
+      background: linear-gradient(180deg, rgba(28, 28, 31, 0.98), rgba(16, 16, 18, 0.96));
     }
 
     body[data-theme="dark"] .topbar,
@@ -165,8 +211,11 @@
     body[data-theme="dark"] .panel,
     body[data-theme="dark"] .hero-card,
     body[data-theme="dark"] .table-wrap,
+    body[data-theme="dark"] .registration-card,
     body[data-theme="dark"] .registration-driver-card,
     body[data-theme="dark"] .registration-entry-panel,
+    body[data-theme="dark"] .registration-roster-panel,
+    body[data-theme="dark"] .mobile-driver-card,
     body[data-theme="dark"] .qualifying-live-card,
     body[data-theme="dark"] .battle-flow-card,
     body[data-theme="dark"] .bracket-stage-card,
