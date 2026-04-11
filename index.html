@@ -4041,11 +4041,12 @@
             Enter your personal scores for each driver. Your score will be averaged dynamically with the other judges to form the driver's final run score.
           </p>
 
-          <div class="hero-actions spectator-admin-only">
-            <button id="fullscreenQualifyingBtn" class="button button-secondary" type="button">Fullscreen Qualifying</button>
-            <button id="openBracketBtn" class="button button-accent admin-action" type="button">Launch Bracket</button>
-            <button id="loadSampleBtn" class="button button-secondary admin-action" type="button">Load Sample</button>
-          </div>
+        <div class="hero-actions spectator-admin-only">
+          <button id="fullscreenQualifyingBtn" class="button button-secondary" type="button">Fullscreen Qualifying</button>
+          <button id="startQualifyingBtn" class="button button-secondary admin-action" type="button">Start Qualifying</button>
+          <button id="openBracketBtn" class="button button-accent admin-action" type="button">Launch Bracket</button>
+          <button id="loadSampleBtn" class="button button-secondary admin-action" type="button">Load Sample</button>
+        </div>
           <div id="launchWarning" class="error-msg">You need at least 2 scored drivers to launch.</div>
           <div class="hero-meta-inline admin-only">
             <div class="hero-meta-pill">Event <strong id="heroEventName">Main Event</strong></div>
@@ -4613,6 +4614,8 @@
       return {
         currentDriverId: null,
         readyRoles: {},
+        started: false,
+        completed: false,
       };
     }
 
@@ -6781,16 +6784,48 @@
       return getRegisteredDrivers(drivers);
     }
 
+    function getQualifyingFlowPhase(flow = qualifyingFlow, drivers = appDrivers) {
+      const queue = getQualifyingDriverQueue(drivers);
+      if (!queue.length) return "empty";
+      if (flow?.completed) return "complete";
+      if (!flow?.started || !flow?.currentDriverId) return "waiting";
+      return "live";
+    }
+
     function syncQualifyingFlowState() {
       const queue = getQualifyingDriverQueue();
       const activeJudgeRoles = getActiveJudgeRoles(activeEventMeta);
       const previousCurrentId = qualifyingFlow?.currentDriverId || null;
       const previousReadyRoles = qualifyingFlow?.readyRoles || {};
+      const previousStarted = Boolean(qualifyingFlow?.started);
+      const previousCompleted = Boolean(qualifyingFlow?.completed);
 
       if (!queue.length) {
         qualifyingFlow = createEmptyQualifyingFlow();
         judgeLaneIndex = 0;
-        return previousCurrentId !== null || Object.keys(previousReadyRoles).length > 0;
+        return previousCurrentId !== null || Object.keys(previousReadyRoles).length > 0 || previousStarted || previousCompleted;
+      }
+
+      if (previousCompleted) {
+        qualifyingFlow = {
+          currentDriverId: null,
+          readyRoles: {},
+          started: true,
+          completed: true,
+        };
+        judgeLaneIndex = Math.max(0, queue.length - 1);
+        return previousCurrentId !== null || Object.keys(previousReadyRoles).length > 0 || !previousStarted || !previousCompleted;
+      }
+
+      if (!previousStarted) {
+        qualifyingFlow = {
+          currentDriverId: null,
+          readyRoles: {},
+          started: false,
+          completed: false,
+        };
+        judgeLaneIndex = 0;
+        return previousCurrentId !== null || Object.keys(previousReadyRoles).length > 0 || previousStarted || previousCompleted;
       }
 
       const queueIds = new Set(queue.map((driver) => driver.id));
@@ -6803,6 +6838,8 @@
       qualifyingFlow = {
         currentDriverId,
         readyRoles,
+        started: true,
+        completed: false,
       };
 
       const queueIndex = queue.findIndex((driver) => driver.id === currentDriverId);
@@ -6811,7 +6848,9 @@
       }
 
       return previousCurrentId !== currentDriverId
-        || JSON.stringify(previousReadyRoles) !== JSON.stringify(readyRoles);
+        || JSON.stringify(previousReadyRoles) !== JSON.stringify(readyRoles)
+        || !previousStarted
+        || previousCompleted;
     }
 
     function getCurrentQualifyingDriver() {
@@ -6843,6 +6882,8 @@
         qualifyingFlow = {
           currentDriverId: null,
           readyRoles: {},
+          started: true,
+          completed: true,
         };
         judgeLaneIndex = Math.max(0, queue.length - 1);
         return;
@@ -6850,8 +6891,23 @@
       qualifyingFlow = {
         currentDriverId: queue[nextIndex]?.id || null,
         readyRoles: {},
+        started: true,
+        completed: false,
       };
       judgeLaneIndex = nextIndex;
+    }
+
+    function startQualifyingFlow() {
+      const queue = getQualifyingDriverQueue();
+      if (!queue.length) return false;
+      qualifyingFlow = {
+        currentDriverId: queue[0]?.id || null,
+        readyRoles: {},
+        started: true,
+        completed: false,
+      };
+      judgeLaneIndex = 0;
+      return true;
     }
 
     function markQualifyingRoleReady(role) {
@@ -7411,6 +7467,7 @@
     const registrationAddDriverSecondaryBtn = document.getElementById("registrationAddDriverSecondaryBtn");
     const registrationToQualifyingBtn = document.getElementById("registrationToQualifyingBtn");
     const qualifyingLivePanel = document.getElementById("qualifyingLivePanel");
+    const startQualifyingBtn = document.getElementById("startQualifyingBtn");
     const resultsEventList = document.getElementById("resultsEventList");
     const websiteAdminCurrentEventName = document.getElementById("websiteAdminCurrentEventName");
     const websiteAdminCurrentEventDate = document.getElementById("websiteAdminCurrentEventDate");
@@ -7744,6 +7801,11 @@
       currentEventStatus.textContent = activeEventMeta?.status === "archived" ? "Archived" : "Active";
       currentEventStatus.className = `status-pill ${activeEventMeta?.status === "archived" ? "archived" : "active"}`;
       document.title = activeEventMeta?.name ? `${activeEventMeta.name} | RC Drift Event Control` : "RC Drift Event Control";
+      if (startQualifyingBtn) {
+        const qualifyingPhase = getQualifyingFlowPhase(qualifyingFlow, appDrivers);
+        startQualifyingBtn.textContent = qualifyingPhase === "complete" ? "Restart Qualifying" : "Start Qualifying";
+        startQualifyingBtn.disabled = !adminCanEdit() || !getQualifyingDriverQueue().length;
+      }
       Array.from(globalRoleSelect.options).forEach((option) => {
         option.textContent = getRoleDisplayName(option.value);
         option.hidden = !isRoleAvailableForEvent(option.value, activeEventMeta);
@@ -8679,6 +8741,15 @@
 
     fullscreenQualifyingBtn?.addEventListener("click", toggleQualifyingFullscreen);
     document.addEventListener("fullscreenchange", syncQualifyingFullscreenState);
+    startQualifyingBtn?.addEventListener("click", async () => {
+      if (!adminCanEdit()) return;
+      if (!startQualifyingFlow()) {
+        window.alert("Add drivers before starting qualifying.");
+        return;
+      }
+      await publishStateImmediately();
+      renderDriversTable();
+    });
 
     function switchView(viewName) {
       if (viewName === "registration" && currentRole !== "admin") {
@@ -8880,6 +8951,16 @@
       const topTieInfo = getTopQualifierTieInfo(rankedDrivers);
       const runoffEligibleIds = new Set(topTieInfo?.tiedDrivers?.map((driver) => driver.id) || []);
       const currentQualifyingDriverId = getCurrentQualifyingDriver()?.id || null;
+      const qualifyingPhase = getQualifyingFlowPhase(qualifyingFlow, appDrivers);
+
+      if (currentRole.startsWith("j") && qualifyingPhase !== "live") {
+        driversTableWrap.classList.add("mobile-hidden");
+        mobileDriversList.innerHTML = renderJudgeLaneStateCard(qualifyingPhase, appDrivers.length);
+        applySearchFilter();
+        updateQualifying();
+        renderRegistrationForms();
+        return;
+      }
 
       if (shouldUseJudgeLane()) {
         clampJudgeLaneIndex();
@@ -9384,13 +9465,38 @@
       syncQualifyingFlowState();
       const queue = getQualifyingDriverQueue();
       const currentDriver = getCurrentQualifyingDriver();
-      if (!queue.length || !currentDriver) {
+      const qualifyingPhase = getQualifyingFlowPhase(qualifyingFlow, appDrivers);
+      if (qualifyingPhase === "empty") {
         lastQualifyingDriverId = null;
         qualifyingLivePanel.innerHTML = `
           <div class="qualifying-live-card">
             <p class="qualifying-live-kicker">Now Qualifying</p>
             <div class="qualifying-live-driver">Waiting For Drivers</div>
             <div class="qualifying-live-note">Add driver names in registration to start the live qualifying queue.</div>
+          </div>
+        `;
+        return;
+      }
+
+      if (qualifyingPhase === "waiting") {
+        lastQualifyingDriverId = null;
+        qualifyingLivePanel.innerHTML = `
+          <div class="qualifying-live-card">
+            <p class="qualifying-live-kicker">Qualifying Status</p>
+            <div class="qualifying-live-driver">Waiting To Start</div>
+            <div class="qualifying-live-note">Event admin can start qualifying once the driver list is ready.</div>
+          </div>
+        `;
+        return;
+      }
+
+      if (qualifyingPhase === "complete" || !currentDriver) {
+        lastQualifyingDriverId = null;
+        qualifyingLivePanel.innerHTML = `
+          <div class="qualifying-live-card">
+            <p class="qualifying-live-kicker">Qualifying Status</p>
+            <div class="qualifying-live-driver">Qualifying Complete</div>
+            <div class="qualifying-live-note">All registered drivers have finished their qualifying runs.</div>
           </div>
         `;
         return;
@@ -9800,6 +9906,31 @@
             </button>
           </div>
         </article>
+      `;
+    }
+
+    function renderJudgeLaneStateCard(phase, totalDrivers) {
+      const title = phase === "complete" ? "Qualifying Complete" : phase === "empty" ? "Waiting For Drivers" : "Waiting For Qualifying To Start";
+      const note = phase === "complete"
+        ? "This event has finished qualifying. Judge inputs are locked until a new qualifying session begins."
+        : phase === "empty"
+          ? "No registered drivers are available yet. Add drivers first to begin qualifying."
+          : `Waiting for the event admin to start qualifying.${totalDrivers ? ` ${totalDrivers} driver${totalDrivers === 1 ? "" : "s"} ready.` : ""}`;
+      return `
+        <section class="judge-lane-shell judge-lane-state-shell">
+          <div class="judge-lane-toolbar">
+            <div class="judge-lane-meta">
+              <div>
+                <div class="judge-lane-progress">Judges Panel</div>
+                <strong>${title}</strong>
+              </div>
+              <div class="mobile-driver-reg">${totalDrivers || 0} Driver${totalDrivers === 1 ? "" : "s"}</div>
+            </div>
+          </div>
+          <article class="mobile-driver-card">
+            <div class="empty-state">${note}</div>
+          </article>
+        </section>
       `;
     }
 
