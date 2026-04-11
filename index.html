@@ -2555,13 +2555,13 @@
       color: #000;
     }
 
-    .main-board-grid { display: grid; align-items: start; gap: 18px; }
+    .main-board-grid { display: grid; align-items: start; gap: var(--main-board-gap, 18px); }
     .center-stage-stack {
       display: grid;
       justify-items: center;
-      gap: 28px;
+      gap: var(--center-stage-gap, 28px);
     }
-    .main-board-side { display: grid; gap: 18px; }
+    .main-board-side { display: grid; gap: var(--main-board-gap, 18px); }
     .main-board-side.left { grid-auto-flow: column; justify-content: start; }
     .main-board-side.right { grid-auto-flow: column; justify-content: end; }
 
@@ -2574,7 +2574,7 @@
     .main-board-round-matches { display: grid; gap: var(--round-gap, 14px); }
 
     .main-battle {
-      min-width: 184px;
+      min-width: var(--bracket-round-width, 184px);
       background: transparent;
     }
 
@@ -2587,14 +2587,14 @@
     .main-battle-slot {
       position: relative;
       display: grid;
-      grid-template-columns: 42px 1fr;
-      min-height: 40px;
+      grid-template-columns: var(--seed-chip-width, 42px) 1fr;
+      min-height: var(--slot-height, 40px);
       background: #ffffff;
       border: 3px solid #000;
       box-shadow: 3px 3px 0px #000;
     }
 
-    .main-battle.right .main-battle-slot { grid-template-columns: 1fr 42px; }
+    .main-battle.right .main-battle-slot { grid-template-columns: 1fr var(--seed-chip-width, 42px); }
     .main-battle.center .main-battle-slot { grid-template-columns: 1fr; }
 
     .seed-chip {
@@ -2604,21 +2604,21 @@
       background: linear-gradient(135deg, var(--accent), var(--accent-dark));
       color: white;
       font-family: var(--font-graffiti);
-      font-size: 1.2rem;
+      font-size: var(--seed-font-size, 1.2rem);
       border-right: 3px solid #000;
     }
     .main-battle.right .seed-chip { border-right: none; border-left: 3px solid #000; }
 
     .slot-button {
       width: 100%;
-      min-height: 40px;
+      min-height: var(--slot-height, 40px);
       display: flex;
       align-items: center;
       justify-content: flex-start;
-      padding: 0 12px;
+      padding: 0 var(--slot-padding-x, 12px);
       background: #fff;
       color: #000;
-      font-size: 1rem;
+      font-size: var(--slot-font-size, 1rem);
       font-weight: 800;
       border: none;
       box-shadow: none;
@@ -2644,7 +2644,7 @@
     .slot-team {
       display: block;
       width: 100%;
-      font-size: 0.68rem;
+      font-size: var(--slot-team-font-size, 0.68rem);
       font-weight: 700;
       letter-spacing: 0.08em;
       opacity: 0.72;
@@ -2672,84 +2672,84 @@
       content: "";
       position: absolute;
       top: 50%;
-      width: 12px;
-      height: 4px;
+      width: var(--connector-stub, 12px);
+      height: var(--connector-thickness, 4px);
       background: #000;
       transform: translateY(-50%);
     }
 
-    .main-battle.left .main-battle-slot::after { right: -15px; }
-    .main-battle.right .main-battle-slot::after { left: -15px; }
+    .main-battle.left .main-battle-slot::after { right: calc((var(--connector-stub, 12px) + 3px) * -1); }
+    .main-battle.right .main-battle-slot::after { left: calc((var(--connector-stub, 12px) + 3px) * -1); }
 
     .main-battle.left .main-battle-stack::before,
     .main-battle.right .main-battle-stack::before {
       content: "";
       position: absolute;
-      top: 20px;
-      bottom: 20px;
-      width: 4px;
+      top: calc(var(--slot-height, 40px) / 2);
+      bottom: calc(var(--slot-height, 40px) / 2);
+      width: var(--connector-thickness, 4px);
       background: #000;
     }
 
-    .main-battle.left .main-battle-stack::before { right: -15px; }
-    .main-battle.right .main-battle-stack::before { left: -15px; }
+    .main-battle.left .main-battle-stack::before { right: calc((var(--connector-stub, 12px) + 3px) * -1); }
+    .main-battle.right .main-battle-stack::before { left: calc((var(--connector-stub, 12px) + 3px) * -1); }
 
     .main-battle.left .main-battle-stack::after,
     .main-battle.right .main-battle-stack::after {
       content: "";
       position: absolute;
       top: calc(50% - 2px);
-      width: 18px;
-      height: 4px;
+      width: var(--connector-bridge, 18px);
+      height: var(--connector-thickness, 4px);
       background: #000;
     }
 
-    .main-battle.left .main-battle-stack::after { right: -33px; }
-    .main-battle.right .main-battle-stack::after { left: -33px; }
+    .main-battle.left .main-battle-stack::after { right: calc((var(--connector-stub, 12px) + var(--connector-bridge, 18px) + 3px) * -1); }
+    .main-battle.right .main-battle-stack::after { left: calc((var(--connector-stub, 12px) + var(--connector-bridge, 18px) + 3px) * -1); }
 
     .main-battle.center .main-battle-slot::before,
     .main-battle.center .main-battle-slot::after {
       content: "";
       position: absolute;
       top: 50%;
-      width: 18px;
-      height: 4px;
+      width: var(--connector-bridge, 18px);
+      height: var(--connector-thickness, 4px);
       background: #000;
       transform: translateY(-50%);
     }
 
-    .main-battle.center .main-battle-slot::before { left: -21px; }
-    .main-battle.center .main-battle-slot::after { right: -21px; }
+    .main-battle.center .main-battle-slot::before { left: calc((var(--connector-bridge, 18px) + 3px) * -1); }
+    .main-battle.center .main-battle-slot::after { right: calc((var(--connector-bridge, 18px) + 3px) * -1); }
 
     .final-battle-card {
-      width: 250px;
+      width: var(--final-card-width, 250px);
       border: 4px solid #000;
       background: #fff;
       box-shadow: 8px 8px 0px #000;
     }
 
     .third-place-card {
-      width: 230px;
+      width: var(--third-card-width, 230px);
       box-shadow: 6px 6px 0px #000;
     }
 
     .final-battle-head {
-      padding: 12px 16px;
+      padding: var(--final-head-padding-y, 12px) var(--final-head-padding-x, 16px);
       background: #000;
       color: #fff;
       font-family: var(--font-graffiti);
-      font-size: 1.4rem;
+      font-size: var(--final-head-font-size, 1.4rem);
       text-align: center;
     }
 
-    .final-battle-body { padding: 16px; display: grid; gap: 8px; }
+    .final-battle-body { padding: var(--final-body-padding, 16px); display: grid; gap: var(--final-body-gap, 8px); }
 
     .final-vs {
       padding: 8px 0 2px;
       text-align: center;
       color: #000;
       font-family: var(--font-graffiti);
-      font-size: 1.4rem;
+      font-size: var(--final-vs-font-size, 1.4rem);
     }
 
     .rounds-board {
@@ -3164,6 +3164,28 @@
         margin-bottom: 10px;
       }
       .hero-logo { width: min(260px, 78vw); }
+      :root {
+        --bracket-round-width: 132px;
+        --slot-height: 30px;
+        --seed-chip-width: 28px;
+        --seed-font-size: 0.84rem;
+        --slot-font-size: 0.78rem;
+        --slot-team-font-size: 0.5rem;
+        --slot-padding-x: 7px;
+        --connector-stub: 8px;
+        --connector-bridge: 12px;
+        --connector-thickness: 3px;
+        --main-board-gap: 10px;
+        --center-stage-gap: 14px;
+        --final-card-width: 176px;
+        --third-card-width: 164px;
+        --final-head-padding-y: 8px;
+        --final-head-padding-x: 10px;
+        --final-head-font-size: 0.98rem;
+        --final-body-padding: 10px;
+        --final-body-gap: 6px;
+        --final-vs-font-size: 1rem;
+      }
       .main-bracket-panel::before { background-size: min(420px, 88%); opacity: 0.045; }
       .main-bracket-panel { padding: 12px 6px 16px; }
       #fullscreenQualifyingBtn,
@@ -3236,6 +3258,12 @@
       }
       .main-board-label {
         font-size: 0.9rem;
+      }
+      .final-battle-card {
+        box-shadow: 5px 5px 0 #000;
+      }
+      .third-place-card {
+        box-shadow: 4px 4px 0 #000;
       }
       .judge-lane-toolbar {
         top: 4px;
@@ -3356,6 +3384,28 @@
     }
 
     @media (max-width: 960px) and (orientation: landscape) {
+      :root {
+        --bracket-round-width: 118px;
+        --slot-height: 27px;
+        --seed-chip-width: 24px;
+        --seed-font-size: 0.76rem;
+        --slot-font-size: 0.7rem;
+        --slot-team-font-size: 0.46rem;
+        --slot-padding-x: 6px;
+        --connector-stub: 7px;
+        --connector-bridge: 10px;
+        --connector-thickness: 2px;
+        --main-board-gap: 8px;
+        --center-stage-gap: 10px;
+        --final-card-width: 156px;
+        --third-card-width: 148px;
+        --final-head-padding-y: 7px;
+        --final-head-padding-x: 8px;
+        --final-head-font-size: 0.86rem;
+        --final-body-padding: 8px;
+        --final-body-gap: 5px;
+        --final-vs-font-size: 0.88rem;
+      }
       body.competition-page .page-shell {
         width: 100vw;
         max-width: 100vw;
@@ -3375,6 +3425,12 @@
       }
       .main-board-label {
         font-size: 0.82rem;
+      }
+      .final-battle-card {
+        box-shadow: 4px 4px 0 #000;
+      }
+      .third-place-card {
+        box-shadow: 3px 3px 0 #000;
       }
     }
   </style>
@@ -8599,11 +8655,17 @@
     }
 
     function getRoundMetrics(sideRoundCount) {
+      const isCompactLandscape = window.innerWidth <= 960 && window.matchMedia?.("(orientation: landscape)")?.matches;
+      const baseSlotHeight = isCompactLandscape ? 58 : window.innerWidth <= 720 ? 66 : 86;
       const metrics = [];
-      let gap = 10, pitch = 86 + gap, offset = 0;
+      let gap = isCompactLandscape ? 8 : window.innerWidth <= 720 ? 10 : 10;
+      let pitch = baseSlotHeight + gap;
+      let offset = 0;
       for (let stageIndex = 0; stageIndex < sideRoundCount; stageIndex += 1) {
         if (stageIndex === 0) { metrics.push({ gap, offset }); continue; }
-        offset += pitch / 2; pitch *= 2; gap = pitch - 86;
+        offset += pitch / 2;
+        pitch *= 2;
+        gap = pitch - baseSlotHeight;
         metrics.push({ gap, offset });
       }
       return metrics;
@@ -8616,7 +8678,7 @@
       const disabledHTML = (!adminCanEdit() || !canChoose) ? "disabled" : "";
       const teamMarkup = driver.teamName?.trim() ? `<span class="slot-team">${escapeHtml(driver.teamName.trim())}</span>` : "";
       const button = `<button class="slot-button ${selected ? "selected" : ""}" type="button" data-bracket="${bracketKey}" data-round="${roundIndex}" data-match="${matchIndex}" data-side="${side}" ${disabledHTML}><span class="slot-name">${escapeHtml(driver.name)}</span>${teamMarkup}</button>`;
-      const seedChip = `<span class="seed-chip" style="width:38px;">${driver.seed}</span>`;
+      const seedChip = `<span class="seed-chip">${driver.seed}</span>`;
 
       return align === "right" ? `<div class="main-battle-slot">${button}${seedChip}</div>` : `<div class="main-battle-slot">${seedChip}${button}</div>`;
     }
@@ -8640,6 +8702,11 @@
       const thirdPlaceMatch = options.thirdPlaceMatch || null;
       const finalTitle = options.finalTitle || "Final Battle";
       const centerLabel = thirdPlaceMatch ? "Podium" : "Final";
+      const isCompactLandscape = window.innerWidth <= 960 && window.matchMedia?.("(orientation: landscape)")?.matches;
+      const isCompactMobile = window.innerWidth <= 720;
+      const roundWidth = isCompactLandscape ? 118 : isCompactMobile ? 132 : 184;
+      const centerWidth = isCompactLandscape ? 156 : isCompactMobile ? 176 : 270;
+      const boardGap = isCompactLandscape ? 8 : isCompactMobile ? 10 : 18;
       if (!rounds.length) return "";
       if (rounds.length === 1) {
         return `<div class="main-board-canvas" style="min-width: 320px;"><div class="main-board-grid" style="grid-template-columns: 1fr;"><div class="center-stage-stack">${renderFinalBattle(bracketKey, 0, rounds[0].matches[0], finalTitle)}</div></div></div>`;
@@ -8652,9 +8719,9 @@
       const rightRounds = sideRounds.map(r => r.matches.slice(Math.floor(r.matches.length / 2)));
       const rightRoundsReversed = [...rightRounds].reverse();
       const labelColumns = [...sideRounds.map(r => r.name), centerLabel, ...[...sideRounds].reverse().map(r => r.name)];
-      const gridTemplate = `${Array(sideRounds.length).fill("184px").join(" ")} 270px ${Array(sideRounds.length).fill("184px").join(" ")}`;
+      const gridTemplate = `${Array(sideRounds.length).fill(`${roundWidth}px`).join(" ")} ${centerWidth}px ${Array(sideRounds.length).fill(`${roundWidth}px`).join(" ")}`;
       const columnCount = sideRounds.length * 2 + 1;
-      const boardWidth = sideRounds.length * 184 * 2 + 270 + Math.max(columnCount - 1, 0) * 18;
+      const boardWidth = sideRounds.length * roundWidth * 2 + centerWidth + Math.max(columnCount - 1, 0) * boardGap;
 
       const leftMarkup = leftRounds.map((matches, stageIndex) => `<section class="main-board-round" style="--round-gap: ${metrics[stageIndex].gap}px; --round-offset: ${metrics[stageIndex].offset}px;"><div class="main-board-round-matches">${matches.map((match, matchIndex) => renderMainBattle(bracketKey, stageIndex, matchIndex, match, "left")).join("")}</div></section>`).join("");
       const rightMarkup = rightRoundsReversed.map((matches, reverseIndex) => {
@@ -8667,9 +8734,9 @@
         <div class="main-board-canvas" style="min-width: ${boardWidth}px;">
           <div class="main-board-round-labels" style="grid-template-columns: ${gridTemplate};">${labelColumns.map(label => `<div class="main-board-label">${label}</div>`).join("")}</div>
           <div class="main-board-grid" style="grid-template-columns: ${gridTemplate};">
-            <div class="main-board-side left" style="grid-column: 1 / span ${sideRounds.length}; grid-template-columns: repeat(${sideRounds.length}, 184px);">${leftMarkup}</div>
+            <div class="main-board-side left" style="grid-column: 1 / span ${sideRounds.length}; grid-template-columns: repeat(${sideRounds.length}, ${roundWidth}px);">${leftMarkup}</div>
             <div style="grid-column: ${sideRounds.length + 1} / span 1;"><div class="center-stage-stack">${renderFinalBattle(bracketKey, rounds.length - 1, finalRound.matches[0], finalTitle)}${thirdPlaceMatch ? renderPlacementBattle("third", thirdPlaceMatch, "3rd Place Battle") : ""}</div></div>
-            <div class="main-board-side right" style="grid-column: ${sideRounds.length + 2} / span ${sideRounds.length}; grid-template-columns: repeat(${sideRounds.length}, 184px);">${rightMarkup}</div>
+            <div class="main-board-side right" style="grid-column: ${sideRounds.length + 2} / span ${sideRounds.length}; grid-template-columns: repeat(${sideRounds.length}, ${roundWidth}px);">${rightMarkup}</div>
           </div>
         </div>
       `;
