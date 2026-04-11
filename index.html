@@ -1033,6 +1033,13 @@
       box-shadow: 4px 4px 0px #000;
     }
 
+    .registration-layout {
+      display: grid;
+      grid-template-columns: minmax(320px, 0.9fr) minmax(0, 1.1fr);
+      gap: 24px;
+      align-items: start;
+    }
+
     .registration-stack {
       display: grid;
       gap: 16px;
@@ -1080,6 +1087,57 @@
       display: grid;
       gap: 14px;
       grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .registration-form-grid.single-column {
+      grid-template-columns: 1fr;
+    }
+
+    .registration-entry-panel,
+    .registration-roster-panel {
+      min-height: 0;
+    }
+
+    .registration-draft-form {
+      display: grid;
+      gap: 14px;
+    }
+
+    .registration-form-actions {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .registration-form-note {
+      color: var(--text-soft);
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    .registration-roster-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .registration-roster-count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      padding: 8px 12px;
+      border: 2px solid #000;
+      background: #000;
+      color: #fff;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
     }
 
     .mobile-driver-head,
@@ -2550,6 +2608,9 @@
       body[data-role="admin"] #view-registration > .hero .hero-meta-inline {
         width: 100%;
       }
+      .registration-layout {
+        grid-template-columns: 1fr;
+      }
       body[data-role="spectator"] #view-qualifying > .hero .hero-copy-block {
         grid-template-columns: 1fr;
         justify-items: start;
@@ -2822,7 +2883,7 @@
           <p class="eyebrow">Registration</p>
           <h1>Driver Sign-Up</h1>
           <div class="hero-actions">
-            <button id="registrationAddDriverBtn" class="button button-accent" type="button">Add Driver</button>
+            <button id="registrationAddDriverBtn" class="button button-accent" type="submit" form="registrationEntryForm">Add Driver</button>
             <button id="registrationToQualifyingBtn" class="button button-secondary" type="button">Go To Qualifying</button>
           </div>
           <div class="hero-meta-inline registration-admin-only">
@@ -2839,20 +2900,46 @@
         </div>
       </header>
 
-      <main class="layout">
-        <section class="panel">
+      <main class="registration-layout">
+        <section class="panel registration-entry-panel">
           <div class="panel-header">
             <div>
               <p class="section-kicker">Entry Form</p>
-              <h2>Competition Registration</h2>
-            </div>
-            <div class="button-row">
-              <button id="registrationAddDriverSecondaryBtn" class="button" type="button">Add Another Driver</button>
+              <h2>Register Driver</h2>
             </div>
           </div>
-          <div class="registration-intro">Each new form gets the next sign-up number automatically. Registration number and sign-up number stay the same for the full event.</div>
-          <div id="registrationForms" class="registration-stack"></div>
+          <div class="registration-intro">Submit one driver at a time. After each submit, a fresh form appears automatically for the next registration number.</div>
+          <form id="registrationEntryForm" class="registration-draft-form">
+            <div class="registration-form-grid single-column">
+              <label class="modal-field">
+                <span>Driver Name</span>
+                <input id="registrationDraftName" class="registration-driver-input" type="text" placeholder="Driver name" />
+              </label>
+              <label class="modal-field">
+                <span>Team Name</span>
+                <input id="registrationDraftTeam" class="registration-driver-input" type="text" placeholder="Team name" />
+              </label>
+              <label class="modal-field">
+                <span>Chassis</span>
+                <input id="registrationDraftChassis" class="registration-driver-input" type="text" placeholder="Chassis" />
+              </label>
+            </div>
+            <div class="registration-form-actions">
+              <div class="registration-form-note" id="registrationDraftRegLabel">Next registration number: #1</div>
+              <button id="registrationAddDriverSecondaryBtn" class="button" type="submit">Submit Driver</button>
+            </div>
+          </form>
         </section>
+        <aside class="panel registration-roster-panel">
+          <div class="registration-roster-head">
+            <div>
+              <p class="section-kicker">Registered Drivers</p>
+              <h2>Current Roster</h2>
+            </div>
+            <div class="registration-roster-count" id="registrationDriverCount">0 Drivers</div>
+          </div>
+          <div id="registrationForms" class="registration-stack"></div>
+        </aside>
       </main>
     </div>
 
@@ -5301,6 +5388,11 @@
     const registrationHeroEventName = document.getElementById("registrationHeroEventName");
     const registrationHeroEventDate = document.getElementById("registrationHeroEventDate");
     const registrationDriverCount = document.getElementById("registrationDriverCount");
+    const registrationDraftRegLabel = document.getElementById("registrationDraftRegLabel");
+    const registrationEntryForm = document.getElementById("registrationEntryForm");
+    const registrationDraftName = document.getElementById("registrationDraftName");
+    const registrationDraftTeam = document.getElementById("registrationDraftTeam");
+    const registrationDraftChassis = document.getElementById("registrationDraftChassis");
     const registrationForms = document.getElementById("registrationForms");
     const registrationAddDriverBtn = document.getElementById("registrationAddDriverBtn");
     const registrationAddDriverSecondaryBtn = document.getElementById("registrationAddDriverSecondaryBtn");
@@ -5335,6 +5427,11 @@
     const currentEventStatus = document.getElementById("currentEventStatus");
     const eventArchiveList = document.getElementById("eventArchiveList");
     const roleAdminPanel = document.getElementById("roleAdminPanel");
+    let registrationDraft = {
+      name: "",
+      teamName: "",
+      chassis: "",
+    };
     
     let pendingRole = null;
     let pendingAuthMode = "login";
@@ -5527,18 +5624,41 @@
       });
     }
 
+    function syncRegistrationDraftForm() {
+      const canEditRegistration = registrationCanEdit();
+      if (registrationDraftName) registrationDraftName.value = registrationDraft.name || "";
+      if (registrationDraftTeam) registrationDraftTeam.value = registrationDraft.teamName || "";
+      if (registrationDraftChassis) registrationDraftChassis.value = registrationDraft.chassis || "";
+      if (registrationDraftName) registrationDraftName.disabled = !canEditRegistration;
+      if (registrationDraftTeam) registrationDraftTeam.disabled = !canEditRegistration;
+      if (registrationDraftChassis) registrationDraftChassis.disabled = !canEditRegistration;
+      if (registrationAddDriverBtn) registrationAddDriverBtn.disabled = !canEditRegistration;
+      if (registrationAddDriverSecondaryBtn) registrationAddDriverSecondaryBtn.disabled = !canEditRegistration;
+      if (registrationDraftRegLabel) {
+        registrationDraftRegLabel.textContent = `Next registration number: #${getNextSignUpPosition(appDrivers)}`;
+      }
+    }
+
     function renderRegistrationForms() {
       if (!registrationForms) return;
-      const orderedDrivers = [...normalizeDriverList(appDrivers)].sort((left, right) => (right.signUpPosition || 0) - (left.signUpPosition || 0));
+      const orderedDrivers = [...getRegisteredDrivers(appDrivers)].sort((left, right) => (left.signUpPosition || 0) - (right.signUpPosition || 0));
       const canEditRegistration = registrationCanEdit();
 
       if (registrationHeroEventName) registrationHeroEventName.textContent = activeEventMeta?.name || "Main Event";
       if (registrationHeroEventDate) registrationHeroEventDate.textContent = formatEventDate(activeEventMeta?.date);
-      if (registrationDriverCount) registrationDriverCount.textContent = String(getRegisteredDrivers(appDrivers).length);
+      if (registrationDriverCount) {
+        const count = getRegisteredDrivers(appDrivers).length;
+        registrationDriverCount.textContent = `${count} Driver${count === 1 ? "" : "s"}`;
+      }
+      syncRegistrationDraftForm();
+
+      if (!orderedDrivers.length) {
+        registrationForms.innerHTML = `<div class="empty-state">No drivers submitted yet. Use the form on the left to add the first driver.</div>`;
+        return;
+      }
 
       registrationForms.innerHTML = orderedDrivers.map((driver) => {
         const displayName = driver.name?.trim() ? escapeHtml(driver.name) : "New Driver";
-        const nameValue = escapeHtml(driver.name || "");
         const teamValue = escapeHtml(driver.teamName || "");
         const chassisValue = escapeHtml(driver.chassis || "");
         const removeDisabled = orderedDrivers.length <= 1 ? "disabled" : "";
@@ -5547,53 +5667,57 @@
             <div class="registration-card-header">
               <div class="registration-card-title">
                 <strong>${displayName}</strong>
-                <small>Sign-up / Reg #${driver.signUpPosition}</small>
+                <small>Registration #${driver.signUpPosition}</small>
               </div>
               ${canEditRegistration
                 ? `<button class="micro-button" type="button" data-action="remove-registration-driver" ${removeDisabled}>Remove</button>`
                 : ""
               }
             </div>
-            <div class="registration-meta">Newest forms appear first here, but sign-up numbering stays locked in original registration order.</div>
-            ${canEditRegistration
-              ? `<div class="registration-form-grid">
-                  <label class="modal-field">
-                    <span>Driver Name</span>
-                    <input class="driver-name registration-driver-input" data-col="name" type="text" value="${nameValue}" placeholder="Driver name" />
-                  </label>
-                  <label class="modal-field">
-                    <span>Team Name</span>
-                    <input class="registration-driver-input" data-col="teamName" type="text" value="${teamValue}" placeholder="Team name" />
-                  </label>
-                  <label class="modal-field">
-                    <span>Chassis</span>
-                    <input class="registration-driver-input" data-col="chassis" type="text" value="${chassisValue}" placeholder="Chassis" />
-                  </label>
-                </div>`
-              : `<div class="registration-form-grid">
-                  <div class="modal-field">
-                    <span>Driver Name</span>
-                    <strong>${displayName}</strong>
-                  </div>
-                  <div class="modal-field">
-                    <span>Team Name</span>
-                    <strong>${teamValue || "Not provided"}</strong>
-                  </div>
-                  <div class="modal-field">
-                    <span>Chassis</span>
-                    <strong>${chassisValue || "Not provided"}</strong>
-                  </div>
-                </div>`
-            }
+            <div class="registration-form-grid">
+              <div class="modal-field">
+                <span>Driver Name</span>
+                <strong>${displayName}</strong>
+              </div>
+              <div class="modal-field">
+                <span>Team Name</span>
+                <strong>${teamValue || "Not provided"}</strong>
+              </div>
+              <div class="modal-field">
+                <span>Chassis</span>
+                <strong>${chassisValue || "Not provided"}</strong>
+              </div>
+            </div>
           </article>
         `;
       }).join("");
     }
 
-    function addDriverRegistrationEntry() {
-      appDrivers.push(createEmptyDriver(appDrivers.length + 1));
+    function resetRegistrationDraft() {
+      registrationDraft = { name: "", teamName: "", chassis: "" };
+      syncRegistrationDraftForm();
+      if (registrationDraftName) registrationDraftName.focus();
+    }
+
+    function submitRegistrationDraft() {
+      if (!registrationCanEdit()) return false;
+      const name = registrationDraft.name?.trim() || "";
+      if (!name) {
+        if (registrationDraftName) registrationDraftName.focus();
+        return false;
+      }
+      const nextPosition = getNextSignUpPosition(appDrivers);
+      const nextDriver = createEmptyDriver(nextPosition);
+      nextDriver.name = name;
+      nextDriver.teamName = (registrationDraft.teamName || "").trim();
+      nextDriver.chassis = (registrationDraft.chassis || "").trim();
+      nextDriver.reg = nextPosition;
+      nextDriver.signUpPosition = nextPosition;
+      appDrivers = resequenceDrivers([...getRegisteredDrivers(appDrivers), nextDriver], true);
       publishState();
       renderDriversTable();
+      resetRegistrationDraft();
+      return true;
     }
 
     function buildEventArchiveMarkup(eventMeta, includeAdminControls = false) {
@@ -7132,31 +7256,20 @@
       });
     }
 
-    registrationForms.addEventListener("input", (e) => {
+    registrationEntryForm?.addEventListener("input", (e) => {
       if (!registrationCanEdit()) return;
-      const card = e.target.closest("[data-id]");
-      if (!card) return;
-      const driver = appDrivers.find((entry) => entry.id === card.dataset.id);
-      if (!driver) return;
-      const fieldKey = e.target.dataset.col;
-      if (!fieldKey) return;
-      if (fieldKey === "name") {
-        driver.name = e.target.value;
-        const title = card.querySelector(".registration-card-title strong");
-        if (title) title.textContent = driver.name.trim() || "New Driver";
-      } else if (fieldKey === "teamName") {
-        driver.teamName = e.target.value;
-      } else if (fieldKey === "chassis") {
-        driver.chassis = e.target.value;
-      } else {
-        return;
+      if (e.target === registrationDraftName) {
+        registrationDraft.name = e.target.value;
+      } else if (e.target === registrationDraftTeam) {
+        registrationDraft.teamName = e.target.value;
+      } else if (e.target === registrationDraftChassis) {
+        registrationDraft.chassis = e.target.value;
       }
-      if (registrationDriverCount) registrationDriverCount.textContent = String(getRegisteredDrivers(appDrivers).length);
-      publishState();
-      if (!document.getElementById("view-registration").classList.contains("is-active")) {
-        renderDriversTable();
-      }
-      updateQualifying();
+    });
+
+    registrationEntryForm?.addEventListener("submit", (e) => {
+      e.preventDefault();
+      submitRegistrationDraft();
     });
 
     registrationForms.addEventListener("click", (e) => {
@@ -7208,14 +7321,6 @@
       lowerCountContainer.style.display = "none";
       publishState();
       updateQualifying();
-    });
-    registrationAddDriverBtn.addEventListener("click", () => {
-      if (!registrationCanEdit()) return;
-      addDriverRegistrationEntry();
-    });
-    registrationAddDriverSecondaryBtn.addEventListener("click", () => {
-      if (!registrationCanEdit()) return;
-      addDriverRegistrationEntry();
     });
     registrationToQualifyingBtn.addEventListener("click", () => {
       if (currentRole.startsWith("j")) return;
