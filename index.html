@@ -4902,8 +4902,12 @@
     function getRunAverage(driver, runRef) {
       const runKey = getRunKey(runRef);
       if (driver.runFlags?.[runKey]) return 0;
-      const s = driver.scores;
-      const submittedScores = getActiveJudgeRoles().map((role) => s[role]?.submitted?.[runKey] ?? null);
+      const s = driver?.scores || {};
+      const submittedScores = getActiveJudgeRoles().map((role) => {
+        const judgeScores = s?.[role] || {};
+        const submitted = judgeScores?.submitted || {};
+        return submitted?.[runKey] ?? null;
+      });
       if (submittedScores.some((val) => val === null)) return null;
       const validScores = submittedScores.filter((val) => val !== null);
       if (validScores.length === 0) return null;
@@ -5276,7 +5280,8 @@
     }
 
     function rankDrivers(driversStateList) {
-      const baseRanked = driversStateList
+      const normalizedDrivers = normalizeDriverList(driversStateList);
+      const baseRanked = normalizedDrivers
         .map((driver, index) => {
           const run1Avg = getRunAverage(driver, 1);
           const run2Avg = getRunAverage(driver, 2);
