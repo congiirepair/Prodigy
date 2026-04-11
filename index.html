@@ -82,7 +82,12 @@
     body[data-theme="dark"] .modal-panel,
     body[data-theme="dark"] .podium-card,
     body[data-theme="dark"] .results-event-card,
-    body[data-theme="dark"] .website-admin-card {
+    body[data-theme="dark"] .website-admin-card,
+    body[data-theme="dark"] .event-card,
+    body[data-theme="dark"] .role-admin-toolbar,
+    body[data-theme="dark"] .role-admin-card,
+    body[data-theme="dark"] .invite-code-box,
+    body[data-theme="dark"] .admin-lock-note {
       background: linear-gradient(180deg, rgba(30, 30, 33, 0.98), rgba(16, 16, 18, 0.96));
       color: var(--text);
     }
@@ -187,7 +192,12 @@
     body[data-theme="dark"] .registration-card-title strong,
     body[data-theme="dark"] .driver-meta strong,
     body[data-theme="dark"] .mobile-driver-name,
-    body[data-theme="dark"] .modal-field strong {
+    body[data-theme="dark"] .modal-field strong,
+    body[data-theme="dark"] .event-card-head strong,
+    body[data-theme="dark"] .event-stat strong,
+    body[data-theme="dark"] .role-admin-title strong,
+    body[data-theme="dark"] .invite-code-value,
+    body[data-theme="dark"] .hero-stat strong {
       color: var(--text);
     }
 
@@ -196,14 +206,45 @@
     body[data-theme="dark"] .registration-meta,
     body[data-theme="dark"] .driver-meta small,
     body[data-theme="dark"] .mobile-driver-subline,
-    body[data-theme="dark"] .mobile-driver-reg {
+    body[data-theme="dark"] .mobile-driver-reg,
+    body[data-theme="dark"] .event-card-meta,
+    body[data-theme="dark"] .event-stat span,
+    body[data-theme="dark"] .role-admin-title small,
+    body[data-theme="dark"] .invite-code-label,
+    body[data-theme="dark"] .helper-text,
+    body[data-theme="dark"] .hero-stat-label {
       color: var(--text-soft);
     }
 
     body[data-theme="dark"] .table-wrap,
     body[data-theme="dark"] .registration-card,
-    body[data-theme="dark"] .mobile-driver-card {
+    body[data-theme="dark"] .mobile-driver-card,
+    body[data-theme="dark"] .event-card,
+    body[data-theme="dark"] .role-admin-toolbar,
+    body[data-theme="dark"] .role-admin-card,
+    body[data-theme="dark"] .invite-code-box,
+    body[data-theme="dark"] .admin-lock-note,
+    body[data-theme="dark"] .hero-stat {
       background: linear-gradient(180deg, rgba(28, 28, 31, 0.98), rgba(16, 16, 18, 0.96));
+    }
+
+    body[data-theme="dark"] .event-card.is-active {
+      background: linear-gradient(180deg, rgba(36, 36, 40, 0.98), rgba(20, 20, 24, 0.96));
+    }
+
+    body[data-theme="dark"] .event-stat {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.16);
+    }
+
+    body[data-theme="dark"] .role-admin-toolbar,
+    body[data-theme="dark"] .role-admin-card,
+    body[data-theme="dark"] .invite-code-box,
+    body[data-theme="dark"] .admin-lock-note,
+    body[data-theme="dark"] .event-card,
+    body[data-theme="dark"] .hero-stat {
+      border-color: rgba(255, 255, 255, 0.18);
+      box-shadow: 0 16px 34px rgba(0, 0, 0, 0.32), 0 1px 0 rgba(255, 255, 255, 0.1);
     }
 
     body[data-theme="dark"] .topbar,
