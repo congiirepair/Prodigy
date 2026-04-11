@@ -4408,6 +4408,28 @@
       renderRoleAdminPanel();
     }
 
+    let deferredInteractiveRenderPending = false;
+
+    function isJudgeEditingScoreInput() {
+      if (!currentRole?.startsWith("j")) return false;
+      const activeEl = document.activeElement;
+      return Boolean(activeEl && activeEl.classList?.contains("score-input"));
+    }
+
+    function renderAfterRemoteSync() {
+      renderEventDirectory();
+      renderRoleAdminPanel();
+      if (isJudgeEditingScoreInput()) {
+        deferredInteractiveRenderPending = true;
+        return;
+      }
+      deferredInteractiveRenderPending = false;
+      renderDriversTable();
+      if (document.getElementById('view-bracket').classList.contains('is-active')) {
+        renderBracket();
+      }
+    }
+
     function getDirectoryDocRef() {
       return doc(db, 'artifacts', appId, 'public', 'data', 'meta', 'eventDirectory');
     }
@@ -4503,12 +4525,7 @@
         activeEventMeta = cloneEventMeta(eventDirectory[activeEventId]);
       }
       saveDirectoryCache();
-      renderEventDirectory();
-      renderRoleAdminPanel();
-      renderDriversTable();
-      if (document.getElementById('view-bracket').classList.contains('is-active')) {
-        renderBracket();
-      }
+      renderAfterRemoteSync();
       return false;
     }
 
@@ -4519,12 +4536,7 @@
         eventDirectory[nextActiveEventId] = cloneEventMeta(data.eventMeta);
       }
       const activeEventChanged = adoptActiveEvent(nextActiveEventId, currentRole);
-      renderEventDirectory();
-      renderRoleAdminPanel();
-      renderDriversTable();
-      if (document.getElementById('view-bracket').classList.contains('is-active')) {
-        renderBracket();
-      }
+      renderAfterRemoteSync();
       return activeEventChanged;
     }
 
@@ -4543,12 +4555,7 @@
         if (subscribedEventId !== activeEventId) return;
         if (shouldApplySnapshot) {
           applyRemoteEventState(data);
-          renderEventDirectory();
-          renderRoleAdminPanel();
-          renderDriversTable();
-          if (document.getElementById('view-bracket').classList.contains('is-active')) {
-            renderBracket();
-          }
+          renderAfterRemoteSync();
         }
       }, (error) => {
         const statusEl = document.getElementById('syncStatus');
@@ -4560,12 +4567,7 @@
         if (!snap.exists()) return;
         if (subscribedEventId !== activeEventId) return;
         applyRemoteEventState(snap.data());
-        renderEventDirectory();
-        renderRoleAdminPanel();
-        renderDriversTable();
-        if (document.getElementById('view-bracket').classList.contains('is-active')) {
-          renderBracket();
-        }
+        renderAfterRemoteSync();
       }).catch((error) => {
         console.error("Event refresh failed:", error);
       });
@@ -6266,6 +6268,20 @@
       if (submitButton && !submitButton.disabled) {
         submitButton.click();
       }
+    });
+
+    mobileDriversList.addEventListener("focusout", (e) => {
+      if (!e.target.classList.contains("score-input")) return;
+      if (!currentRole.startsWith("j")) return;
+      requestAnimationFrame(() => {
+        if (!isJudgeEditingScoreInput() && deferredInteractiveRenderPending) {
+          deferredInteractiveRenderPending = false;
+          renderDriversTable();
+          if (document.getElementById('view-bracket').classList.contains('is-active')) {
+            renderBracket();
+          }
+        }
+      });
     });
 
     mobileDriversList.addEventListener("click", (e) => {
