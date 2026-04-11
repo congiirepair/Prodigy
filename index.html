@@ -3717,7 +3717,6 @@
   </div>
 
   <!-- APP LOGIC -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -4512,203 +4511,182 @@
       return driver ? `${driver.seed}-${driver.registrationNumber}-${driver.name}` : "";
     }
 
+    function normalizePdfText(value) {
+      return String(value ?? "")
+        .normalize("NFKD")
+        .replace(/[^\x20-\x7E]/g, "")
+        .trim();
+    }
+
+    function escapePdfText(value) {
+      return normalizePdfText(value)
+        .replaceAll("\\", "\\\\")
+        .replaceAll("(", "\\(")
+        .replaceAll(")", "\\)");
+    }
+
+    function padPdfCell(value, width, align = "left") {
+      const text = normalizePdfText(value);
+      const clipped = text.length > width ? `${text.slice(0, Math.max(width - 3, 0))}...` : text;
+      return align === "right" ? clipped.padStart(width, " ") : clipped.padEnd(width, " ");
+    }
+
+    function buildResultsPdfLines(eventMeta, results, rankedDrivers) {
+      const lines = [];
+      const addLine = (line = "") => lines.push(normalizePdfText(line));
+      const addSeparator = (length = 96) => addLine("-".repeat(length));
+
+      addLine("PRODIGY RC DRIFT ARENA");
+      addLine("COMPETITION RESULTS");
+      addSeparator();
+      addLine(`Event: ${eventMeta.name || "Event Results"}`);
+      addLine(`Date: ${formatEventDate(eventMeta.date)}`);
+      addLine(`Format: ${results.planDescription || "Waiting for qualifying scores."}`);
+      addLine(`Total Drivers: ${results.totalDrivers || rankedDrivers.length || 0}`);
+      addLine(`Qualified Drivers: ${results.qualifiedCount || 0}`);
+      addLine(`Completed: ${formatDateTimeForExport(results.completedAt || results.updatedAt)}`);
+      addLine("");
+      addLine("PODIUM");
+      addSeparator();
+      addLine(`1st Place: ${results.championName ? `#${results.championSeed} ${results.championName}` : "Waiting for winner"}`);
+      addLine(`2nd Place: ${results.runnerUpName ? `#${results.runnerUpSeed} ${results.runnerUpName}` : "Waiting for finalist"}`);
+      addLine(`3rd Place: ${results.thirdPlaceName ? `#${results.thirdPlaceSeed} ${results.thirdPlaceName}` : "Waiting for 3rd place battle"}`);
+      addLine("");
+      addLine("QUALIFYING STANDINGS");
+      addSeparator();
+
+      const tableHeader = [
+        padPdfCell("POS", 4),
+        padPdfCell("REG", 5),
+        padPdfCell("DRIVER", 24),
+        padPdfCell("TEAM", 18),
+        padPdfCell("CHASSIS", 14),
+        padPdfCell("RUN1", 6, "right"),
+        padPdfCell("RUN2", 6, "right"),
+        padPdfCell("BEST", 6, "right"),
+      ].join(" ");
+
+      addLine(tableHeader);
+      addSeparator();
+
+      if (!rankedDrivers.length) {
+        addLine("No standings available yet.");
+      } else {
+        rankedDrivers.forEach((driver, index) => {
+          const run1 = getRunAverage(driver, 1);
+          const run2 = getRunAverage(driver, 2);
+          const best = getBestScore(run1, run2);
+          addLine([
+            padPdfCell(index + 1, 4),
+            padPdfCell(driver.reg || driver.signUpPosition || "-", 5),
+            padPdfCell(driver.name || "Unnamed Driver", 24),
+            padPdfCell(driver.teamName || "-", 18),
+            padPdfCell(driver.chassis || "-", 14),
+            padPdfCell(formatScore(run1), 6, "right"),
+            padPdfCell(formatScore(run2), 6, "right"),
+            padPdfCell(formatScore(best), 6, "right"),
+          ].join(" "));
+        });
+      }
+
+      addLine("");
+      addLine(`Generated ${formatDateTimeForExport(new Date().toISOString())}`);
+      return { lines, tableHeader };
+    }
+
+    function buildPdfFromTextPages(pages) {
+      const pageWidth = 595.28;
+      const pageHeight = 841.89;
+      const marginLeft = 36;
+      const marginTop = 44;
+      const lineHeight = 13;
+
+      const objects = [];
+      const pushObject = (content) => {
+        objects.push(content);
+        return objects.length;
+      };
+
+      const pagesId = pushObject("");
+      const fontId = pushObject("<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>");
+      const pageIds = [];
+
+      pages.forEach((lines) => {
+        const commands = lines.map((line, index) => {
+          const y = pageHeight - marginTop - (index * lineHeight);
+          return `BT\n/F1 10 Tf\n1 0 0 1 ${marginLeft.toFixed(2)} ${y.toFixed(2)} Tm\n(${escapePdfText(line)}) Tj\nET`;
+        }).join("\n");
+        const stream = `${commands}\n`;
+        const contentId = pushObject(`<< /Length ${stream.length} >>\nstream\n${stream}endstream`);
+        const pageId = pushObject(`<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /Font << /F1 ${fontId} 0 R >> >> /Contents ${contentId} 0 R >>`);
+        pageIds.push(pageId);
+      });
+
+      objects[pagesId - 1] = `<< /Type /Pages /Count ${pageIds.length} /Kids [${pageIds.map((id) => `${id} 0 R`).join(" ")}] >>`;
+      const catalogId = pushObject(`<< /Type /Catalog /Pages ${pagesId} 0 R >>`);
+
+      let pdf = "%PDF-1.4\n";
+      const offsets = [0];
+      objects.forEach((object, index) => {
+        offsets.push(pdf.length);
+        pdf += `${index + 1} 0 obj\n${object}\nendobj\n`;
+      });
+      const xrefOffset = pdf.length;
+      pdf += `xref\n0 ${objects.length + 1}\n`;
+      pdf += "0000000000 65535 f \n";
+      offsets.slice(1).forEach((offset) => {
+        pdf += `${String(offset).padStart(10, "0")} 00000 n \n`;
+      });
+      pdf += `trailer\n<< /Size ${objects.length + 1} /Root ${catalogId} 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+      return new Blob([pdf], { type: "application/pdf" });
+    }
+
     function exportResultsPdf() {
       if (!activeEventMeta) return;
-      const jsPdfApi = window.jspdf?.jsPDF;
-      if (!jsPdfApi) {
-        window.alert("PDF exporter is still loading. Please try again in a moment.");
-        return;
-      }
       const liveResults = buildEventResults();
       const results = {
         ...(activeEventMeta.results || buildEmptyEventResults()),
         ...liveResults,
       };
       const rankedDrivers = rankDrivers(appDrivers);
-      const doc = new jsPdfApi({
-        orientation: "portrait",
-        unit: "mm",
-        format: "a4",
-      });
+      const { lines, tableHeader } = buildResultsPdfLines(activeEventMeta, results, rankedDrivers);
+      const maxLinesPerPage = 54;
+      const pages = [];
+      let pageLines = [];
+      let standingsContinued = false;
 
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const pageHeight = doc.internal.pageSize.getHeight();
-      const margin = 14;
-      const contentWidth = pageWidth - margin * 2;
-      const ensurePage = (y, needed = 10) => {
-        if (y + needed <= pageHeight - margin) return y;
-        doc.addPage();
-        return margin;
-      };
-      const drawWrappedText = (text, x, y, maxWidth, lineHeight = 5.2) => {
-        const lines = doc.splitTextToSize(String(text), maxWidth);
-        lines.forEach((line, index) => {
-          doc.text(line, x, y + index * lineHeight);
-        });
-        return y + lines.length * lineHeight;
+      const flushPage = () => {
+        if (pageLines.length) pages.push(pageLines);
+        pageLines = [];
       };
 
-      let y = margin;
-      doc.setDrawColor(17, 17, 17);
-      doc.setTextColor(17, 17, 17);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(24);
-      doc.text("Prodigy RC Drift Arena", margin, y);
-      y += 8;
-      doc.setFontSize(10);
-      doc.setTextColor(90, 90, 90);
-      doc.text("Competition Results", margin, y);
-      y += 6;
-      doc.setFontSize(18);
-      doc.setTextColor(17, 17, 17);
-      doc.text(activeEventMeta.name || "Event Results", margin, y);
-      y += 6;
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
-      doc.setTextColor(70, 70, 70);
-      doc.text(formatEventDate(activeEventMeta.date), margin, y);
-      y += 4;
-      doc.setLineWidth(0.6);
-      doc.line(margin, y, pageWidth - margin, y);
-      y += 8;
-
-      const metaCards = [
-        ["Format", results.planDescription || "Waiting for qualifying scores."],
-        ["Total Drivers", String(results.totalDrivers || rankedDrivers.length || 0)],
-        ["Qualified Drivers", String(results.qualifiedCount || 0)],
-        ["Completed", formatDateTimeForExport(results.completedAt || results.updatedAt)],
-      ];
-      const metaGap = 4;
-      const metaWidth = (contentWidth - metaGap * 3) / 4;
-      const metaHeight = 24;
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(8);
-      metaCards.forEach(([label, value], index) => {
-        const x = margin + index * (metaWidth + metaGap);
-        doc.roundedRect(x, y, metaWidth, metaHeight, 2.2, 2.2);
-        doc.setTextColor(100, 100, 100);
-        doc.text(label.toUpperCase(), x + 3, y + 5);
-        doc.setTextColor(17, 17, 17);
-        doc.setFontSize(11);
-        drawWrappedText(value, x + 3, y + 11, metaWidth - 6, 4.6);
-        doc.setFontSize(8);
-      });
-      y += metaHeight + 10;
-
-      y = ensurePage(y, 34);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(14);
-      doc.text("Podium", margin, y);
-      y += 5;
-      const podiumCards = [
-        ["1st Place", results.championName ? `#${results.championSeed} ${results.championName}` : "Waiting for winner"],
-        ["2nd Place", results.runnerUpName ? `#${results.runnerUpSeed} ${results.runnerUpName}` : "Waiting for finalist"],
-        ["3rd Place", results.thirdPlaceName ? `#${results.thirdPlaceSeed} ${results.thirdPlaceName}` : "Waiting for 3rd place battle"],
-      ];
-      const podiumGap = 4;
-      const podiumWidth = (contentWidth - podiumGap * 2) / 3;
-      const podiumHeight = 24;
-      podiumCards.forEach(([label, value], index) => {
-        const x = margin + index * (podiumWidth + podiumGap);
-        doc.roundedRect(x, y, podiumWidth, podiumHeight, 2.2, 2.2);
-        doc.setFontSize(8);
-        doc.setTextColor(100, 100, 100);
-        doc.text(label.toUpperCase(), x + 3, y + 5);
-        doc.setFontSize(11);
-        doc.setTextColor(17, 17, 17);
-        drawWrappedText(value, x + 3, y + 11, podiumWidth - 6, 4.6);
-      });
-      y += podiumHeight + 10;
-
-      y = ensurePage(y, 12);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(14);
-      doc.text("Qualifying Standings", margin, y);
-      y += 7;
-
-      const columns = [
-        { key: "pos", label: "Pos", width: 10, align: "left" },
-        { key: "reg", label: "Reg", width: 14, align: "left" },
-        { key: "driver", label: "Driver", width: 45, align: "left" },
-        { key: "team", label: "Team", width: 34, align: "left" },
-        { key: "chassis", label: "Chassis", width: 34, align: "left" },
-        { key: "run1", label: "Run 1", width: 16, align: "right" },
-        { key: "run2", label: "Run 2", width: 16, align: "right" },
-        { key: "best", label: "Best", width: 16, align: "right" },
-      ];
-      const rowHeight = 7;
-      const drawStandingsHeader = () => {
-        doc.setFillColor(239, 239, 239);
-        doc.rect(margin, y, contentWidth, rowHeight, "F");
-        doc.setDrawColor(17, 17, 17);
-        doc.rect(margin, y, contentWidth, rowHeight);
-        let x = margin;
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(8);
-        doc.setTextColor(17, 17, 17);
-        columns.forEach((column) => {
-          doc.text(column.label.toUpperCase(), x + 1.5, y + 4.6);
-          x += column.width;
-        });
-        y += rowHeight;
-      };
-      drawStandingsHeader();
-
-      const rows = rankedDrivers.length
-        ? rankedDrivers.map((driver, index) => {
-            const run1 = getRunAverage(driver, 1);
-            const run2 = getRunAverage(driver, 2);
-            const best = getBestScore(run1, run2);
-            return {
-              pos: String(index + 1),
-              reg: String(driver.reg || driver.signUpPosition || "-"),
-              driver: driver.name || "Unnamed Driver",
-              team: driver.teamName || "-",
-              chassis: driver.chassis || "-",
-              run1: formatScore(run1),
-              run2: formatScore(run2),
-              best: formatScore(best),
-            };
-          })
-        : [{
-            pos: "-",
-            reg: "-",
-            driver: "No standings available yet.",
-            team: "-",
-            chassis: "-",
-            run1: "-",
-            run2: "-",
-            best: "-",
-          }];
-
-      rows.forEach((row) => {
-        y = ensurePage(y, rowHeight + 1);
-        if (y === margin) {
-          drawStandingsHeader();
+      lines.forEach((line) => {
+        if (pageLines.length >= maxLinesPerPage) {
+          flushPage();
+          if (standingsContinued) {
+            pageLines.push("QUALIFYING STANDINGS (CONT.)");
+            pageLines.push("-".repeat(96));
+            pageLines.push(tableHeader);
+            pageLines.push("-".repeat(96));
+          }
         }
-        let x = margin;
-        doc.setDrawColor(17, 17, 17);
-        doc.rect(margin, y, contentWidth, rowHeight);
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(8.5);
-        doc.setTextColor(17, 17, 17);
-        columns.forEach((column) => {
-          const text = String(row[column.key] ?? "");
-          const textX = column.align === "right" ? x + column.width - 1.5 : x + 1.5;
-          doc.text(text, textX, y + 4.6, { align: column.align === "right" ? "right" : "left", maxWidth: column.width - 3 });
-          x += column.width;
-        });
-        y += rowHeight;
+        pageLines.push(line);
+        if (line === "QUALIFYING STANDINGS") {
+          standingsContinued = true;
+        }
       });
+      flushPage();
 
-      y = ensurePage(y + 6, 8);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(8);
-      doc.setTextColor(100, 100, 100);
-      doc.text(`Generated ${formatDateTimeForExport(new Date().toISOString())}`, margin, y);
-
+      const blob = buildPdfFromTextPages(pages);
       const safeFileName = `${(activeEventMeta.name || "event-results").replace(/[<>:"/\\|?*]+/g, "").trim().replace(/\s+/g, "-").toLowerCase() || "event-results"}-results.pdf`;
-      doc.save(safeFileName);
+      const downloadUrl = URL.createObjectURL(blob);
+      const downloadLink = document.createElement("a");
+      downloadLink.href = downloadUrl;
+      downloadLink.download = safeFileName;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      downloadLink.remove();
+      setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
     }
 
     function nextPowerOfTwo(value) {
