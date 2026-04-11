@@ -681,6 +681,29 @@
       text-align: center;
     }
 
+    .build-label {
+      position: fixed;
+      left: 14px;
+      bottom: 14px;
+      z-index: 2100;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.78);
+      color: rgba(17, 17, 17, 0.72);
+      font-size: 0.66rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      pointer-events: none;
+      backdrop-filter: blur(6px);
+    }
+
+    body[data-theme="dark"] .build-label {
+      background: rgba(18, 18, 20, 0.78);
+      color: rgba(255, 255, 255, 0.62);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
     .spectator-shop-button:hover,
     .spectator-shop-button:focus-visible {
       background: #fff;
@@ -3089,6 +3112,12 @@
         padding: 10px 14px;
         font-size: 0.78rem;
       }
+      .build-label {
+        left: 10px;
+        bottom: 10px;
+        font-size: 0.6rem;
+        padding: 3px 7px;
+      }
       .button, .search-field { width: 100%; }
       .hero-actions { flex-direction: column; }
       .rounds-board { grid-template-columns: 1fr; }
@@ -3229,6 +3258,7 @@
   <body data-role="spectator" data-site-admin="false" data-theme="light">
   <div class="page-shell">
     <a class="spectator-shop-button spectator-only" href="https://www.prodigydrift.com/" target="_blank" rel="noopener noreferrer">Shop Prodigy RC Here</a>
+    <div id="buildLabel" class="build-label">Build</div>
     
     <!-- TOPBAR WITH VIEW NAVIGATION -->
     <div class="topbar main-topbar">
@@ -3732,6 +3762,7 @@
     const FORMAT_SDC_TOP_32 = "sdc-top-32";
     const APP_STATE_VERSION = 9;
     const EVENT_STORAGE_VERSION = 1;
+    const APP_BUILD_LABEL = "Build 2026.04.11.3";
     const WEBSITE_ADMIN_STORAGE_KEY = "rc-drift-website-admin-session-v1";
     const WEBSITE_ADMIN_PASSWORD_HASH = "29647f834c4aa7d575cf81b7a5f6f694727b0383e523d05ba4521ea3539affbf";
     const DEFAULT_EVENT_ID = "main-event";
@@ -5992,6 +6023,7 @@
     // ==========================================
     const eventSelect = document.getElementById("eventSelect");
     const newEventBtn = document.getElementById("newEventBtn");
+    const buildLabel = document.getElementById("buildLabel");
     const themeToggleBtn = document.getElementById("themeToggleBtn");
     const websiteAdminBtn = document.getElementById("websiteAdminBtn");
     const globalRoleSelect = document.getElementById("globalRoleSelect");
@@ -6114,6 +6146,11 @@
 
     function initializeTheme() {
       syncThemeState();
+    }
+
+    if (buildLabel) {
+      buildLabel.textContent = APP_BUILD_LABEL;
+      buildLabel.setAttribute("title", APP_BUILD_LABEL);
     }
 
     function getRoleAccess(role) {
