@@ -3452,6 +3452,7 @@
       const runKey = runRef ? getRunKey(runRef) : null;
       const localRoleScores = JSON.parse(JSON.stringify(localDriver.scores?.[role] || {}));
       lastLocalPush = Date.now();
+      let transactionResult = null;
 
       try {
         await runTransaction(db, async (transaction) => {
@@ -3522,7 +3523,28 @@
             activeEventId,
             syncStamp: lastLocalPush,
           }, { merge: true });
+
+          transactionResult = {
+            remoteDrivers: JSON.parse(JSON.stringify(remoteDrivers)),
+            remoteQualifyingFlow: JSON.parse(JSON.stringify(nextQualifyingFlow)),
+            remoteMeta: cloneEventMeta(updatedMeta),
+          };
         });
+
+        if (transactionResult) {
+          const localJudgeDrafts = captureJudgeDraftScores(role);
+          appDrivers = restoreJudgeDraftScores(
+            sanitizeLoadedDrivers(transactionResult.remoteDrivers),
+            role,
+            localJudgeDrafts,
+          );
+          qualifyingFlow = transactionResult.remoteQualifyingFlow || createEmptyQualifyingFlow();
+          syncQualifyingFlowState();
+          activeEventMeta = transactionResult.remoteMeta || activeEventMeta;
+          eventDirectory[activeEventId] = cloneEventMeta(activeEventMeta);
+          saveDirectoryCache();
+          saveEventStateCache();
+        }
         return true;
       } catch (error) {
         console.error("Judge submission sync failed:", error);
