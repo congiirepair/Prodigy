@@ -7895,19 +7895,14 @@
       pendingAuthMode = "login";
       const roleDisplayName = getRoleDisplayName(role);
 
-      if (!hasPassword) {
-        globalRoleSelect.value = currentRole;
-        pendingRole = null;
-        window.alert(`${roleDisplayName} password has not been set in the website admin panel yet.`);
-        return;
-      }
-
       document.getElementById("passwordModalTitle").textContent = `${roleDisplayName} Login`;
       passwordModalCopy.textContent = `Enter the ${roleDisplayName.toLowerCase()} password for ${activeEventMeta.name}.`;
       authInviteGroup.classList.add("hidden");
       authConfirmInput.classList.add("hidden");
       passwordHelperText.classList.remove("hidden");
-      passwordHelperText.textContent = "The website admin password also works as a master override for this role.";
+      passwordHelperText.textContent = hasPassword
+        ? "The website admin password also works as a master override for this role."
+        : `No ${roleDisplayName.toLowerCase()} password has been set for this event yet. Use the website admin password as the master override.`;
       passwordSubmitBtn.textContent = "Unlock";
       passwordInput.placeholder = "Enter password...";
       passwordInput.value = "";
