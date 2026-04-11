@@ -2928,7 +2928,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-  import { getFirestore, doc, setDoc, onSnapshot, deleteDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+  import { getFirestore, doc, setDoc, onSnapshot, deleteDoc, getDoc, runTransaction } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
     // ==========================================
     // DATA MODEL & STATE
@@ -3332,6 +3332,109 @@
       if (!haveAllActiveJudgesSubmittedRun(driver, "run2")) return false;
       advanceQualifyingDriver();
       return true;
+    }
+
+    function driverHasAllSubmittedRunsForRoles(driver, roles, runKeys) {
+      return roles.length > 0 && roles.every((role) => runKeys.every((runKey) => driver?.scores?.[role]?.submitted?.[runKey] !== null));
+    }
+
+    async function syncJudgeSubmission(driverId, role = currentRole, runRef = null) {
+      if (!role?.startsWith("j")) {
+        publishState();
+        return true;
+      }
+      if (!db || !activeEventId) {
+        publishState();
+        return true;
+      }
+
+      const localDriver = appDrivers.find((entry) => entry.id === driverId);
+      if (!localDriver) {
+        publishState();
+        return false;
+      }
+
+      clearTimeout(syncTimeout);
+      const runKey = runRef ? getRunKey(runRef) : null;
+      const localRoleScores = JSON.parse(JSON.stringify(localDriver.scores?.[role] || {}));
+      lastLocalPush = Date.now();
+
+      try {
+        await runTransaction(db, async (transaction) => {
+          const eventRef = getEventDocRef(activeEventId);
+          const eventSnap = await transaction.get(eventRef);
+          const remotePayload = eventSnap.exists() ? eventSnap.data() : {};
+          const remoteMeta = extractEventMeta(remotePayload, activeEventId) || cloneEventMeta(eventDirectory[activeEventId] || activeEventMeta);
+          const remoteDrivers = Array.isArray(remotePayload.drivers) && remotePayload.drivers.length
+            ? sanitizeLoadedDrivers(remotePayload.drivers)
+            : createDriverSet();
+          const remoteDriver = remoteDrivers.find((entry) => entry.id === driverId);
+          if (!remoteDriver) return;
+
+          if (runKey) {
+            remoteDriver.scores[role][runKey] = localRoleScores[runKey] ?? null;
+            remoteDriver.scores[role].submitted[runKey] = localRoleScores?.submitted?.[runKey] ?? localRoleScores[runKey] ?? null;
+          } else {
+            remoteDriver.scores[role] = {
+              run1: localRoleScores.run1 ?? null,
+              run2: localRoleScores.run2 ?? null,
+              runoff: localRoleScores.runoff ?? null,
+              submitted: {
+                run1: localRoleScores?.submitted?.run1 ?? localRoleScores.run1 ?? null,
+                run2: localRoleScores?.submitted?.run2 ?? localRoleScores.run2 ?? null,
+                runoff: localRoleScores?.submitted?.runoff ?? localRoleScores.runoff ?? null,
+              },
+            };
+          }
+
+          const activeJudgeRoles = getActiveJudgeRoles(remoteMeta);
+          const nextQualifyingFlow = remotePayload.qualifyingFlow || createEmptyQualifyingFlow();
+          if (nextQualifyingFlow.currentDriverId === driverId) {
+            const shouldAdvanceAfterAllRuns = !runKey && driverHasAllSubmittedRunsForRoles(remoteDriver, activeJudgeRoles, ["run1", "run2"]);
+            const shouldAdvanceAfterRun2 = runKey === "run2" && driverHasAllSubmittedRunsForRoles(remoteDriver, activeJudgeRoles, ["run2"]);
+            if (shouldAdvanceAfterAllRuns || shouldAdvanceAfterRun2) {
+              const queue = getRegisteredDrivers(remoteDrivers);
+              const currentIndex = Math.max(0, queue.findIndex((entry) => entry.id === driverId));
+              const nextIndex = Math.min(queue.length - 1, currentIndex + 1);
+              nextQualifyingFlow.currentDriverId = queue[nextIndex]?.id || queue[queue.length - 1]?.id || null;
+              nextQualifyingFlow.readyRoles = {};
+            }
+          }
+
+          const updatedMeta = {
+            ...remoteMeta,
+            updatedAt: new Date().toISOString(),
+            syncStamp: lastLocalPush,
+          };
+
+          transaction.set(eventRef, {
+            ...remotePayload,
+            ...updatedMeta,
+            drivers: remoteDrivers,
+            bracket: remotePayload.bracket || tournamentState,
+            qualifyingFlow: nextQualifyingFlow,
+            formatMode: remotePayload.formatMode || bracketModeSelect.value,
+            lowerCount: remotePayload.lowerCount || String(getRequestedSdcMainBracketSize(bracketModeSelect.value) || 0),
+            syncStamp: lastLocalPush,
+          }, { merge: true });
+
+          transaction.set(getDirectoryDocRef(), {
+            events: {
+              [activeEventId]: cloneEventMeta({
+                ...(eventDirectory[activeEventId] || activeEventMeta || updatedMeta),
+                ...updatedMeta,
+              }),
+            },
+            activeEventId,
+            syncStamp: lastLocalPush,
+          }, { merge: true });
+        });
+        return true;
+      } catch (error) {
+        console.error("Judge submission sync failed:", error);
+        publishState();
+        return false;
+      }
     }
 
     function getJudgeSubmitButtonLabel(driver, role = currentRole) {
@@ -6183,14 +6286,14 @@
       }
     });
 
-    driversTableBody.addEventListener("click", (e) => {
+    driversTableBody.addEventListener("click", async (e) => {
       const submitButton = e.target.closest("[data-action='submit-judge-scores']");
       if (submitButton) {
         if (!userCanEdit() || currentRole === "admin" || currentRole === "spectator") return;
         const id = e.target.closest("tr").dataset.id;
         submitJudgeScores(id, currentRole);
         maybeAdvanceQualifyingAfterSubmit(id);
-        publishState();
+        await syncJudgeSubmission(id, currentRole);
         renderDriversTable();
         return;
       }
@@ -6284,7 +6387,7 @@
       });
     });
 
-    mobileDriversList.addEventListener("click", (e) => {
+    mobileDriversList.addEventListener("click", async (e) => {
       const card = e.target.closest("[data-id]");
       if (!card) return;
       const readinessCleared = card.dataset.id === qualifyingFlow.currentDriverId && clearQualifyingReady(currentRole);
@@ -6317,7 +6420,7 @@
         if (!userCanEdit() || currentRole === "admin" || currentRole === "spectator") return;
         submitJudgeScores(card.dataset.id, currentRole);
         maybeAdvanceQualifyingAfterSubmit(card.dataset.id);
-        publishState();
+        await syncJudgeSubmission(card.dataset.id, currentRole);
         renderDriversTable();
         return;
       }
@@ -6328,7 +6431,7 @@
         const runKey = submitRunButton.dataset.run;
         submitJudgeRun(card.dataset.id, runKey, currentRole);
         maybeAdvanceQualifyingAfterRunSubmit(card.dataset.id, runKey);
-        publishState();
+        await syncJudgeSubmission(card.dataset.id, currentRole, runKey);
         renderDriversTable();
         return;
       }
