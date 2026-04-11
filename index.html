@@ -5148,6 +5148,20 @@
       return sum / validScores.length;
     }
 
+    function getLiveRunAverage(driver, runRef) {
+      const runKey = getRunKey(runRef);
+      if (driver.runFlags?.[runKey]) return 0;
+      const s = driver?.scores || {};
+      const submittedScores = getActiveJudgeRoles().map((role) => {
+        const judgeScores = s?.[role] || {};
+        const submitted = judgeScores?.submitted || {};
+        return submitted?.[runKey] ?? null;
+      }).filter((value) => value !== null && value !== undefined);
+      if (!submittedScores.length) return null;
+      const sum = submittedScores.reduce((a, b) => a + b, 0);
+      return sum / submittedScores.length;
+    }
+
     function getBestScore(r1Avg, r2Avg) {
       const scores = [r1Avg, r2Avg].filter(s => s !== null);
       return scores.length ? Math.max(...scores) : null;
@@ -8694,8 +8708,8 @@
         clampJudgeLaneIndex();
         const laneDriver = appDrivers[judgeLaneIndex];
         if (laneDriver) {
-          const r1Avg = getRunAverage(laneDriver, 1);
-          const r2Avg = getRunAverage(laneDriver, 2);
+          const r1Avg = getLiveRunAverage(laneDriver, 1);
+          const r2Avg = getLiveRunAverage(laneDriver, 2);
           mobileDriversList.innerHTML = renderJudgeLaneCard(laneDriver, judgeLaneIndex, appDrivers.length, r1Avg, r2Avg, runoffEligibleIds);
         } else {
           mobileDriversList.innerHTML = `<div class="empty-state">Add drivers first, then judges can score them here one at a time.</div>`;
@@ -8714,6 +8728,9 @@
         const r1Avg = getRunAverage(driver, 1);
         const r2Avg = getRunAverage(driver, 2);
         const best = getBestScore(r1Avg, r2Avg);
+        const liveR1Avg = getLiveRunAverage(driver, 1);
+        const liveR2Avg = getLiveRunAverage(driver, 2);
+        const liveBest = getBestScore(liveR1Avg, liveR2Avg);
 
         if (currentRole === "admin" || currentRole === "spectator") {
           const isReadOnly = currentRole === "spectator" || currentRole === "admin" || isEventReadOnly();
@@ -8725,9 +8742,9 @@
             <td class="row-index">${index + 1}</td>
             <td class="td-reg">${regHTML}</td>
             <td>${nameHTML}</td>
-            <td class="td-score"><span class="read-only-score r1-avg">${formatScore(r1Avg)}</span></td>
-            <td class="td-score"><span class="read-only-score r2-avg">${formatScore(r2Avg)}</span></td>
-            <td class="best-score admin-only">${formatScore(best)}</td>
+            <td class="td-score"><span class="read-only-score r1-avg">${formatScore(liveR1Avg)}</span></td>
+            <td class="td-score"><span class="read-only-score r2-avg">${formatScore(liveR2Avg)}</span></td>
+            <td class="best-score admin-only">${formatScore(liveBest)}</td>
             <td class="td-actions judge-only"></td>
           `;
         } else {
@@ -8770,15 +8787,15 @@
             <div class="mobile-score-grid">
               <div class="mobile-score-card">
                 <span>Run 1 Average</span>
-                <strong>${formatScore(r1Avg)}</strong>
+                <strong>${formatScore(liveR1Avg)}</strong>
               </div>
               <div class="mobile-score-card">
                 <span>Run 2 Average</span>
-                <strong>${formatScore(r2Avg)}</strong>
+                <strong>${formatScore(liveR2Avg)}</strong>
               </div>
               <div class="mobile-score-card">
                 <span>Best Score</span>
-                <strong>${formatScore(best)}</strong>
+                <strong>${formatScore(liveBest)}</strong>
               </div>
             </div>
           `;
@@ -9186,8 +9203,8 @@
       }
 
       const currentIndex = Math.max(0, queue.findIndex((driver) => driver.id === currentDriver.id));
-      const run1Avg = getRunAverage(currentDriver, 1);
-      const run2Avg = getRunAverage(currentDriver, 2);
+      const run1Avg = getLiveRunAverage(currentDriver, 1);
+      const run2Avg = getLiveRunAverage(currentDriver, 2);
       const bestScore = getBestScore(run1Avg, run2Avg);
       const activeJudgeRoles = getActiveJudgeRoles(activeEventMeta);
       const shouldAnimateCurrentDriver = lastQualifyingDriverId !== null && currentDriver.id !== lastQualifyingDriverId;
