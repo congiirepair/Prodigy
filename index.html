@@ -538,38 +538,6 @@
       text-align: center;
     }
 
-    .theme-toggle-fab {
-      position: fixed;
-      left: 18px;
-      bottom: 18px;
-      z-index: 2200;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 52px;
-      padding: 12px 18px;
-      border: 2px solid rgba(17, 17, 17, 0.92);
-      border-radius: 999px;
-      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(242,242,242,0.98));
-      color: #111;
-      box-shadow: var(--button-shadow);
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      text-align: center;
-    }
-
-    .theme-toggle-fab:hover,
-    .theme-toggle-fab:focus-visible {
-      transform: translateY(-1px);
-    }
-
-    body[data-theme="dark"] .theme-toggle-fab {
-      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(218,218,218,0.98));
-      color: #080808;
-      border-color: rgba(255,255,255,0.72);
-    }
-
     .spectator-shop-button:hover,
     .spectator-shop-button:focus-visible {
       background: #fff;
@@ -2963,7 +2931,6 @@
         font-size: 0.8rem;
         text-align: center;
       }
-      .theme-toggle-fab,
       .spectator-shop-button {
         min-height: 46px;
         padding: 10px 14px;
@@ -3108,7 +3075,6 @@
 </head>
   <body data-role="spectator" data-site-admin="false" data-theme="light">
   <div class="page-shell">
-    <button id="themeToggleFab" class="theme-toggle-fab" type="button">Dark Mode</button>
     <a class="spectator-shop-button spectator-only" href="https://www.prodigydrift.com/" target="_blank" rel="noopener noreferrer">Shop Prodigy RC Here</a>
     
     <!-- TOPBAR WITH VIEW NAVIGATION -->
@@ -5652,7 +5618,6 @@
     const eventSelect = document.getElementById("eventSelect");
     const newEventBtn = document.getElementById("newEventBtn");
     const themeToggleBtn = document.getElementById("themeToggleBtn");
-    const themeToggleFab = document.getElementById("themeToggleFab");
     const websiteAdminBtn = document.getElementById("websiteAdminBtn");
     const globalRoleSelect = document.getElementById("globalRoleSelect");
     const registrationHeroEventName = document.getElementById("registrationHeroEventName");
@@ -5751,10 +5716,6 @@
       if (themeToggleBtn) {
         themeToggleBtn.textContent = normalizedTheme === "dark" ? "Light Mode" : "Dark Mode";
         themeToggleBtn.setAttribute("aria-pressed", normalizedTheme === "dark" ? "true" : "false");
-      }
-      if (themeToggleFab) {
-        themeToggleFab.textContent = normalizedTheme === "dark" ? "Light Mode" : "Dark Mode";
-        themeToggleFab.setAttribute("aria-pressed", normalizedTheme === "dark" ? "true" : "false");
       }
       localStorage.setItem(THEME_STORAGE_KEY, normalizedTheme);
     }
@@ -6588,9 +6549,6 @@
       }
     });
     themeToggleBtn?.addEventListener("click", () => {
-      applyTheme(document.body.dataset.theme === "dark" ? "light" : "dark");
-    });
-    themeToggleFab?.addEventListener("click", () => {
       applyTheme(document.body.dataset.theme === "dark" ? "light" : "dark");
     });
     websiteAdminNewEventBtn.addEventListener("click", () => {
