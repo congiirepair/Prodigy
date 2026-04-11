@@ -844,6 +844,10 @@
         rgba(250, 246, 239, 0.88);
     }
 
+    .mobile-bracket-back {
+      display: none;
+    }
+
     .topbar {
       display: grid;
       grid-template-columns: auto 1fr auto;
@@ -3364,6 +3368,18 @@
       .bracket-workspace {
         padding: 8px 0 12px;
       }
+      .mobile-bracket-back {
+        display: flex;
+        position: sticky;
+        top: 8px;
+        z-index: 25;
+        padding: 0 10px 10px;
+      }
+      .mobile-bracket-back .button {
+        width: 100%;
+        min-height: 44px;
+        font-size: 0.96rem;
+      }
       .main-bracket-board {
         padding-inline: 2px;
       }
@@ -3894,6 +3910,9 @@
 
       <!-- Scrolling Bracket Area -->
       <div class="bracket-workspace">
+        <div class="mobile-bracket-back">
+          <button id="mobileBackToQualifyingBtn" class="button button-secondary" type="button">Back To Qualifying</button>
+        </div>
         <div id="summaryStrip" class="summary-strip"></div>
         <section id="battleFlowPanel" class="battle-flow-panel hidden">
           <div class="battle-flow-head">
@@ -7503,6 +7522,7 @@
     });
 
     document.getElementById("backToQualifyingBtn").addEventListener("click", () => switchView("qualifying"));
+    document.getElementById("mobileBackToQualifyingBtn")?.addEventListener("click", () => switchView("qualifying"));
 
     async function toggleBracketFullscreen() {
       if (window.innerWidth <= 720) return;
