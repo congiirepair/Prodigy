@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -11,19 +11,25 @@
   <style>
     :root {
       --bg: #e5e5e5;
-      --panel: rgba(255, 255, 255, 0.96);
+      --panel: rgba(255, 255, 255, 0.97);
       --text: #111111;
       --text-soft: #555555;
       --line: #111111;
       --accent: #000000;
       --accent-dark: #000000;
-      --shadow: 10px 10px 0px rgba(0, 0, 0, 0.95);
+      --panel-shadow: 0 24px 60px rgba(0, 0, 0, 0.10), 0 3px 0 rgba(0, 0, 0, 0.92);
+      --card-shadow: 0 18px 34px rgba(0, 0, 0, 0.09), 0 2px 0 rgba(0, 0, 0, 0.88);
+      --button-shadow: 0 10px 20px rgba(0, 0, 0, 0.10), 0 2px 0 rgba(0, 0, 0, 0.92);
+      --radius-panel: 18px;
+      --radius-card: 14px;
+      --radius-button: 12px;
       --font-graffiti: 'Permanent Marker', cursive;
       --font-sans: 'Inter', sans-serif;
     }
 
     * { box-sizing: border-box; }
     html { color-scheme: light; }
+    html:has(body[data-theme="dark"]) { color-scheme: dark; }
 
     body {
       margin: 0;
@@ -37,6 +43,334 @@
         radial-gradient(rgba(17,17,17,0.11) 0.8px, transparent 0.8px);
       background-size: auto, auto, auto, 18px 18px;
       background-attachment: fixed;
+      transition: background-color 0.25s ease, color 0.25s ease, background-image 0.25s ease;
+    }
+
+    body[data-theme="dark"] {
+      --bg: #0f1012;
+      --panel: rgba(20, 20, 22, 0.96);
+      --text: #f4f4f4;
+      --text-soft: #b3b3b7;
+      --line: rgba(255, 255, 255, 0.84);
+      --accent: #ffffff;
+      --accent-dark: #cfcfcf;
+      --panel-shadow: 0 28px 70px rgba(0, 0, 0, 0.42), 0 1px 0 rgba(255, 255, 255, 0.14);
+      --card-shadow: 0 18px 40px rgba(0, 0, 0, 0.36), 0 1px 0 rgba(255, 255, 255, 0.12);
+      --button-shadow: 0 12px 22px rgba(0, 0, 0, 0.34), 0 1px 0 rgba(255, 255, 255, 0.18);
+      background-color: var(--bg);
+      background-image:
+        radial-gradient(circle at top left, rgba(255,255,255,0.08), transparent 24%),
+        linear-gradient(135deg, rgba(255,255,255,0.035), transparent 34%),
+        linear-gradient(180deg, rgba(255,255,255,0.025), rgba(0,0,0,0.22)),
+        radial-gradient(rgba(255,255,255,0.08) 0.8px, transparent 0.8px);
+    }
+
+    body[data-theme="dark"] .topbar,
+    body[data-theme="dark"] .hero,
+    body[data-theme="dark"] .panel,
+    body[data-theme="dark"] .hero-card,
+    body[data-theme="dark"] .table-wrap,
+    body[data-theme="dark"] .registration-card,
+    body[data-theme="dark"] .registration-driver-card,
+    body[data-theme="dark"] .registration-entry-panel,
+    body[data-theme="dark"] .registration-roster-panel,
+    body[data-theme="dark"] .mobile-driver-card,
+    body[data-theme="dark"] .qualifying-live-card,
+    body[data-theme="dark"] .battle-flow-card,
+    body[data-theme="dark"] .bracket-stage-card,
+    body[data-theme="dark"] .event-admin-panel,
+    body[data-theme="dark"] .modal-panel,
+    body[data-theme="dark"] .podium-card,
+    body[data-theme="dark"] .results-event-card,
+    body[data-theme="dark"] .website-admin-card,
+    body[data-theme="dark"] .event-card,
+    body[data-theme="dark"] .role-admin-toolbar,
+    body[data-theme="dark"] .role-admin-card,
+    body[data-theme="dark"] .invite-code-box,
+    body[data-theme="dark"] .admin-lock-note {
+      background: linear-gradient(180deg, rgba(30, 30, 33, 0.98), rgba(16, 16, 18, 0.96));
+      color: var(--text);
+    }
+
+    body[data-theme="dark"] .button-secondary,
+    body[data-theme="dark"] .micro-button:not(.button-accent),
+    body[data-theme="dark"] .mode-tab,
+    body[data-theme="dark"] .hero-meta-pill,
+    body[data-theme="dark"] .search-field {
+      background: linear-gradient(180deg, rgba(36, 36, 40, 0.98), rgba(18, 18, 20, 0.96));
+      color: var(--text);
+      border-color: rgba(255, 255, 255, 0.28);
+    }
+
+    body[data-theme="dark"] input[type="text"],
+    body[data-theme="dark"] input[type="number"],
+    body[data-theme="dark"] input[type="search"],
+    body[data-theme="dark"] input[type="password"],
+    body[data-theme="dark"] input[type="date"],
+    body[data-theme="dark"] select,
+    body[data-theme="dark"] textarea {
+      background: rgba(15, 15, 17, 0.96);
+      color: var(--text);
+      border-color: rgba(255, 255, 255, 0.22);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    }
+
+    body[data-theme="dark"] input::placeholder,
+    body[data-theme="dark"] textarea::placeholder {
+      color: rgba(255, 255, 255, 0.42);
+    }
+
+    body[data-theme="dark"] .main-topbar .mode-tab.is-active,
+    body[data-theme="dark"] .sync-status.online,
+    body[data-theme="dark"] .micro-button.button-accent,
+    body[data-theme="dark"] .button-accent {
+      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(218,218,218,0.98));
+      color: #080808;
+      border-color: rgba(255,255,255,0.72);
+    }
+
+    body[data-theme="dark"] .status-pill.active {
+      background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(220,220,220,0.96));
+      color: #080808;
+    }
+
+    body[data-theme="dark"] .status-pill.archived,
+    body[data-theme="dark"] .sync-status {
+      background: rgba(255,255,255,0.08);
+      color: var(--text-soft);
+      border-color: rgba(255,255,255,0.14);
+    }
+
+    body[data-theme="dark"] .hero-logo,
+    body[data-theme="dark"] .bracket-stage-logo {
+      filter: brightness(0) invert(1);
+    }
+
+    body[data-theme="dark"] .main-bracket-panel::before {
+      opacity: 0.14;
+    }
+
+    body[data-theme="dark"] .section-kicker,
+    body[data-theme="dark"] .eyebrow,
+    body[data-theme="dark"] .hero-copy p,
+    body[data-theme="dark"] .hero-copy-block p,
+    body[data-theme="dark"] .panel-header p,
+    body[data-theme="dark"] .driver-submeta,
+    body[data-theme="dark"] .qualifying-live-label,
+    body[data-theme="dark"] .meta-label,
+    body[data-theme="dark"] .registration-meta-label,
+    body[data-theme="dark"] .score-subtext {
+      color: var(--text-soft);
+    }
+
+    body[data-theme="dark"] th,
+    body[data-theme="dark"] td {
+      color: var(--text);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+
+    body[data-theme="dark"] thead {
+      background: rgba(255, 255, 255, 0.12);
+      border-bottom-color: rgba(255, 255, 255, 0.22);
+    }
+
+    body[data-theme="dark"] tbody tr:nth-child(even) {
+      background: rgba(255, 255, 255, 0.035);
+    }
+
+    body[data-theme="dark"] tr.is-current-driver {
+      background: rgba(255, 255, 255, 0.12) !important;
+      outline-color: rgba(255, 255, 255, 0.9);
+    }
+
+    body[data-theme="dark"] .mobile-driver-card.is-current-driver {
+      background: linear-gradient(180deg, rgba(40, 40, 44, 0.98), rgba(24, 24, 28, 0.96));
+    }
+
+    body[data-theme="dark"] .read-only-score,
+    body[data-theme="dark"] .best-score,
+    body[data-theme="dark"] .registration-card-title strong,
+    body[data-theme="dark"] .driver-meta strong,
+    body[data-theme="dark"] .mobile-driver-name,
+    body[data-theme="dark"] .modal-field strong,
+    body[data-theme="dark"] .event-card-head strong,
+    body[data-theme="dark"] .event-stat strong,
+    body[data-theme="dark"] .role-admin-title strong,
+    body[data-theme="dark"] .invite-code-value,
+    body[data-theme="dark"] .hero-stat strong {
+      color: var(--text);
+    }
+
+    body[data-theme="dark"] .registration-entry-panel .modal-field span,
+    body[data-theme="dark"] .registration-roster-panel .modal-field span,
+    body[data-theme="dark"] .registration-meta,
+    body[data-theme="dark"] .driver-meta small,
+    body[data-theme="dark"] .mobile-driver-subline,
+    body[data-theme="dark"] .mobile-driver-reg,
+    body[data-theme="dark"] .event-card-meta,
+    body[data-theme="dark"] .event-stat span,
+    body[data-theme="dark"] .role-admin-title small,
+    body[data-theme="dark"] .invite-code-label,
+    body[data-theme="dark"] .helper-text,
+    body[data-theme="dark"] .hero-stat-label {
+      color: var(--text-soft);
+    }
+
+    body[data-theme="dark"] .table-wrap,
+    body[data-theme="dark"] .registration-card,
+    body[data-theme="dark"] .mobile-driver-card,
+    body[data-theme="dark"] .event-card,
+    body[data-theme="dark"] .role-admin-toolbar,
+    body[data-theme="dark"] .role-admin-card,
+    body[data-theme="dark"] .invite-code-box,
+    body[data-theme="dark"] .admin-lock-note,
+    body[data-theme="dark"] .hero-stat {
+      background: linear-gradient(180deg, rgba(28, 28, 31, 0.98), rgba(16, 16, 18, 0.96));
+    }
+
+    body[data-theme="dark"] .event-card.is-active {
+      background: linear-gradient(180deg, rgba(36, 36, 40, 0.98), rgba(20, 20, 24, 0.96));
+    }
+
+    body[data-theme="dark"] .bracket-header-bar,
+    body[data-theme="dark"] .main-bracket-panel,
+    body[data-theme="dark"] .battle-flow-card,
+    body[data-theme="dark"] .final-battle-card,
+    body[data-theme="dark"] .champion-banner,
+    body[data-theme="dark"] .competition-subtabs,
+    body[data-theme="dark"] .page-handoff,
+    body[data-theme="dark"] .summary-card,
+    body[data-theme="dark"] .launch-chip,
+    body[data-theme="dark"] .pill,
+    body[data-theme="dark"] .cutoff-label {
+      background: linear-gradient(180deg, rgba(28, 28, 31, 0.98), rgba(16, 16, 18, 0.96));
+      color: var(--text);
+      border-color: rgba(255, 255, 255, 0.18);
+      box-shadow: 0 16px 34px rgba(0, 0, 0, 0.32), 0 1px 0 rgba(255, 255, 255, 0.1);
+    }
+
+    body[data-theme="dark"] .bracket-workspace {
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.14)),
+        radial-gradient(circle at top right, rgba(255, 255, 255, 0.05), transparent 26%),
+        rgba(12, 12, 14, 0.92);
+    }
+
+    body[data-theme="dark"] .main-board-title,
+    body[data-theme="dark"] .main-board-label,
+    body[data-theme="dark"] .final-vs,
+    body[data-theme="dark"] .podium-card strong,
+    body[data-theme="dark"] .champion-banner strong,
+    body[data-theme="dark"] .battle-flow-title,
+    body[data-theme="dark"] .launch-title {
+      color: var(--text);
+    }
+
+    body[data-theme="dark"] .battle-flow-label,
+    body[data-theme="dark"] .podium-card span,
+    body[data-theme="dark"] .podium-card small,
+    body[data-theme="dark"] .champion-banner span,
+    body[data-theme="dark"] .battle-flow-meta,
+    body[data-theme="dark"] .summary-card span,
+    body[data-theme="dark"] .launch-chip span {
+      color: var(--text-soft);
+    }
+
+    body[data-theme="dark"] .battle-flow-option,
+    body[data-theme="dark"] .slot-button,
+    body[data-theme="dark"] .slot-button.empty,
+    body[data-theme="dark"] .main-battle-slot {
+      background: linear-gradient(180deg, rgba(34, 34, 38, 0.98), rgba(18, 18, 20, 0.96));
+      color: var(--text);
+      border-color: rgba(255, 255, 255, 0.22);
+      box-shadow: 0 10px 22px rgba(0, 0, 0, 0.28), 0 1px 0 rgba(255, 255, 255, 0.1);
+    }
+
+    body[data-theme="dark"] .battle-flow-option.preview {
+      background: linear-gradient(180deg, rgba(40, 40, 44, 0.98), rgba(22, 22, 26, 0.96));
+      color: var(--text);
+      border-color: rgba(255, 255, 255, 0.18);
+    }
+
+    body[data-theme="dark"] .battle-flow-empty {
+      background: rgba(255,255,255,0.04);
+      color: var(--text-soft);
+      border-color: rgba(255,255,255,0.18);
+    }
+
+    body[data-theme="dark"]:not([data-role="spectator"]) .slot-button:not(:disabled):hover,
+    body[data-theme="dark"]:not([data-role="spectator"]) .battle-flow-option.current:hover {
+      background: linear-gradient(180deg, rgba(52, 52, 58, 0.98), rgba(26, 26, 30, 0.96));
+      color: var(--text);
+    }
+
+    body[data-theme="dark"] .slot-button.selected,
+    body[data-theme="dark"] .battle-flow-option.current {
+      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(218,218,218,0.98));
+      color: #080808;
+      border-color: rgba(255,255,255,0.72);
+    }
+
+    body[data-theme="dark"] .seed-chip,
+    body[data-theme="dark"] .final-battle-head,
+    body[data-theme="dark"] .cutoff-label.qualified {
+      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(218,218,218,0.98));
+      color: #080808;
+      border-color: rgba(255,255,255,0.72);
+    }
+
+    body[data-theme="dark"] .main-battle.left .main-battle-slot::after,
+    body[data-theme="dark"] .main-battle.right .main-battle-slot::after,
+    body[data-theme="dark"] .main-battle.left .main-battle-stack::before,
+    body[data-theme="dark"] .main-battle.right .main-battle-stack::before,
+    body[data-theme="dark"] .main-battle.left .main-battle-stack::after,
+    body[data-theme="dark"] .main-battle.right .main-battle-stack::after,
+    body[data-theme="dark"] .main-battle.center .main-battle-slot::before,
+    body[data-theme="dark"] .main-battle.center .main-battle-slot::after {
+      background: rgba(255, 255, 255, 0.84);
+    }
+
+    body[data-theme="dark"] .main-bracket-panel::before {
+      opacity: 0.11;
+    }
+
+    body[data-theme="dark"] .event-stat {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.16);
+    }
+
+    body[data-theme="dark"] .role-admin-toolbar,
+    body[data-theme="dark"] .role-admin-card,
+    body[data-theme="dark"] .invite-code-box,
+    body[data-theme="dark"] .admin-lock-note,
+    body[data-theme="dark"] .event-card,
+    body[data-theme="dark"] .hero-stat {
+      border-color: rgba(255, 255, 255, 0.18);
+      box-shadow: 0 16px 34px rgba(0, 0, 0, 0.32), 0 1px 0 rgba(255, 255, 255, 0.1);
+    }
+
+    body[data-theme="dark"] .topbar,
+    body[data-theme="dark"] .hero,
+    body[data-theme="dark"] .panel,
+    body[data-theme="dark"] .hero-card,
+    body[data-theme="dark"] .table-wrap,
+    body[data-theme="dark"] .registration-card,
+    body[data-theme="dark"] .registration-driver-card,
+    body[data-theme="dark"] .registration-entry-panel,
+    body[data-theme="dark"] .registration-roster-panel,
+    body[data-theme="dark"] .mobile-driver-card,
+    body[data-theme="dark"] .qualifying-live-card,
+    body[data-theme="dark"] .battle-flow-card,
+    body[data-theme="dark"] .bracket-stage-card,
+    body[data-theme="dark"] .event-admin-panel,
+    body[data-theme="dark"] .modal-panel,
+    body[data-theme="dark"] .podium-card,
+    body[data-theme="dark"] .results-event-card,
+    body[data-theme="dark"] .website-admin-card,
+    body[data-theme="dark"] .search-field,
+    body[data-theme="dark"] .mode-tab,
+    body[data-theme="dark"] .hero-meta-pill {
+      border-color: rgba(255, 255, 255, 0.18);
     }
 
     button, input, select, a { font: inherit; }
@@ -52,6 +386,15 @@
     body[data-role="j1"] .registration-admin-only,
     body[data-role="j2"] .registration-admin-only,
     body[data-role="j3"] .registration-admin-only { display: none !important; }
+
+    body[data-role="j1"] .spectator-admin-only,
+    body[data-role="j2"] .spectator-admin-only,
+    body[data-role="j3"] .spectator-admin-only { display: none !important; }
+
+    body[data-role="admin"] .spectator-only,
+    body[data-role="j1"] .spectator-only,
+    body[data-role="j2"] .spectator-only,
+    body[data-role="j3"] .spectator-only { display: none !important; }
     
     body[data-role="j1"] .admin-only,
     body[data-role="j2"] .admin-only,
@@ -181,6 +524,192 @@
       line-height: 1.32;
     }
 
+    body[data-role="spectator"] #view-qualifying > .hero {
+      margin-bottom: 14px;
+      padding: 16px 20px;
+    }
+
+    body[data-role="spectator"] #view-qualifying > .hero .hero-copy-block {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 18px;
+    }
+
+    body[data-role="spectator"] #view-qualifying > .hero .hero-logo-shell {
+      margin: 0;
+      max-width: 240px;
+    }
+
+    body[data-role="spectator"] #view-qualifying > .hero .hero-logo {
+      width: min(220px, 100%);
+    }
+
+    .spectator-qualifying-title {
+      display: grid;
+      gap: 4px;
+      align-content: center;
+    }
+
+    .spectator-qualifying-title h1 {
+      font-size: clamp(1.8rem, 3vw, 2.8rem);
+      line-height: 1;
+    }
+
+    body[data-role="spectator"] #view-qualifying > .hero .hero-actions {
+      margin-top: 0;
+      justify-self: end;
+      align-self: center;
+    }
+
+    body[data-role="admin"] #view-registration > .hero,
+    body[data-role="admin"] #view-qualifying > .hero {
+      margin-bottom: 14px;
+      padding: 18px 20px;
+      gap: 18px;
+      grid-template-columns: minmax(0, 1.7fr) minmax(280px, 0.78fr);
+    }
+
+    body[data-role="admin"] #view-registration > .hero .hero-logo-shell,
+    body[data-role="admin"] #view-qualifying > .hero .hero-logo-shell {
+      margin: 0 0 10px;
+      max-width: 250px;
+    }
+
+    body[data-role="admin"] #view-registration > .hero .hero-logo,
+    body[data-role="admin"] #view-qualifying > .hero .hero-logo {
+      width: min(230px, 100%);
+    }
+
+    body[data-role="admin"] #view-registration > .hero h1,
+    body[data-role="admin"] #view-qualifying > .hero h1 {
+      font-size: clamp(2rem, 3.6vw, 3.2rem);
+      line-height: 0.98;
+    }
+
+    body[data-role="admin"] #view-registration > .hero .hero-copy,
+    body[data-role="admin"] #view-qualifying > .hero .hero-copy {
+      max-width: 54ch;
+      margin-top: 10px;
+      font-size: 0.98rem;
+      line-height: 1.55;
+    }
+
+    body[data-role="admin"] #view-registration > .hero .hero-actions,
+    body[data-role="admin"] #view-qualifying > .hero .hero-actions {
+      margin-top: 14px;
+    }
+
+    body[data-role="admin"] #view-registration > .hero .hero-meta-inline,
+    body[data-role="admin"] #view-qualifying > .hero .hero-meta-inline {
+      margin-top: 12px;
+    }
+
+    body[data-role="admin"] #view-registration > .hero .hero-card,
+    body[data-role="admin"] #view-qualifying > .hero .hero-card {
+      padding: 14px;
+      gap: 10px;
+    }
+
+    body[data-role="admin"] #view-registration > .hero .hero-stat,
+    body[data-role="admin"] #view-qualifying > .hero .hero-stat {
+      padding: 10px 12px;
+    }
+
+    body[data-role="admin"] #view-registration > .hero {
+      grid-template-columns: 1fr;
+      justify-items: center;
+      text-align: center;
+      padding: 14px 20px;
+    }
+
+    body[data-role="admin"] #view-registration > .hero .hero-copy-block {
+      width: min(920px, 100%);
+      display: grid;
+      justify-items: center;
+      gap: 10px;
+    }
+
+    body[data-role="admin"] #view-registration > .hero .hero-logo-shell {
+      margin-bottom: 2px;
+    }
+
+    body[data-role="admin"] #view-registration > .hero .hero-actions {
+      width: min(720px, 100%);
+      margin-top: 6px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      justify-content: stretch;
+      align-items: stretch;
+    }
+
+    body[data-role="admin"] #view-registration > .hero .hero-actions .button {
+      width: 100%;
+      min-height: 58px;
+    }
+
+    body[data-role="admin"] #view-registration > .hero .hero-meta-inline {
+      width: min(360px, 100%);
+      margin-top: 2px;
+      justify-content: center;
+    }
+
+    body[data-role="admin"] #view-registration > .hero .hero-copy,
+    body[data-role="admin"] #view-registration > .hero .hero-card {
+      display: none;
+    }
+
+    .spectator-shop-button {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      z-index: 2200;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 54px;
+      max-width: min(280px, calc(100vw - 36px));
+      padding: 12px 18px;
+      border: 3px solid #000;
+      background: #000;
+      color: #fff;
+      box-shadow: 6px 6px 0 #000;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      text-align: center;
+    }
+
+    .build-label {
+      position: fixed;
+      left: 14px;
+      bottom: 14px;
+      z-index: 2100;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.78);
+      color: rgba(17, 17, 17, 0.72);
+      font-size: 0.66rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      pointer-events: none;
+      backdrop-filter: blur(6px);
+    }
+
+    body[data-theme="dark"] .build-label {
+      background: rgba(18, 18, 20, 0.78);
+      color: rgba(255, 255, 255, 0.62);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .spectator-shop-button:hover,
+    .spectator-shop-button:focus-visible {
+      background: #fff;
+      color: #000;
+    }
+
     #view-bracket.is-active {
       display: flex;
       flex-direction: column;
@@ -218,11 +747,13 @@
       gap: 12px;
       margin-bottom: 18px;
       padding: 10px 14px;
-      border: 3px solid var(--line);
-      background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(246,239,229,0.98));
-      box-shadow: var(--shadow);
+      border: 2px solid rgba(17, 17, 17, 0.92);
+      border-radius: var(--radius-panel);
+      background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(244,244,244,0.98));
+      box-shadow: var(--panel-shadow);
       position: relative;
       z-index: 10;
+      backdrop-filter: blur(10px);
     }
 
     .topbar-left,
@@ -266,8 +797,9 @@
       min-width: 220px;
       max-width: 320px;
       padding: 10px 14px;
-      border: 3px solid #000;
-      box-shadow: 3px 3px 0px #000;
+      border: 2px solid #000;
+      border-radius: 12px;
+      box-shadow: var(--button-shadow);
       font-weight: 800;
       background: #fff;
       cursor: pointer;
@@ -278,9 +810,10 @@
       gap: 14px;
       margin-bottom: 20px;
       padding: 16px;
-      border: 3px solid #000;
+      border: 2px solid #000;
+      border-radius: var(--radius-card);
       background: #f7f7f7;
-      box-shadow: 4px 4px 0 #000;
+      box-shadow: var(--card-shadow);
     }
 
     .event-admin-panel .event-switcher {
@@ -314,9 +847,10 @@
       font-size: 1rem;
       background: #fff;
       color: #000;
-      border: 3px solid #000;
+      border: 2px solid #000;
+      border-radius: 12px;
       font-weight: 800;
-      box-shadow: 3px 3px 0px #000;
+      box-shadow: var(--button-shadow);
       cursor: pointer;
     }
     
@@ -377,14 +911,17 @@
     }
 
     .main-topbar .mode-tab.is-active {
+      color: #000;
+      background: rgba(255,255,255,0.96);
       border-color: #000;
-      box-shadow: 2px 2px 0 #000;
+      box-shadow: 0 8px 18px rgba(0,0,0,0.08), 0 2px 0 #000;
     }
 
     .hero, .panel {
-      border: 3px solid var(--line);
+      border: 2px solid var(--line);
+      border-radius: var(--radius-panel);
       background: var(--panel);
-      box-shadow: var(--shadow);
+      box-shadow: var(--panel-shadow);
     }
 
     .hero {
@@ -481,8 +1018,9 @@
       display: grid;
       gap: 12px;
       padding: 20px;
-      border: 3px solid var(--line);
-      background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(242,242,242,0.96));
+      border: 2px solid rgba(17, 17, 17, 0.9);
+      border-radius: var(--radius-card);
+      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(244,244,244,0.96));
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.8);
     }
 
@@ -490,8 +1028,10 @@
 
     .hero-stat {
       padding: 14px 16px;
-      border: 2px solid var(--line);
-      background: linear-gradient(180deg, #ffffff, #f1f1f1);
+      border: 1px solid rgba(17, 17, 17, 0.16);
+      border-radius: 12px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(245,245,245,0.95));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.9);
     }
 
     .hero-stat-emphasis {
@@ -561,10 +1101,11 @@
       display: grid;
       gap: 14px;
       padding: 18px 20px;
-      border: 4px solid #000;
+      border: 2px solid #000;
+      border-radius: calc(var(--radius-panel) + 2px);
       background:
         linear-gradient(180deg, rgba(255,255,255,0.98), rgba(242,242,242,0.96));
-      box-shadow: 10px 10px 0 #000;
+      box-shadow: var(--panel-shadow);
     }
 
     .qualifying-live-head {
@@ -602,7 +1143,8 @@
     .qualifying-live-progress {
       min-width: 120px;
       padding: 10px 12px;
-      border: 3px solid #000;
+      border: 2px solid #000;
+      border-radius: 12px;
       background: #000;
       color: #fff;
       text-align: center;
@@ -618,8 +1160,10 @@
 
     .qualifying-live-stat {
       padding: 12px;
-      border: 2px solid #000;
+      border: 1px solid rgba(17, 17, 17, 0.14);
+      border-radius: 12px;
       background: #fff;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.92);
     }
 
     .qualifying-live-stat span {
@@ -703,7 +1247,8 @@
 
     .hero-meta-pill {
       padding: 10px 14px;
-      border: 2px solid #000;
+      border: 1px solid rgba(17, 17, 17, 0.18);
+      border-radius: 999px;
       background: rgba(255,255,255,0.88);
       font-size: 0.88rem;
       font-weight: 800;
@@ -752,10 +1297,11 @@
     }
 
     .button, .icon-button, .driver-button {
-      border: 3px solid #000;
+      border: 2px solid #000;
+      border-radius: var(--radius-button);
       cursor: pointer;
       transition: all 100ms ease;
-      box-shadow: 4px 4px 0px #000;
+      box-shadow: var(--button-shadow);
     }
 
     .button {
@@ -764,7 +1310,7 @@
       justify-content: center;
       min-height: 48px;
       padding: 12px 18px;
-      background: linear-gradient(180deg, #ffffff, #f0f0f0);
+      background: linear-gradient(180deg, #ffffff, #f3f3f3);
       color: #000;
       font-family: var(--font-graffiti);
       font-size: 1.2rem;
@@ -772,8 +1318,8 @@
     }
 
     .button:hover, .icon-button:hover, .driver-button:hover {
-      transform: translate(2px, 2px);
-      box-shadow: 2px 2px 0px #000;
+      transform: translateY(-1px);
+      box-shadow: 0 14px 28px rgba(0, 0, 0, 0.12), 0 2px 0 rgba(0, 0, 0, 0.92);
     }
 
     .button-secondary {
@@ -794,10 +1340,11 @@
 
     .toolbar {
       padding: 14px;
-      border: 3px solid var(--line);
+      border: 2px solid var(--line);
+      border-radius: var(--radius-card);
       background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(240,240,240,0.94));
       margin-bottom: 16px;
-      box-shadow: 4px 4px 0px #000;
+      box-shadow: var(--card-shadow);
     }
 
     .search-field {
@@ -813,7 +1360,8 @@
 
     input[type="text"], input[type="number"], input[type="search"], select {
       width: 100%;
-      border: 3px solid var(--line);
+      border: 2px solid rgba(17, 17, 17, 0.88);
+      border-radius: 12px;
       padding: 12px 13px;
       background: #ffffff;
       color: var(--text);
@@ -826,7 +1374,7 @@
       background: #fff;
       color: var(--text);
       border-color: var(--accent-dark);
-      box-shadow: 3px 3px 0px var(--accent-dark);
+      box-shadow: 0 0 0 4px rgba(17, 17, 17, 0.08);
     }
 
     /* Target specifically driver inputs */
@@ -840,9 +1388,10 @@
 
     .table-wrap {
       overflow: auto;
-      border: 3px solid var(--line);
+      border: 2px solid var(--line);
+      border-radius: var(--radius-panel);
       background: #fff;
-      box-shadow: var(--shadow);
+      box-shadow: var(--panel-shadow);
       flex: 1;
       min-height: 0;
     }
@@ -856,9 +1405,17 @@
       display: grid;
       gap: 14px;
       padding: 16px;
-      border: 3px solid #000;
+      border: 2px solid #000;
+      border-radius: var(--radius-card);
       background: #fff;
-      box-shadow: 4px 4px 0px #000;
+      box-shadow: var(--card-shadow);
+    }
+
+    .registration-layout {
+      display: grid;
+      grid-template-columns: minmax(320px, 0.9fr) minmax(0, 1.1fr);
+      gap: 24px;
+      align-items: start;
     }
 
     .registration-stack {
@@ -875,9 +1432,10 @@
       display: grid;
       gap: 14px;
       padding: 16px;
-      border: 3px solid #000;
+      border: 2px solid #000;
+      border-radius: var(--radius-card);
       background: #fff;
-      box-shadow: 4px 4px 0px #000;
+      box-shadow: var(--card-shadow);
     }
 
     .registration-card-header {
@@ -908,6 +1466,68 @@
       display: grid;
       gap: 14px;
       grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .registration-form-grid.single-column {
+      grid-template-columns: 1fr;
+    }
+
+    .registration-entry-panel .modal-field span,
+    .registration-roster-panel .modal-field span {
+      font-family: var(--font-graffiti);
+      font-size: 1.15rem;
+      font-weight: 400;
+      letter-spacing: 0.02em;
+      text-transform: none;
+      color: #000;
+    }
+
+    .registration-entry-panel,
+    .registration-roster-panel {
+      min-height: 0;
+    }
+
+    .registration-draft-form {
+      display: grid;
+      gap: 14px;
+    }
+
+    .registration-form-actions {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .registration-form-note {
+      color: var(--text-soft);
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    .registration-roster-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .registration-roster-count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      padding: 8px 12px;
+      border: 1px solid #000;
+      border-radius: 999px;
+      background: #000;
+      color: #fff;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
     }
 
     .mobile-driver-head,
@@ -957,7 +1577,8 @@
     .judge-lane-shell {
       display: grid;
       gap: 14px;
-      padding-bottom: calc(110px + env(safe-area-inset-bottom, 0px));
+      min-height: calc(100dvh - 32px);
+      align-content: start;
     }
 
     .judge-lane-toolbar {
@@ -983,12 +1604,6 @@
     .judge-lane-meta strong {
       font-family: var(--font-graffiti);
       font-size: 1.25rem;
-    }
-
-    .judge-lane-nav {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 10px;
     }
 
     .judge-lane-progress {
@@ -1040,6 +1655,7 @@
       display: grid;
       gap: 12px;
       grid-template-columns: 1fr;
+      align-content: start;
     }
 
     .mobile-score-grid {
@@ -1135,11 +1751,43 @@
       font-size: 0.86rem;
     }
 
+    .score-deduction-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: center;
+    }
+
+    .score-deduction-btn {
+      min-width: 46px;
+      min-height: 34px;
+      padding: 6px 8px;
+      border: 2px solid #000;
+      background: #fff;
+      color: #000;
+      font-size: 0.74rem;
+      font-weight: 800;
+      line-height: 1;
+      text-transform: uppercase;
+    }
+
+    .score-deduction-btn:hover,
+    .score-deduction-btn:focus-visible {
+      background: #000;
+      color: #fff;
+    }
+
     .judge-score-help {
       color: var(--text-soft);
       font-size: 0.8rem;
       font-weight: 700;
       line-height: 1.5;
+    }
+
+    .judge-run-submit {
+      min-height: 48px;
+      width: 100%;
+      font-size: 0.92rem;
     }
 
     .judge-score-actions {
@@ -1153,15 +1801,13 @@
     }
 
     .judge-lane-submitbar {
-      position: sticky;
-      bottom: 0;
       display: grid;
       gap: 12px;
       padding: 14px;
       border: 3px solid #000;
       background: rgba(255, 255, 255, 0.98);
-      box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.12), 4px 4px 0 #000;
-      z-index: 4;
+      box-shadow: 4px 4px 0 #000;
+      margin-top: 4px;
     }
 
     .judge-lane-submitbar .button {
@@ -1372,7 +2018,8 @@
       align-items: center;
       justify-content: center;
       padding: 8px 10px;
-      border: 2px solid #000;
+      border: 1px solid rgba(17, 17, 17, 0.9);
+      border-radius: 999px;
       font-size: 0.76rem;
       font-weight: 800;
       text-transform: uppercase;
@@ -1612,13 +2259,14 @@
 
     .battle-flow-card {
       width: min(100%, 360px);
-      border: 3px solid #000;
+      border: 2px solid #000;
+      border-radius: var(--radius-card);
       background:
         linear-gradient(180deg, rgba(255,255,255,0.98), rgba(242,242,242,0.94));
       padding: 12px;
       display: grid;
       gap: 8px;
-      box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.92);
+      box-shadow: var(--card-shadow);
     }
 
     .battle-flow-card.current {
@@ -1813,10 +2461,11 @@
       margin-top: 12px;
       position: relative;
       padding: 26px 28px 34px;
-      border: 4px solid #000;
+      border: 2px solid #000;
+      border-radius: calc(var(--radius-panel) + 2px);
       background:
         linear-gradient(180deg, rgba(255,255,255,0.98), rgba(242,242,242,0.94));
-      box-shadow: 12px 12px 0px rgba(0, 0, 0, 1);
+      box-shadow: var(--panel-shadow);
       overflow: visible;
     }
 
@@ -1987,6 +2636,9 @@
       display: block;
       width: 100%;
       line-height: 1.1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .slot-team {
@@ -2135,6 +2787,13 @@
       padding: 12px;
       background: #fff;
       color: #000;
+    }
+
+    .driver-button strong {
+      display: block;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .driver-button + .driver-button { margin-top: 10px; }
@@ -2333,6 +2992,48 @@
     }
 
     @media (max-width: 960px) {
+      body[data-role="admin"] #view-registration > .hero,
+      body[data-role="admin"] #view-qualifying > .hero {
+        grid-template-columns: 1fr;
+      }
+      body[data-role="admin"] #view-registration > .hero .hero-card,
+      body[data-role="admin"] #view-qualifying > .hero .hero-card {
+        order: 2;
+      }
+      body[data-role="admin"] #view-registration > .hero .hero-logo-shell,
+      body[data-role="admin"] #view-qualifying > .hero .hero-logo-shell {
+        max-width: 210px;
+      }
+      body[data-role="admin"] #view-registration > .hero .hero-actions {
+        grid-template-columns: 1fr;
+        width: 100%;
+      }
+      body[data-role="admin"] #view-registration > .hero .hero-meta-inline {
+        width: 100%;
+      }
+      .registration-layout {
+        grid-template-columns: 1fr;
+      }
+      body[data-role="spectator"] #view-qualifying > .hero .hero-copy-block {
+        grid-template-columns: 1fr;
+        justify-items: start;
+      }
+      body[data-role="spectator"] #view-qualifying > .hero .hero-actions {
+        justify-self: stretch;
+        width: 100%;
+      }
+      body[data-role="spectator"] #view-qualifying > .hero .hero-logo-shell {
+        max-width: 210px;
+      }
+      .spectator-shop-button {
+        right: 12px;
+        left: 12px;
+        bottom: 12px;
+        max-width: none;
+        min-height: 50px;
+        padding: 11px 14px;
+        font-size: 0.9rem;
+      }
       body[data-role^="j"] .main-topbar {
         display: none;
       }
@@ -2406,6 +3107,17 @@
         font-size: 0.8rem;
         text-align: center;
       }
+      .spectator-shop-button {
+        min-height: 46px;
+        padding: 10px 14px;
+        font-size: 0.78rem;
+      }
+      .build-label {
+        left: 10px;
+        bottom: 10px;
+        font-size: 0.6rem;
+        padding: 3px 7px;
+      }
       .button, .search-field { width: 100%; }
       .hero-actions { flex-direction: column; }
       .rounds-board { grid-template-columns: 1fr; }
@@ -2415,7 +3127,6 @@
       .modal-grid { grid-template-columns: 1fr; }
       .table-wrap.mobile-hidden { display: none; }
       .mobile-drivers-list { display: grid; }
-      .judge-lane-nav { grid-template-columns: 1fr; }
       .mobile-score-grid { grid-template-columns: 1fr; }
       .battle-flow-option { font-size: 0.92rem; }
       .competition-subtabs { width: 100%; }
@@ -2427,7 +3138,8 @@
       .battle-flow-option { min-height: 48px; }
       .judge-lane-toolbar {
         top: 4px;
-        padding: 14px;
+        padding: 12px;
+        gap: 10px;
       }
       .judge-lane-status-row {
         display: grid;
@@ -2443,16 +3155,116 @@
         flex-direction: column;
         align-items: flex-start;
       }
+      .judge-lane-shell {
+        min-height: calc(100dvh - 20px);
+        gap: 10px;
+      }
+      .mobile-driver-card[data-id] {
+        gap: 10px;
+        padding: 12px;
+      }
+      .judge-run-grid {
+        gap: 10px;
+      }
+      .judge-score-card {
+        gap: 8px;
+        padding: 12px;
+      }
+      .judge-score-card input {
+        min-height: 60px;
+        padding: 10px 12px;
+        font-size: 1.5rem;
+      }
+      .judge-score-head strong {
+        font-size: 0.92rem;
+      }
+      .judge-score-live {
+        min-height: 24px;
+        padding: 4px 8px;
+        font-size: 0.7rem;
+      }
+      .judge-score-caption,
+      .judge-score-help,
+      .judge-lane-note,
+      .judge-next-driver,
+      .helper-text {
+        font-size: 0.74rem;
+        line-height: 1.35;
+      }
+      .judge-lane-status-pill {
+        padding: 6px 8px;
+        font-size: 0.68rem;
+      }
+      .judge-lane-submitbar {
+        gap: 8px;
+        padding: 10px 12px;
+        margin-top: 0;
+      }
+      .judge-lane-submitbar .button {
+        min-height: 50px;
+        font-size: 0.92rem;
+      }
+      .judge-run-submit {
+        min-height: 44px;
+        font-size: 0.86rem;
+      }
+    }
+
+    @media (max-width: 720px) and (max-height: 780px) {
+      .judge-lane-toolbar {
+        padding: 10px;
+        gap: 8px;
+      }
+      .judge-lane-meta strong {
+        font-size: 1.05rem;
+      }
+      .judge-lane-progress,
+      .mobile-driver-reg {
+        font-size: 0.74rem;
+      }
+      .mobile-driver-card[data-id] {
+        padding: 10px;
+        gap: 8px;
+      }
+      .judge-run-grid {
+        gap: 8px;
+      }
+      .judge-score-card {
+        padding: 10px;
+        gap: 7px;
+      }
+      .judge-score-card input {
+        min-height: 52px;
+        font-size: 1.3rem;
+      }
+      .judge-score-caption,
+      .judge-score-help,
+      .judge-lane-note,
+      .judge-next-driver,
+      .helper-text {
+        font-size: 0.7rem;
+        line-height: 1.28;
+      }
+      .judge-lane-submitbar {
+        padding: 9px 10px;
+      }
+      .judge-lane-submitbar .button {
+        min-height: 46px;
+        font-size: 0.88rem;
+      }
     }
   </style>
 </head>
-  <body data-role="spectator" data-site-admin="false">
+  <body data-role="spectator" data-site-admin="false" data-theme="light">
   <div class="page-shell">
+    <a class="spectator-shop-button spectator-only" href="https://www.prodigydrift.com/" target="_blank" rel="noopener noreferrer">Shop Prodigy RC Here</a>
+    <div id="buildLabel" class="build-label">Build</div>
     
     <!-- TOPBAR WITH VIEW NAVIGATION -->
     <div class="topbar main-topbar">
       <div class="topbar-left">
         <div id="syncStatus" class="sync-status">Offline Sync</div>
+        <button id="themeToggleBtn" class="micro-button" type="button">Dark Mode</button>
         <button id="websiteAdminBtn" class="micro-button" type="button">Website Admin</button>
       </div>
       <div class="topbar-center">
@@ -2486,11 +3298,8 @@
           <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png" alt="Prodigy RC Drift Arena" /></div>
           <p class="eyebrow">Registration</p>
           <h1>Driver Sign-Up</h1>
-          <p class="hero-copy">
-            Add drivers here first, then move into qualifying once the roster is ready. New registration forms appear at the top, while sign-up numbers stay locked in order.
-          </p>
           <div class="hero-actions">
-            <button id="registrationAddDriverBtn" class="button button-accent" type="button">Add Driver</button>
+            <button id="registrationAddDriverBtn" class="button button-accent" type="submit" form="registrationEntryForm">Add Driver</button>
             <button id="registrationToQualifyingBtn" class="button button-secondary" type="button">Go To Qualifying</button>
           </div>
           <div class="hero-meta-inline registration-admin-only">
@@ -2505,40 +3314,48 @@
             </label>
           </div>
         </div>
-        <div class="hero-card hero-card-grid">
-          <div class="hero-stat">
-            <span class="hero-stat-label">Event</span>
-            <strong id="registrationHeroEventName">Main Event</strong>
-          </div>
-          <div class="hero-stat">
-            <span class="hero-stat-label">Event Date</span>
-            <strong id="registrationHeroEventDate">TBD</strong>
-          </div>
-          <div class="hero-stat">
-            <span class="hero-stat-label">Registered Drivers</span>
-            <strong id="registrationDriverCount">0</strong>
-          </div>
-          <div class="hero-stat hero-stat-emphasis">
-            <span class="hero-stat-label">Flow</span>
-            <strong>Register first, qualify second</strong>
-          </div>
-        </div>
       </header>
 
-      <main class="layout">
-        <section class="panel">
+      <main class="registration-layout">
+        <section class="panel registration-entry-panel">
           <div class="panel-header">
             <div>
               <p class="section-kicker">Entry Form</p>
-              <h2>Competition Registration</h2>
-            </div>
-            <div class="button-row">
-              <button id="registrationAddDriverSecondaryBtn" class="button" type="button">Add Another Driver</button>
+              <h2>Register Driver</h2>
             </div>
           </div>
-          <div class="registration-intro">Each new form gets the next sign-up number automatically. Registration number and sign-up number stay the same for the full event.</div>
-          <div id="registrationForms" class="registration-stack"></div>
+          <div class="registration-intro">Submit one driver at a time. After each submit, a fresh form appears automatically for the next registration number.</div>
+          <form id="registrationEntryForm" class="registration-draft-form">
+            <div class="registration-form-grid single-column">
+              <label class="modal-field">
+                <span>Driver Name</span>
+                <input id="registrationDraftName" class="registration-driver-input" type="text" placeholder="Driver name" />
+              </label>
+              <label class="modal-field">
+                <span>Team</span>
+                <input id="registrationDraftTeam" class="registration-driver-input" type="text" placeholder="Team name" />
+              </label>
+              <label class="modal-field">
+                <span>Chassis</span>
+                <input id="registrationDraftChassis" class="registration-driver-input" type="text" placeholder="Chassis" />
+              </label>
+            </div>
+            <div class="registration-form-actions">
+              <div class="registration-form-note" id="registrationDraftRegLabel">Next registration number: #1</div>
+              <button id="registrationAddDriverSecondaryBtn" class="button" type="submit">Submit Driver</button>
+            </div>
+          </form>
         </section>
+        <aside class="panel registration-roster-panel">
+          <div class="registration-roster-head">
+            <div>
+              <p class="section-kicker">Registered Drivers</p>
+              <h2>Current Roster</h2>
+            </div>
+            <div class="registration-roster-count" id="registrationDriverCount">0 Drivers</div>
+          </div>
+          <div id="registrationForms" class="registration-stack"></div>
+        </aside>
       </main>
     </div>
 
@@ -2549,6 +3366,10 @@
       <header class="hero hero-simple">
         <div class="hero-copy-block">
           <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png" alt="Prodigy RC Drift Arena" /></div>
+          <div class="spectator-qualifying-title spectator-only">
+            <p class="eyebrow">Live Event</p>
+            <h1>Qualifying Standings</h1>
+          </div>
           <p class="eyebrow admin-only">RC Drift Admin</p>
           <p class="eyebrow judge-only">Scoring Mode</p>
           <h1 class="admin-only">Qualifying Board</h1>
@@ -2561,10 +3382,10 @@
             Enter your personal scores for each driver. Your score will be averaged dynamically with the other judges to form the driver's final run score.
           </p>
 
-          <div class="hero-actions admin-action">
+          <div class="hero-actions spectator-admin-only">
             <button id="fullscreenQualifyingBtn" class="button button-secondary" type="button">Fullscreen Qualifying</button>
-            <button id="openBracketBtn" class="button button-accent" type="button">Launch Bracket</button>
-            <button id="loadSampleBtn" class="button button-secondary" type="button">Load Sample</button>
+            <button id="openBracketBtn" class="button button-accent admin-action" type="button">Launch Bracket</button>
+            <button id="loadSampleBtn" class="button button-secondary admin-action" type="button">Load Sample</button>
           </div>
           <div id="launchWarning" class="error-msg">You need at least 2 scored drivers to launch.</div>
           <div class="hero-meta-inline admin-only">
@@ -2583,12 +3404,12 @@
 
       <main class="qualifying-layout">
         <section class="panel">
-          <div class="panel-header">
-            <div>
-              <p class="section-kicker">Qualifying</p>
-              <h2>Driver Scores</h2>
+            <div class="panel-header">
+              <div>
+                <p class="section-kicker">Qualifying</p>
+                <h2 id="qualifyingPanelTitle">Driver Scores</h2>
+              </div>
             </div>
-          </div>
 
           <div class="toolbar" style="display:none;">
             <label class="search-field admin-action" id="lowerCountContainer" style="display: none;">
@@ -2622,13 +3443,13 @@
             <div class="panel-header compact">
               <div>
                 <p class="section-kicker">Live Standings</p>
-                <h2>Qualifying Order</h2>
+                <h2>Standings</h2>
               </div>
               <span id="currentEventStatus" class="status-pill active">Active</span>
             </div>
             <div id="topQualifierTiePanel" class="inline-note hidden"></div>
             <div id="qualifyingResults" class="results-list empty-state">
-              Add driver names in registration, then enter scores to build the qualifying order.
+              Add driver names in registration, then enter scores to build the standings.
             </div>
           </section>
         </aside>
@@ -2657,6 +3478,7 @@
               <p class="section-kicker">Archive</p>
               <h2>Event Results</h2>
             </div>
+            <button id="resultsExportPdfBtn" class="button button-secondary spectator-admin-only" type="button">Export Results PDF</button>
           </div>
           <div id="resultsEventList" class="results-list empty-state">
             Completed events and saved results will appear here.
@@ -2940,6 +3762,7 @@
     const FORMAT_SDC_TOP_32 = "sdc-top-32";
     const APP_STATE_VERSION = 9;
     const EVENT_STORAGE_VERSION = 1;
+    const APP_BUILD_LABEL = "Build 2026.04.11.3";
     const WEBSITE_ADMIN_STORAGE_KEY = "rc-drift-website-admin-session-v1";
     const WEBSITE_ADMIN_PASSWORD_HASH = "29647f834c4aa7d575cf81b7a5f6f694727b0383e523d05ba4521ea3539affbf";
     const DEFAULT_EVENT_ID = "main-event";
@@ -2947,6 +3770,7 @@
     const ACTIVE_EVENT_STORAGE_KEY = `rc-drift-active-event-v${EVENT_STORAGE_VERSION}`;
     const EVENT_ROLE_SESSION_KEY = `rc-drift-event-role-v${EVENT_STORAGE_VERSION}`;
     const EVENT_ROLE_UNLOCK_KEY = `rc-drift-event-role-unlocks-v${EVENT_STORAGE_VERSION}`;
+    const THEME_STORAGE_KEY = `rc-drift-theme-v${EVENT_STORAGE_VERSION}`;
     const ROLE_ORDER = ["admin", "j1", "j2", "j3"];
     const JUDGE_ROLE_ORDER = ["j1", "j2", "j3"];
     const ROLE_LABELS = {
@@ -3095,6 +3919,8 @@
       return {
         championName: null,
         championSeed: null,
+        runnerUpName: null,
+        runnerUpSeed: null,
         thirdPlaceName: null,
         thirdPlaceSeed: null,
         qualifiedCount: 0,
@@ -3262,7 +4088,41 @@
     }
 
     function getRunKey(runRef) {
+      if (runRef === "r1") return "run1";
+      if (runRef === "r2") return "run2";
       return typeof runRef === "string" ? runRef : `run${runRef}`;
+    }
+
+    const QUICK_DEDUCTION_VALUES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20];
+
+    function clampJudgeScoreValue(value) {
+      const numericValue = Number.isFinite(value) ? value : 100;
+      return Math.max(0, Math.min(100, Math.round(numericValue * 10) / 10));
+    }
+
+    function getJudgeDraftScoreValue(driver, role, runRef) {
+      const runKey = getRunKey(runRef);
+      const judgeScores = driver?.scores?.[role];
+      if (!judgeScores) return 100;
+      if (judgeScores[runKey] !== null && judgeScores[runKey] !== undefined) {
+        return clampJudgeScoreValue(judgeScores[runKey]);
+      }
+      if (judgeScores.submitted?.[runKey] !== null && judgeScores.submitted?.[runKey] !== undefined) {
+        return clampJudgeScoreValue(judgeScores.submitted[runKey]);
+      }
+      return 100;
+    }
+
+    function renderScoreDeductionButtons(runKey) {
+      return `
+        <div class="score-deduction-strip" data-run="${runKey}">
+          ${QUICK_DEDUCTION_VALUES.map((value) => `
+            <button class="score-deduction-btn" type="button" data-action="apply-deduction" data-col="${runKey}" data-deduction="${value}">
+              -${value}
+            </button>
+          `).join("")}
+        </div>
+      `;
     }
 
     function getSubmittedScoreValue(driver, role, runRef) {
@@ -3273,14 +4133,14 @@
     function hasPendingJudgeChanges(driver, role) {
       const judgeScores = driver?.scores?.[role];
       if (!judgeScores) return false;
-      return ["run1", "run2", "runoff"].some((runKey) => (judgeScores[runKey] ?? null) !== (judgeScores.submitted?.[runKey] ?? null));
+      return ["run1", "run2", "runoff"].some((runKey) => getJudgeDraftScoreValue(driver, role, runKey) !== (judgeScores.submitted?.[runKey] ?? null));
     }
 
     function hasPendingJudgeRunChanges(driver, role, runRef) {
       const runKey = getRunKey(runRef);
       const judgeScores = driver?.scores?.[role];
       if (!judgeScores) return false;
-      return (judgeScores[runKey] ?? null) !== (judgeScores.submitted?.[runKey] ?? null);
+      return getJudgeDraftScoreValue(driver, role, runKey) !== (judgeScores.submitted?.[runKey] ?? null);
     }
 
     function hasSubmittedJudgeRun(driver, role, runRef) {
@@ -3292,10 +4152,17 @@
       if (!driver || !role.startsWith("j") || isJudgeAccessLocked()) return;
       const judgeScores = driver.scores?.[role];
       if (!judgeScores) return;
+      judgeScores.run1 = getJudgeDraftScoreValue(driver, role, "run1");
+      judgeScores.run2 = getJudgeDraftScoreValue(driver, role, "run2");
+      const runoffValue = (judgeScores.runoff !== null && judgeScores.runoff !== undefined)
+        || (judgeScores.submitted?.runoff !== null && judgeScores.submitted?.runoff !== undefined)
+        ? getJudgeDraftScoreValue(driver, role, "runoff")
+        : null;
+      judgeScores.runoff = runoffValue;
       judgeScores.submitted = {
         run1: judgeScores.run1,
         run2: judgeScores.run2,
-        runoff: judgeScores.runoff,
+        runoff: runoffValue,
       };
     }
 
@@ -3305,7 +4172,35 @@
       if (!driver || !role.startsWith("j") || isJudgeAccessLocked()) return;
       const judgeScores = driver.scores?.[role];
       if (!judgeScores || !(runKey in judgeScores.submitted)) return;
+      judgeScores[runKey] = getJudgeDraftScoreValue(driver, role, runKey);
       judgeScores.submitted[runKey] = judgeScores[runKey];
+    }
+
+    function confirmJudgeScoreSubmission(driverId, role = currentRole, runRef = null) {
+      const driver = appDrivers.find((entry) => entry.id === driverId);
+      if (!driver || !role?.startsWith("j")) return false;
+      const judgeScores = driver.scores?.[role];
+      if (!judgeScores) return false;
+      const driverName = driver.name || "this driver";
+
+      if (runRef) {
+        const runKey = getRunKey(runRef);
+        const scoreValue = getJudgeDraftScoreValue(driver, role, runKey);
+        if (scoreValue === null || scoreValue === undefined) return false;
+        const runLabel = runKey === "run1" ? "Run 1" : runKey === "run2" ? "Run 2" : "Runoff";
+        return window.confirm(
+          `Are you sure you want to submit a score of ${formatScore(scoreValue)} for ${driverName} (${runLabel})?`
+        );
+      }
+
+      const parts = [];
+      parts.push(`Run 1: ${formatScore(getJudgeDraftScoreValue(driver, role, "run1"))}`);
+      parts.push(`Run 2: ${formatScore(getJudgeDraftScoreValue(driver, role, "run2"))}`);
+      if (judgeScores.runoff !== null && judgeScores.runoff !== undefined) parts.push(`Runoff: ${formatScore(getJudgeDraftScoreValue(driver, role, "runoff"))}`);
+      if (!parts.length) return false;
+      return window.confirm(
+        `Are you sure you want to submit these scores for ${driverName}?\n\n${parts.join("\n")}`
+      );
     }
 
     function hasSubmittedRequiredRuns(driver, role) {
@@ -3373,6 +4268,8 @@
       const runKey = runRef ? getRunKey(runRef) : null;
       const localRoleScores = JSON.parse(JSON.stringify(localDriver.scores?.[role] || {}));
       lastLocalPush = Date.now();
+      let transactionResult = null;
+      judgeSubmissionInFlight = true;
 
       try {
         await runTransaction(db, async (transaction) => {
@@ -3444,12 +4341,35 @@
             activeEventId,
             syncStamp: lastLocalPush,
           }, { merge: true });
+
+          transactionResult = {
+            remoteDrivers: JSON.parse(JSON.stringify(remoteDrivers)),
+            remoteQualifyingFlow: JSON.parse(JSON.stringify(nextQualifyingFlow)),
+            remoteMeta: cloneEventMeta(updatedMeta),
+          };
         });
+
+        if (transactionResult) {
+          const localJudgeDrafts = captureJudgeDraftScores(role);
+          appDrivers = restoreJudgeDraftScores(
+            sanitizeLoadedDrivers(transactionResult.remoteDrivers),
+            role,
+            localJudgeDrafts,
+          );
+          qualifyingFlow = transactionResult.remoteQualifyingFlow || createEmptyQualifyingFlow();
+          syncQualifyingFlowState();
+          activeEventMeta = transactionResult.remoteMeta || activeEventMeta;
+          eventDirectory[activeEventId] = cloneEventMeta(activeEventMeta);
+          saveDirectoryCache();
+          saveEventStateCache();
+        }
         return true;
       } catch (error) {
         console.error("Judge submission sync failed:", error);
         publishState();
         return false;
+      } finally {
+        judgeSubmissionInFlight = false;
       }
     }
 
@@ -3481,6 +4401,52 @@
         });
       });
       return drafts;
+    }
+
+    function applyJudgeScoreDeduction(driverId, runRef, deduction, role = currentRole) {
+      const runKey = getRunKey(runRef);
+      const driver = appDrivers.find((entry) => entry.id === driverId);
+      if (!driver || !role?.startsWith("j")) return false;
+      const nextValue = clampJudgeScoreValue(getJudgeDraftScoreValue(driver, role, runKey) - deduction);
+      driver.scores[role][runKey] = nextValue;
+      if (driver.runFlags?.[runKey]) {
+        driver.runFlags[runKey] = null;
+      }
+      return true;
+    }
+
+    function refreshJudgeDraftUi(container, driver, role = currentRole) {
+      if (!container || !driver || !role?.startsWith("j")) return;
+
+      ["r1", "r2", "runoff"].forEach((col) => {
+        const input = container.querySelector(`.score-input[data-col="${col}"]`);
+        if (!input) return;
+        const runKey = col === "r1" ? "run1" : col === "r2" ? "run2" : "runoff";
+        if (runKey === "runoff") {
+          const runoffValue = driver.scores?.[role]?.runoff;
+          input.value = runoffValue === null || runoffValue === undefined ? "" : String(clampJudgeScoreValue(runoffValue));
+          return;
+        }
+        input.value = String(getJudgeDraftScoreValue(driver, role, runKey));
+      });
+
+      const submitButton = container.querySelector("[data-action='submit-judge-scores']");
+      if (submitButton) {
+        submitButton.textContent = getJudgeSubmitButtonLabel(driver, role);
+        submitButton.disabled = isJudgeSubmitWaiting(driver, role);
+      }
+
+      const runSubmitButton = container.querySelector("[data-action='submit-judge-run']");
+      if (runSubmitButton) {
+        const runKey = runSubmitButton.dataset.run;
+        const runValue = getJudgeDraftScoreValue(driver, role, runKey);
+        const isPending = hasPendingJudgeRunChanges(driver, role, runKey);
+        const isSubmitted = hasSubmittedJudgeRun(driver, role, runKey);
+        runSubmitButton.disabled = runValue === null || (isSubmitted && !isPending);
+        runSubmitButton.textContent = isPending || !isSubmitted
+          ? `Submit ${runKey === "run1" ? "Run 1" : "Run 2"}`
+          : `Waiting For ${runKey === "run1" ? "Run 1" : "Run 2"} Scores`;
+      }
     }
 
     function restoreJudgeDraftScores(drivers, role, drafts) {
@@ -3526,6 +4492,19 @@
     }
 
     function formatScore(score) { return score === null ? "-" : score.toFixed(1); }
+
+    function formatDateTimeForExport(value) {
+      if (!value) return "Not completed";
+      const parsed = new Date(value);
+      if (Number.isNaN(parsed.getTime())) return String(value);
+      return new Intl.DateTimeFormat(undefined, {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      }).format(parsed);
+    }
 
     function escapeHtml(value) {
       return String(value)
@@ -3577,6 +4556,244 @@
 
     function participantKey(driver) {
       return driver ? `${driver.seed}-${driver.registrationNumber}-${driver.name}` : "";
+    }
+
+    function normalizePdfText(value) {
+      return String(value ?? "")
+        .normalize("NFKD")
+        .replace(/[^\x20-\x7E]/g, "")
+        .trim();
+    }
+
+    function escapePdfText(value) {
+      return normalizePdfText(value)
+        .replaceAll("\\", "\\\\")
+        .replaceAll("(", "\\(")
+        .replaceAll(")", "\\)");
+    }
+
+    function padPdfCell(value, width, align = "left") {
+      const text = normalizePdfText(value);
+      const clipped = text.length > width ? `${text.slice(0, Math.max(width - 3, 0))}...` : text;
+      return align === "right" ? clipped.padStart(width, " ") : clipped.padEnd(width, " ");
+    }
+
+    function buildResultsPdfLines(eventMeta, results, rankedDrivers) {
+      const lines = [];
+      const addLine = (line = "") => lines.push(normalizePdfText(line));
+      const addSeparator = (length = 96) => addLine("-".repeat(length));
+
+      addLine("PRODIGY RC DRIFT ARENA");
+      addLine("COMPETITION RESULTS");
+      addSeparator();
+      addLine(`Event: ${eventMeta.name || "Event Results"}`);
+      addLine(`Date: ${formatEventDate(eventMeta.date)}`);
+      addLine(`Format: ${results.planDescription || "Waiting for qualifying scores."}`);
+      addLine(`Total Drivers: ${results.totalDrivers || rankedDrivers.length || 0}`);
+      addLine(`Qualified Drivers: ${results.qualifiedCount || 0}`);
+      addLine(`Completed: ${formatDateTimeForExport(results.completedAt || results.updatedAt)}`);
+      addLine("");
+      addLine("PODIUM");
+      addSeparator();
+      addLine(`1st Place: ${results.championName ? `#${results.championSeed} ${results.championName}` : "Waiting for winner"}`);
+      addLine(`2nd Place: ${results.runnerUpName ? `#${results.runnerUpSeed} ${results.runnerUpName}` : "Waiting for finalist"}`);
+      addLine(`3rd Place: ${results.thirdPlaceName ? `#${results.thirdPlaceSeed} ${results.thirdPlaceName}` : "Waiting for 3rd place battle"}`);
+      addLine("");
+      addLine("QUALIFYING STANDINGS");
+      addSeparator();
+
+      const tableHeader = [
+        padPdfCell("POS", 4),
+        padPdfCell("REG", 5),
+        padPdfCell("DRIVER", 24),
+        padPdfCell("TEAM", 18),
+        padPdfCell("CHASSIS", 14),
+        padPdfCell("RUN1", 6, "right"),
+        padPdfCell("RUN2", 6, "right"),
+        padPdfCell("BEST", 6, "right"),
+      ].join(" ");
+
+      addLine(tableHeader);
+      addSeparator();
+
+      if (!rankedDrivers.length) {
+        addLine("No standings available yet.");
+      } else {
+        rankedDrivers.forEach((driver, index) => {
+          const run1 = getRunAverage(driver, 1);
+          const run2 = getRunAverage(driver, 2);
+          const best = getBestScore(run1, run2);
+          addLine([
+            padPdfCell(index + 1, 4),
+            padPdfCell(driver.reg || driver.signUpPosition || "-", 5),
+            padPdfCell(driver.name || "Unnamed Driver", 24),
+            padPdfCell(driver.teamName || "-", 18),
+            padPdfCell(driver.chassis || "-", 14),
+            padPdfCell(formatScore(run1), 6, "right"),
+            padPdfCell(formatScore(run2), 6, "right"),
+            padPdfCell(formatScore(best), 6, "right"),
+          ].join(" "));
+        });
+      }
+
+      addLine("");
+      addLine(`Generated ${formatDateTimeForExport(new Date().toISOString())}`);
+      return { lines, tableHeader };
+    }
+
+    function buildPdfFromTextPages(pages) {
+      const pageWidth = 595.28;
+      const pageHeight = 841.89;
+      const marginLeft = 36;
+      const marginTop = 44;
+      const lineHeight = 13;
+
+      const objects = [];
+      const pushObject = (content) => {
+        objects.push(content);
+        return objects.length;
+      };
+
+      const pagesId = pushObject("");
+      const fontId = pushObject("<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>");
+      const pageIds = [];
+
+      pages.forEach((lines) => {
+        const commands = lines.map((line, index) => {
+          const y = pageHeight - marginTop - (index * lineHeight);
+          return `BT\n/F1 10 Tf\n1 0 0 1 ${marginLeft.toFixed(2)} ${y.toFixed(2)} Tm\n(${escapePdfText(line)}) Tj\nET`;
+        }).join("\n");
+        const stream = `${commands}\n`;
+        const contentId = pushObject(`<< /Length ${stream.length} >>\nstream\n${stream}endstream`);
+        const pageId = pushObject(`<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /Font << /F1 ${fontId} 0 R >> >> /Contents ${contentId} 0 R >>`);
+        pageIds.push(pageId);
+      });
+
+      objects[pagesId - 1] = `<< /Type /Pages /Count ${pageIds.length} /Kids [${pageIds.map((id) => `${id} 0 R`).join(" ")}] >>`;
+      const catalogId = pushObject(`<< /Type /Catalog /Pages ${pagesId} 0 R >>`);
+
+      let pdf = "%PDF-1.4\n";
+      const offsets = [0];
+      objects.forEach((object, index) => {
+        offsets.push(pdf.length);
+        pdf += `${index + 1} 0 obj\n${object}\nendobj\n`;
+      });
+      const xrefOffset = pdf.length;
+      pdf += `xref\n0 ${objects.length + 1}\n`;
+      pdf += "0000000000 65535 f \n";
+      offsets.slice(1).forEach((offset) => {
+        pdf += `${String(offset).padStart(10, "0")} 00000 n \n`;
+      });
+      pdf += `trailer\n<< /Size ${objects.length + 1} /Root ${catalogId} 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+      return new Blob([pdf], { type: "application/pdf" });
+    }
+
+    function triggerPdfDownload(blob, fileName) {
+      if (!blob) return false;
+
+      if (typeof navigator !== "undefined" && typeof navigator.msSaveOrOpenBlob === "function") {
+        navigator.msSaveOrOpenBlob(blob, fileName);
+        return true;
+      }
+
+      const file = (() => {
+        try {
+          return new File([blob], fileName, { type: "application/pdf" });
+        } catch (error) {
+          return null;
+        }
+      })();
+
+      if (file && navigator?.canShare && navigator?.share) {
+        try {
+          if (navigator.canShare({ files: [file] })) {
+            navigator.share({ files: [file], title: fileName }).catch(() => {});
+            return true;
+          }
+        } catch (error) {
+          console.warn("Share-based PDF export unavailable", error);
+        }
+      }
+
+      try {
+        const downloadUrl = URL.createObjectURL(blob);
+        const downloadLink = document.createElement("a");
+        downloadLink.href = downloadUrl;
+        downloadLink.download = fileName;
+        downloadLink.rel = "noopener";
+        downloadLink.style.display = "none";
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        downloadLink.remove();
+        setTimeout(() => URL.revokeObjectURL(downloadUrl), 2000);
+        return true;
+      } catch (error) {
+        console.warn("Direct blob download failed", error);
+      }
+
+      try {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const fallbackLink = document.createElement("a");
+          fallbackLink.href = String(reader.result || "");
+          fallbackLink.download = fileName;
+          fallbackLink.rel = "noopener";
+          fallbackLink.style.display = "none";
+          document.body.appendChild(fallbackLink);
+          fallbackLink.click();
+          fallbackLink.remove();
+        };
+        reader.readAsDataURL(blob);
+        return true;
+      } catch (error) {
+        console.warn("Data URL PDF download failed", error);
+      }
+
+      return false;
+    }
+
+    function exportResultsPdf() {
+      if (!activeEventMeta) return;
+      const liveResults = buildEventResults();
+      const results = {
+        ...(activeEventMeta.results || buildEmptyEventResults()),
+        ...liveResults,
+      };
+      const rankedDrivers = rankDrivers(appDrivers);
+      const { lines, tableHeader } = buildResultsPdfLines(activeEventMeta, results, rankedDrivers);
+      const maxLinesPerPage = 54;
+      const pages = [];
+      let pageLines = [];
+      let standingsContinued = false;
+
+      const flushPage = () => {
+        if (pageLines.length) pages.push(pageLines);
+        pageLines = [];
+      };
+
+      lines.forEach((line) => {
+        if (pageLines.length >= maxLinesPerPage) {
+          flushPage();
+          if (standingsContinued) {
+            pageLines.push("QUALIFYING STANDINGS (CONT.)");
+            pageLines.push("-".repeat(96));
+            pageLines.push(tableHeader);
+            pageLines.push("-".repeat(96));
+          }
+        }
+        pageLines.push(line);
+        if (line === "QUALIFYING STANDINGS") {
+          standingsContinued = true;
+        }
+      });
+      flushPage();
+
+      const blob = buildPdfFromTextPages(pages);
+      const safeFileName = `${(activeEventMeta.name || "event-results").replace(/[<>:"/\\|?*]+/g, "").trim().replace(/\s+/g, "-").toLowerCase() || "event-results"}-results.pdf`;
+      const downloadStarted = triggerPdfDownload(blob, safeFileName);
+      if (!downloadStarted) {
+        window.alert("PDF export could not start on this browser yet.");
+      }
     }
 
     function nextPowerOfTwo(value) {
@@ -4128,6 +5345,26 @@
       );
     }
 
+    function openingMatchesMatchWithFeedAllowance(actualMatches, expectedMatches, feedTarget = null) {
+      if (!Array.isArray(actualMatches) || actualMatches.length !== expectedMatches.length) {
+        return false;
+      }
+
+      return actualMatches.every((match, index) => {
+        const expectedMatch = expectedMatches[index];
+        if (!expectedMatch) return false;
+
+        const leftMatches = !feedTarget || index !== feedTarget.matchIndex || feedTarget.side !== "left"
+          ? participantKey(match?.left) === participantKey(expectedMatch?.left)
+          : true;
+        const rightMatches = !feedTarget || index !== feedTarget.matchIndex || feedTarget.side !== "right"
+          ? participantKey(match?.right) === participantKey(expectedMatch?.right)
+          : true;
+
+        return leftMatches && rightMatches;
+      });
+    }
+
     function shouldRebuildTournamentState(state) {
       if (!state?.mainBracket?.rounds?.length) {
         return true;
@@ -4143,7 +5380,11 @@
         return true;
       }
 
-      if (!openingMatchesMatch(state.mainBracket.rounds[0]?.matches, rebuiltState.mainBracket.rounds[0].matches)) {
+      if (!openingMatchesMatchWithFeedAllowance(
+        state.mainBracket.rounds[0]?.matches,
+        rebuiltState.mainBracket.rounds[0].matches,
+        rebuiltState.lowerBracket?.feedsInto || state.lowerBracket?.feedsInto || null,
+      )) {
         return true;
       }
 
@@ -4230,12 +5471,16 @@
     function buildEventResults() {
       const rankedDrivers = rankDrivers(appDrivers);
       const champion = tournamentState?.mainBracket ? getBracketWinner(tournamentState.mainBracket.rounds) : null;
+      const finalMatch = tournamentState?.mainBracket?.rounds?.[tournamentState.mainBracket.rounds.length - 1]?.matches?.[0] || null;
+      const runnerUp = getMatchLoser(finalMatch);
       const thirdPlace = tournamentState?.mainBracket?.thirdPlaceMatch?.winner || null;
       const previousCompletedAt = activeEventMeta?.results?.completedAt || null;
       const completedAt = champion ? previousCompletedAt || new Date().toISOString() : null;
       return {
         championName: champion?.name || null,
         championSeed: champion?.seed || null,
+        runnerUpName: runnerUp?.name || null,
+        runnerUpSeed: runnerUp?.seed || null,
         thirdPlaceName: thirdPlace?.name || null,
         thirdPlaceSeed: thirdPlace?.seed || null,
         qualifiedCount: tournamentState?.qualifiedDrivers?.length || 0,
@@ -4528,9 +5773,11 @@
     }
 
     let deferredInteractiveRenderPending = false;
+    let judgeSubmissionInFlight = false;
 
     function isJudgeEditingScoreInput() {
       if (!currentRole?.startsWith("j")) return false;
+      if (judgeSubmissionInFlight) return false;
       const activeEl = document.activeElement;
       return Boolean(activeEl && activeEl.classList?.contains("score-input"));
     }
@@ -4674,17 +5921,12 @@
 
       const eventDoc = getEventDocRef(activeEventId);
       const subscribedEventId = activeEventId;
-      let hasReceivedInitialSnapshot = false;
       eventDocUnsubscribe = onSnapshot(eventDoc, (snap) => {
         if (!snap.exists()) return;
         const data = snap.data();
-        const shouldApplySnapshot = !hasReceivedInitialSnapshot || (data.syncStamp || 0) > lastLocalPush;
-        hasReceivedInitialSnapshot = true;
         if (subscribedEventId !== activeEventId) return;
-        if (shouldApplySnapshot) {
-          applyRemoteEventState(data);
-          renderAfterRemoteSync();
-        }
+        applyRemoteEventState(data);
+        renderAfterRemoteSync();
       }, (error) => {
         const statusEl = document.getElementById('syncStatus');
         statusEl.textContent = "Sync Error";
@@ -4866,11 +6108,18 @@
     // ==========================================
     const eventSelect = document.getElementById("eventSelect");
     const newEventBtn = document.getElementById("newEventBtn");
+    const buildLabel = document.getElementById("buildLabel");
+    const themeToggleBtn = document.getElementById("themeToggleBtn");
     const websiteAdminBtn = document.getElementById("websiteAdminBtn");
     const globalRoleSelect = document.getElementById("globalRoleSelect");
     const registrationHeroEventName = document.getElementById("registrationHeroEventName");
     const registrationHeroEventDate = document.getElementById("registrationHeroEventDate");
     const registrationDriverCount = document.getElementById("registrationDriverCount");
+    const registrationDraftRegLabel = document.getElementById("registrationDraftRegLabel");
+    const registrationEntryForm = document.getElementById("registrationEntryForm");
+    const registrationDraftName = document.getElementById("registrationDraftName");
+    const registrationDraftTeam = document.getElementById("registrationDraftTeam");
+    const registrationDraftChassis = document.getElementById("registrationDraftChassis");
     const registrationForms = document.getElementById("registrationForms");
     const registrationAddDriverBtn = document.getElementById("registrationAddDriverBtn");
     const registrationAddDriverSecondaryBtn = document.getElementById("registrationAddDriverSecondaryBtn");
@@ -4885,12 +6134,14 @@
     const websiteAdminNewEventBtn = document.getElementById("websiteAdminNewEventBtn");
     const websiteAdminBackBtn = document.getElementById("websiteAdminBackBtn");
     const websiteAdminSignOutBtn = document.getElementById("websiteAdminSignOutBtn");
+    const qualifyingPanelTitle = document.getElementById("qualifyingPanelTitle");
     const driversTableBody = document.getElementById("driversTableBody");
     const driversTableWrap = document.getElementById("driversTableWrap");
     const mobileDriversList = document.getElementById("mobileDriversList");
     const loadSampleBtn = document.getElementById("loadSampleBtn");
     const fullscreenQualifyingBtn = document.getElementById("fullscreenQualifyingBtn");
     const openBracketBtn = document.getElementById("openBracketBtn");
+    const resultsExportPdfBtn = document.getElementById("resultsExportPdfBtn");
     const searchInput = document.getElementById("searchInput");
     const bracketModeSelect = document.getElementById("bracketModeSelect");
     const lowerCountContainer = document.getElementById("lowerCountContainer");
@@ -4904,6 +6155,11 @@
     const currentEventStatus = document.getElementById("currentEventStatus");
     const eventArchiveList = document.getElementById("eventArchiveList");
     const roleAdminPanel = document.getElementById("roleAdminPanel");
+    let registrationDraft = {
+      name: "",
+      teamName: "",
+      chassis: "",
+    };
     
     let pendingRole = null;
     let pendingAuthMode = "login";
@@ -4946,6 +6202,41 @@
       judge2InviteInput?.closest(".modal-field"),
       judge3InviteInput?.closest(".modal-field"),
     ].filter(Boolean);
+
+    function applyTheme(theme = "light") {
+      const normalizedTheme = theme === "dark" ? "dark" : "light";
+      localStorage.setItem(THEME_STORAGE_KEY, normalizedTheme);
+      syncThemeState();
+    }
+
+    function isJudgeThemeLocked() {
+      return typeof currentRole === "string" && currentRole.startsWith("j");
+    }
+
+    function syncThemeState() {
+      const storedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+      const preferredTheme = storedTheme === "dark" ? "dark" : "light";
+      const effectiveTheme = isJudgeThemeLocked() ? "light" : preferredTheme;
+      document.body.dataset.theme = effectiveTheme;
+      if (themeToggleBtn) {
+        themeToggleBtn.textContent = preferredTheme === "dark" ? "Light Mode" : "Dark Mode";
+        themeToggleBtn.setAttribute("aria-pressed", preferredTheme === "dark" ? "true" : "false");
+        themeToggleBtn.classList.toggle("hidden", isJudgeThemeLocked());
+        themeToggleBtn.disabled = isJudgeThemeLocked();
+      }
+      if (websiteAdminBtn) {
+        websiteAdminBtn.classList.toggle("hidden", false);
+      }
+    }
+
+    function initializeTheme() {
+      syncThemeState();
+    }
+
+    if (buildLabel) {
+      buildLabel.textContent = APP_BUILD_LABEL;
+      buildLabel.setAttribute("title", APP_BUILD_LABEL);
+    }
 
     function getRoleAccess(role) {
       return activeEventMeta?.roleAccess?.[role] || null;
@@ -5046,6 +6337,9 @@
       document.getElementById("judgeBoardCopy").textContent = judgeCount === 1
         ? "Enter the official run score for each driver. That score becomes the driver's final run score immediately."
         : `Enter your personal scores for each driver. Your score will be averaged dynamically with the other ${judgeCount - 1} judge${judgeCount === 2 ? "" : "s"} to form the driver's final run score.`;
+      if (qualifyingPanelTitle) {
+        qualifyingPanelTitle.textContent = currentRole.startsWith("j") ? "Judges Panel" : "Driver Scores";
+      }
       document.getElementById("thRun1").textContent = getAverageColumnLabel(1, currentRole, activeEventMeta);
       document.getElementById("thRun2").textContent = getAverageColumnLabel(2, currentRole, activeEventMeta);
       currentEventStatus.textContent = activeEventMeta?.status === "archived" ? "Archived" : "Active";
@@ -5098,18 +6392,41 @@
       });
     }
 
+    function syncRegistrationDraftForm() {
+      const canEditRegistration = registrationCanEdit();
+      if (registrationDraftName) registrationDraftName.value = registrationDraft.name || "";
+      if (registrationDraftTeam) registrationDraftTeam.value = registrationDraft.teamName || "";
+      if (registrationDraftChassis) registrationDraftChassis.value = registrationDraft.chassis || "";
+      if (registrationDraftName) registrationDraftName.disabled = !canEditRegistration;
+      if (registrationDraftTeam) registrationDraftTeam.disabled = !canEditRegistration;
+      if (registrationDraftChassis) registrationDraftChassis.disabled = !canEditRegistration;
+      if (registrationAddDriverBtn) registrationAddDriverBtn.disabled = !canEditRegistration;
+      if (registrationAddDriverSecondaryBtn) registrationAddDriverSecondaryBtn.disabled = !canEditRegistration;
+      if (registrationDraftRegLabel) {
+        registrationDraftRegLabel.textContent = `Next registration number: #${getNextSignUpPosition(appDrivers)}`;
+      }
+    }
+
     function renderRegistrationForms() {
       if (!registrationForms) return;
-      const orderedDrivers = [...normalizeDriverList(appDrivers)].sort((left, right) => (right.signUpPosition || 0) - (left.signUpPosition || 0));
+      const orderedDrivers = [...getRegisteredDrivers(appDrivers)].sort((left, right) => (left.signUpPosition || 0) - (right.signUpPosition || 0));
       const canEditRegistration = registrationCanEdit();
 
-      registrationHeroEventName.textContent = activeEventMeta?.name || "Main Event";
-      registrationHeroEventDate.textContent = formatEventDate(activeEventMeta?.date);
-      registrationDriverCount.textContent = String(getRegisteredDrivers(appDrivers).length);
+      if (registrationHeroEventName) registrationHeroEventName.textContent = activeEventMeta?.name || "Main Event";
+      if (registrationHeroEventDate) registrationHeroEventDate.textContent = formatEventDate(activeEventMeta?.date);
+      if (registrationDriverCount) {
+        const count = getRegisteredDrivers(appDrivers).length;
+        registrationDriverCount.textContent = `${count} Driver${count === 1 ? "" : "s"}`;
+      }
+      syncRegistrationDraftForm();
+
+      if (!orderedDrivers.length) {
+        registrationForms.innerHTML = `<div class="empty-state">No drivers submitted yet. Use the form on the left to add the first driver.</div>`;
+        return;
+      }
 
       registrationForms.innerHTML = orderedDrivers.map((driver) => {
         const displayName = driver.name?.trim() ? escapeHtml(driver.name) : "New Driver";
-        const nameValue = escapeHtml(driver.name || "");
         const teamValue = escapeHtml(driver.teamName || "");
         const chassisValue = escapeHtml(driver.chassis || "");
         const removeDisabled = orderedDrivers.length <= 1 ? "disabled" : "";
@@ -5118,53 +6435,57 @@
             <div class="registration-card-header">
               <div class="registration-card-title">
                 <strong>${displayName}</strong>
-                <small>Sign-up / Reg #${driver.signUpPosition}</small>
+                <small>Registration #${driver.signUpPosition}</small>
               </div>
               ${canEditRegistration
                 ? `<button class="micro-button" type="button" data-action="remove-registration-driver" ${removeDisabled}>Remove</button>`
                 : ""
               }
             </div>
-            <div class="registration-meta">Newest forms appear first here, but sign-up numbering stays locked in original registration order.</div>
-            ${canEditRegistration
-              ? `<div class="registration-form-grid">
-                  <label class="modal-field">
-                    <span>Driver Name</span>
-                    <input class="driver-name registration-driver-input" data-col="name" type="text" value="${nameValue}" placeholder="Driver name" />
-                  </label>
-                  <label class="modal-field">
-                    <span>Team Name</span>
-                    <input class="registration-driver-input" data-col="teamName" type="text" value="${teamValue}" placeholder="Team name" />
-                  </label>
-                  <label class="modal-field">
-                    <span>Chassis</span>
-                    <input class="registration-driver-input" data-col="chassis" type="text" value="${chassisValue}" placeholder="Chassis" />
-                  </label>
-                </div>`
-              : `<div class="registration-form-grid">
-                  <div class="modal-field">
-                    <span>Driver Name</span>
-                    <strong>${displayName}</strong>
-                  </div>
-                  <div class="modal-field">
-                    <span>Team Name</span>
-                    <strong>${teamValue || "Not provided"}</strong>
-                  </div>
-                  <div class="modal-field">
-                    <span>Chassis</span>
-                    <strong>${chassisValue || "Not provided"}</strong>
-                  </div>
-                </div>`
-            }
+            <div class="registration-form-grid">
+              <div class="modal-field">
+                <span>Driver Name</span>
+                <strong>${displayName}</strong>
+              </div>
+              <div class="modal-field">
+                <span>Team</span>
+                <strong>${teamValue || "Not provided"}</strong>
+              </div>
+              <div class="modal-field">
+                <span>Chassis</span>
+                <strong>${chassisValue || "Not provided"}</strong>
+              </div>
+            </div>
           </article>
         `;
       }).join("");
     }
 
-    function addDriverRegistrationEntry() {
-      appDrivers.push(createEmptyDriver(appDrivers.length + 1));
+    function resetRegistrationDraft() {
+      registrationDraft = { name: "", teamName: "", chassis: "" };
+      syncRegistrationDraftForm();
+      if (registrationDraftName) registrationDraftName.focus();
+    }
+
+    function submitRegistrationDraft() {
+      if (!registrationCanEdit()) return false;
+      const name = registrationDraft.name?.trim() || "";
+      if (!name) {
+        if (registrationDraftName) registrationDraftName.focus();
+        return false;
+      }
+      const nextPosition = getNextSignUpPosition(appDrivers);
+      const nextDriver = createEmptyDriver(nextPosition);
+      nextDriver.name = name;
+      nextDriver.teamName = (registrationDraft.teamName || "").trim();
+      nextDriver.chassis = (registrationDraft.chassis || "").trim();
+      nextDriver.reg = nextPosition;
+      nextDriver.signUpPosition = nextPosition;
+      appDrivers = resequenceDrivers([...getRegisteredDrivers(appDrivers), nextDriver], true);
       publishState();
       renderDriversTable();
+      resetRegistrationDraft();
+      return true;
     }
 
     function buildEventArchiveMarkup(eventMeta, includeAdminControls = false) {
@@ -5626,6 +6947,7 @@
       saveRoleForEvent(activeEventId, currentRole);
       globalRoleSelect.value = currentRole;
       document.body.dataset.role = currentRole;
+      syncThemeState();
       
       if (currentRole.startsWith("j")) {
          judgeLaneIndex = 0;
@@ -5744,6 +7066,9 @@
       } else {
         showWebsiteAdminModal();
       }
+    });
+    themeToggleBtn?.addEventListener("click", () => {
+      applyTheme(document.body.dataset.theme === "dark" ? "light" : "dark");
     });
     websiteAdminNewEventBtn.addEventListener("click", () => {
       if (!isWebsiteAdmin) return;
@@ -5904,6 +7229,7 @@
 
     fullscreenBracketBtn?.addEventListener("click", toggleBracketFullscreen);
     document.addEventListener("fullscreenchange", syncBracketFullscreenState);
+    resultsExportPdfBtn?.addEventListener("click", exportResultsPdf);
 
     async function toggleQualifyingFullscreen() {
       const qualifyingView = document.getElementById("view-qualifying");
@@ -5928,6 +7254,7 @@
         fullscreenQualifyingBtn.textContent = isFullscreen ? "Exit Fullscreen" : "Fullscreen Qualifying";
       }
       updateQualifyingDensity();
+      syncQualifyingCurrentDriverIntoView();
     }
 
     fullscreenQualifyingBtn?.addEventListener("click", toggleQualifyingFullscreen);
@@ -5969,13 +7296,43 @@
       judgeLaneIndex = Math.max(0, Math.min(judgeLaneIndex, appDrivers.length - 1));
     }
 
+    function syncQualifyingCurrentDriverIntoView() {
+      if (!document.body.classList.contains("qualifying-fullscreen")) return;
+      if (!document.getElementById("view-qualifying")?.classList.contains("is-active")) return;
+      if (shouldUseJudgeLane()) return;
+
+      const currentRow = driversTableBody.querySelector("tr.is-current-driver");
+      if (currentRow && driversTableWrap) {
+        requestAnimationFrame(() => {
+          const rowTop = currentRow.offsetTop;
+          const rowCenter = rowTop - (driversTableWrap.clientHeight / 2) + (currentRow.offsetHeight / 2);
+          driversTableWrap.scrollTo({
+            top: Math.max(0, rowCenter),
+            behavior: "smooth",
+          });
+        });
+      }
+
+      const currentCard = mobileDriversList.querySelector(".mobile-driver-card.is-current-driver");
+      if (currentCard) {
+        requestAnimationFrame(() => {
+          const cardTop = currentCard.offsetTop;
+          const cardCenter = cardTop - (mobileDriversList.clientHeight / 2) + (currentCard.offsetHeight / 2);
+          mobileDriversList.scrollTo({
+            top: Math.max(0, cardCenter),
+            behavior: "smooth",
+          });
+        });
+      }
+    }
+
     function shouldUseJudgeLane() {
       return currentRole.startsWith("j") && window.innerWidth <= 960;
     }
 
     function renderJudgeLaneCard(driver, index, total, r1Avg, r2Avg, runoffEligibleIds) {
-      const myR1 = driver.scores[currentRole].run1;
-      const myR2 = driver.scores[currentRole].run2;
+      const myR1 = getJudgeDraftScoreValue(driver, currentRole, "run1");
+      const myR2 = getJudgeDraftScoreValue(driver, currentRole, "run2");
       const myRunoff = driver.scores[currentRole].runoff;
       const run1SubmittedByMe = hasSubmittedJudgeRun(driver, currentRole, "run1");
       const run2SubmittedByMe = hasSubmittedJudgeRun(driver, currentRole, "run2");
@@ -6036,10 +7393,12 @@
                   <span class="judge-score-live">Live Avg ${formatScore(r1Avg)}</span>
                 </div>
                 <div class="judge-score-input-wrap">
-                  <input class="score-input r1 driver-row-input" data-col="r1" type="number" min="0" max="100" step="0.1" value="${myR1 !== null ? myR1 : ''}" placeholder="0.0" inputmode="decimal" enterkeyhint="done" autocomplete="off" />
-                  <div class="judge-score-caption">Tap the score box to overwrite quickly.</div>
-                </div>
+                    <input class="score-input r1 driver-row-input" data-col="r1" type="text" value="${myR1}" placeholder="100.0" inputmode="decimal" enterkeyhint="send" autocomplete="off" spellcheck="false" />
+                    <div class="judge-score-caption">Each run starts at 100. Tap the deductions below or type over the value.</div>
+                  </div>
+                  ${renderScoreDeductionButtons("r1")}
                 <div class="judge-score-help">Your submitted score: ${formatScore(driver.scores[currentRole].submitted.run1)}${run1Flag ? ` | Auto zero: ${run1Flag}` : ""}</div>
+                ${activeRunKey === "run1" ? `<button class="button button-accent judge-run-submit" type="button" data-action="submit-judge-run" data-run="run1" ${activeRunDisabled ? "disabled" : ""}>${activeRunButtonLabel}</button>` : ""}
                 <button class="micro-button" type="button" data-action="clear-score" data-col="r1">Clear</button>
               </label>
               ${showRun2 ? `
@@ -6049,10 +7408,12 @@
                     <span class="judge-score-live">Live Avg ${formatScore(r2Avg)}</span>
                   </div>
                   <div class="judge-score-input-wrap">
-                    <input class="score-input r2 driver-row-input" data-col="r2" type="number" min="0" max="100" step="0.1" value="${myR2 !== null ? myR2 : ''}" placeholder="0.0" inputmode="decimal" enterkeyhint="done" autocomplete="off" />
-                    <div class="judge-score-caption">Run 2 unlocks right after your Run 1 submit.</div>
+                    <input class="score-input r2 driver-row-input" data-col="r2" type="text" value="${myR2}" placeholder="100.0" inputmode="decimal" enterkeyhint="send" autocomplete="off" spellcheck="false" />
+                    <div class="judge-score-caption">Run 2 starts at 100 right after your Run 1 submit.</div>
                   </div>
-                  <div class="judge-score-help">Your submitted score: ${formatScore(driver.scores[currentRole].submitted.run2)}${run2Flag ? ` | Auto zero: ${run2Flag}` : ""}</div>
+                  ${renderScoreDeductionButtons("r2")}
+                <div class="judge-score-help">Your submitted score: ${formatScore(driver.scores[currentRole].submitted.run2)}${run2Flag ? ` | Auto zero: ${run2Flag}` : ""}</div>
+                  ${activeRunKey === "run2" ? `<button class="button button-accent judge-run-submit" type="button" data-action="submit-judge-run" data-run="run2" ${activeRunDisabled ? "disabled" : ""}>${activeRunButtonLabel}</button>` : ""}
                   <button class="micro-button" type="button" data-action="clear-score" data-col="r2">Clear</button>
                 </label>
               ` : `
@@ -6066,7 +7427,6 @@
               `}
             </div>
             <div class="judge-lane-submitbar">
-              <button class="button button-accent" type="button" data-action="submit-judge-run" data-run="${activeRunKey}" ${activeRunDisabled ? "disabled" : ""}>${activeRunButtonLabel}</button>
               <div class="judge-lane-submitmeta">
                 <div class="helper-text">${submissionState}</div>
                 <div class="judge-next-driver">Next up: ${nextDriverLabel}</div>
@@ -6132,15 +7492,15 @@
             <td class="td-actions judge-only"></td>
           `;
         } else {
-          const myR1 = driver.scores[currentRole].run1;
-          const myR2 = driver.scores[currentRole].run2;
+          const myR1 = getJudgeDraftScoreValue(driver, currentRole, "run1");
+          const myR2 = getJudgeDraftScoreValue(driver, currentRole, "run2");
           const submissionState = hasPendingJudgeChanges(driver, currentRole) ? "Changes not submitted" : "Submitted";
           tr.innerHTML = `
             <td class="row-index">${index + 1}</td>
             <td class="td-reg"><span class="read-only-text">${driver.reg || '-'}</span></td>
             <td><div class="driver-meta"><strong>${escapeHtml(driver.name) || '-'}</strong>${driver.teamName?.trim() ? `<small>Team ${escapeHtml(driver.teamName.trim())}</small>` : ""}</div></td>
-            <td class="td-score"><input class="score-input r1 driver-row-input" data-col="r1" type="number" min="0" max="100" step="0.1" value="${myR1 !== null ? myR1 : ''}" placeholder="0.0" /></td>
-            <td class="td-score"><input class="score-input r2 driver-row-input" data-col="r2" type="number" min="0" max="100" step="0.1" value="${myR2 !== null ? myR2 : ''}" placeholder="0.0" /></td>
+            <td class="td-score"><input class="score-input r1 driver-row-input" data-col="r1" type="number" min="0" max="100" step="0.1" value="${myR1}" placeholder="100.0" />${renderScoreDeductionButtons("r1")}</td>
+            <td class="td-score"><input class="score-input r2 driver-row-input" data-col="r2" type="number" min="0" max="100" step="0.1" value="${myR2}" placeholder="100.0" />${renderScoreDeductionButtons("r2")}</td>
             <td class="best-score admin-only">${formatScore(best)}</td>
             <td class="td-actions"><button class="micro-button button-accent" type="button" data-action="submit-judge-scores" ${isJudgeSubmitWaiting(driver, currentRole) ? "disabled" : ""}>${getJudgeSubmitButtonLabel(driver, currentRole)}</button></td>
           `;
@@ -6183,8 +7543,8 @@
             </div>
           `;
         } else {
-          const myR1 = driver.scores[currentRole].run1;
-          const myR2 = driver.scores[currentRole].run2;
+          const myR1 = getJudgeDraftScoreValue(driver, currentRole, "run1");
+          const myR2 = getJudgeDraftScoreValue(driver, currentRole, "run2");
           const myRunoff = driver.scores[currentRole].runoff;
           const submissionState = hasPendingJudgeChanges(driver, currentRole) ? "Submit scores" : "Re-submit to update";
           const run1Flag = driver.runFlags.run1;
@@ -6206,7 +7566,8 @@
                   <strong>Run 1 Score</strong>
                   <button class="micro-button" type="button" data-action="clear-score" data-col="r1">Clear</button>
                 </div>
-                <input class="score-input r1 driver-row-input" data-col="r1" type="number" min="0" max="100" step="0.1" value="${myR1 !== null ? myR1 : ''}" placeholder="0.0" inputmode="decimal" />
+                <input class="score-input r1 driver-row-input" data-col="r1" type="number" min="0" max="100" step="0.1" value="${myR1}" placeholder="100.0" inputmode="decimal" />
+                ${renderScoreDeductionButtons("r1")}
                 <div class="judge-score-help">You can update this score at any time. Current average: ${formatScore(r1Avg)}${run1Flag ? ` | Auto zero: ${run1Flag}` : ""}</div>
                 <button class="micro-button" type="button" data-action="clear-score" data-col="r1">Clear</button>
               </label>
@@ -6215,7 +7576,8 @@
                   <strong>Run 2 Score</strong>
                   <button class="micro-button" type="button" data-action="clear-score" data-col="r2">Clear</button>
                 </div>
-                <input class="score-input r2 driver-row-input" data-col="r2" type="number" min="0" max="100" step="0.1" value="${myR2 !== null ? myR2 : ''}" placeholder="0.0" inputmode="decimal" />
+                <input class="score-input r2 driver-row-input" data-col="r2" type="number" min="0" max="100" step="0.1" value="${myR2}" placeholder="100.0" inputmode="decimal" />
+                ${renderScoreDeductionButtons("r2")}
                 <div class="judge-score-help">You can update this score at any time. Current average: ${formatScore(r2Avg)}${run2Flag ? ` | Auto zero: ${run2Flag}` : ""}</div>
                 <button class="micro-button" type="button" data-action="clear-score" data-col="r2">Clear</button>
               </label>
@@ -6247,6 +7609,8 @@
          }
       }
 
+      syncQualifyingCurrentDriverIntoView();
+
       applySearchFilter();
       updateQualifying();
       renderRegistrationForms();
@@ -6263,7 +7627,9 @@
       if (e.target.classList.contains("driver-name")) {
         driver.name = e.target.value;
       } else if (e.target.classList.contains("score-input")) {
-          const val = toNumber(e.target.value);
+          const parsedValue = toNumber(e.target.value);
+          const val = parsedValue === null ? null : clampJudgeScoreValue(parsedValue);
+          if (val !== null) e.target.value = String(val);
           if (e.target.classList.contains("r1")) driver.scores[currentRole].run1 = val;
           if (e.target.classList.contains("r2")) driver.scores[currentRole].run2 = val;
           if (e.target.classList.contains("runoff")) driver.scores[currentRole].runoff = val;
@@ -6292,10 +7658,32 @@
     });
 
     driversTableBody.addEventListener("click", async (e) => {
+      const deductionButton = e.target.closest("[data-action='apply-deduction']");
+      if (deductionButton) {
+        if (!userCanEdit() || currentRole === "admin" || currentRole === "spectator") return;
+        const tr = e.target.closest("tr");
+        if (!tr) return;
+        const id = tr.dataset.id;
+        const readinessCleared = id === qualifyingFlow.currentDriverId && clearQualifyingReady(currentRole);
+        const deduction = Number.parseInt(deductionButton.dataset.deduction, 10);
+        if (!Number.isFinite(deduction)) return;
+        if (!applyJudgeScoreDeduction(id, deductionButton.dataset.col, deduction, currentRole)) return;
+        if (readinessCleared) {
+          publishState();
+        }
+        const driver = appDrivers.find((entry) => entry.id === id);
+        refreshJudgeDraftUi(tr, driver, currentRole);
+        return;
+      }
+
       const submitButton = e.target.closest("[data-action='submit-judge-scores']");
       if (submitButton) {
         if (!userCanEdit() || currentRole === "admin" || currentRole === "spectator") return;
+        if (document.activeElement?.classList?.contains("score-input") && typeof document.activeElement.blur === "function") {
+          document.activeElement.blur();
+        }
         const id = e.target.closest("tr").dataset.id;
+        if (!confirmJudgeScoreSubmission(id, currentRole)) return;
         submitJudgeScores(id, currentRole);
         maybeAdvanceQualifyingAfterSubmit(id);
         await syncJudgeSubmission(id, currentRole);
@@ -6322,7 +7710,9 @@
       if (e.target.classList.contains("driver-name")) {
         driver.name = e.target.value;
       } else if (e.target.classList.contains("score-input")) {
-        const val = toNumber(e.target.value);
+        const parsedValue = toNumber(e.target.value);
+        const val = parsedValue === null ? null : clampJudgeScoreValue(parsedValue);
+        if (val !== null) e.target.value = String(val);
         if (e.target.classList.contains("r1")) driver.scores[currentRole].run1 = val;
         if (e.target.classList.contains("r2")) driver.scores[currentRole].run2 = val;
         if (e.target.classList.contains("runoff")) driver.scores[currentRole].runoff = val;
@@ -6343,10 +7733,10 @@
       if (submitButton) {
         submitButton.textContent = getJudgeSubmitButtonLabel(driver, currentRole);
       }
-      const runSubmitButton = card.querySelector("[data-action='submit-judge-run']");
+        const runSubmitButton = card.querySelector("[data-action='submit-judge-run']");
       if (runSubmitButton) {
         const runKey = runSubmitButton.dataset.run;
-        const runValue = driver.scores[currentRole]?.[runKey];
+        const runValue = getJudgeDraftScoreValue(driver, currentRole, runKey);
         const isPending = hasPendingJudgeRunChanges(driver, currentRole, runKey);
         const isSubmitted = hasSubmittedJudgeRun(driver, currentRole, runKey);
         runSubmitButton.disabled = runValue === null || (isSubmitted && !isPending);
@@ -6397,6 +7787,18 @@
       if (!card) return;
       const readinessCleared = card.dataset.id === qualifyingFlow.currentDriverId && clearQualifyingReady(currentRole);
 
+      const deductionButton = e.target.closest("[data-action='apply-deduction']");
+      if (deductionButton) {
+        if (!userCanEdit() || currentRole === "admin" || currentRole === "spectator") return;
+        const deduction = Number.parseInt(deductionButton.dataset.deduction, 10);
+        if (!Number.isFinite(deduction)) return;
+        if (!applyJudgeScoreDeduction(card.dataset.id, deductionButton.dataset.col, deduction, currentRole)) return;
+        if (readinessCleared) publishState();
+        const driver = appDrivers.find((entry) => entry.id === card.dataset.id);
+        refreshJudgeDraftUi(card, driver, currentRole);
+        return;
+      }
+
       if (e.target.classList.contains("remove-driver")) {
         if (!adminCanEdit()) return;
         const id = card.dataset.id;
@@ -6423,6 +7825,10 @@
       const submitButton = e.target.closest("[data-action='submit-judge-scores']");
       if (submitButton) {
         if (!userCanEdit() || currentRole === "admin" || currentRole === "spectator") return;
+        if (document.activeElement?.classList?.contains("score-input") && typeof document.activeElement.blur === "function") {
+          document.activeElement.blur();
+        }
+        if (!confirmJudgeScoreSubmission(card.dataset.id, currentRole)) return;
         submitJudgeScores(card.dataset.id, currentRole);
         maybeAdvanceQualifyingAfterSubmit(card.dataset.id);
         await syncJudgeSubmission(card.dataset.id, currentRole);
@@ -6433,7 +7839,11 @@
       const submitRunButton = e.target.closest("[data-action='submit-judge-run']");
       if (submitRunButton) {
         if (!userCanEdit() || currentRole === "admin" || currentRole === "spectator") return;
+        if (document.activeElement?.classList?.contains("score-input") && typeof document.activeElement.blur === "function") {
+          document.activeElement.blur();
+        }
         const runKey = submitRunButton.dataset.run;
+        if (!confirmJudgeScoreSubmission(card.dataset.id, currentRole, runKey)) return;
         submitJudgeRun(card.dataset.id, runKey, currentRole);
         maybeAdvanceQualifyingAfterRunSubmit(card.dataset.id, runKey);
         await syncJudgeSubmission(card.dataset.id, currentRole, runKey);
@@ -6470,7 +7880,7 @@
       if (!rankedDrivers.length) {
         topQualifierTiePanel.classList.add("hidden");
         topQualifierTiePanel.textContent = "";
-        qResults.textContent = "Add driver names in registration, then enter scores to build the qualifying order.";
+        qResults.textContent = "Add driver names in registration, then enter scores to build the standings.";
         qResults.classList.add("empty-state");
         return;
       }
@@ -6494,7 +7904,7 @@
         const isQualified = index < cutoffCount;
         const item = document.createElement("li");
         if (!isQualified) item.style.opacity = "0.5";
-        item.textContent = `${driver.seed}. ${driver.name} - Best score: ${formatScore(driver.bestScore)}`;
+        item.textContent = `${index + 1}. ${driver.name} - Best score: ${formatScore(driver.bestScore)}`;
         list.appendChild(item);
       });
 
@@ -6619,31 +8029,20 @@
       });
     }
 
-    registrationForms.addEventListener("input", (e) => {
+    registrationEntryForm?.addEventListener("input", (e) => {
       if (!registrationCanEdit()) return;
-      const card = e.target.closest("[data-id]");
-      if (!card) return;
-      const driver = appDrivers.find((entry) => entry.id === card.dataset.id);
-      if (!driver) return;
-      const fieldKey = e.target.dataset.col;
-      if (!fieldKey) return;
-      if (fieldKey === "name") {
-        driver.name = e.target.value;
-        const title = card.querySelector(".registration-card-title strong");
-        if (title) title.textContent = driver.name.trim() || "New Driver";
-      } else if (fieldKey === "teamName") {
-        driver.teamName = e.target.value;
-      } else if (fieldKey === "chassis") {
-        driver.chassis = e.target.value;
-      } else {
-        return;
+      if (e.target === registrationDraftName) {
+        registrationDraft.name = e.target.value;
+      } else if (e.target === registrationDraftTeam) {
+        registrationDraft.teamName = e.target.value;
+      } else if (e.target === registrationDraftChassis) {
+        registrationDraft.chassis = e.target.value;
       }
-      registrationDriverCount.textContent = String(getRegisteredDrivers(appDrivers).length);
-      publishState();
-      if (!document.getElementById("view-registration").classList.contains("is-active")) {
-        renderDriversTable();
-      }
-      updateQualifying();
+    });
+
+    registrationEntryForm?.addEventListener("submit", (e) => {
+      e.preventDefault();
+      submitRegistrationDraft();
     });
 
     registrationForms.addEventListener("click", (e) => {
@@ -6695,14 +8094,6 @@
       lowerCountContainer.style.display = "none";
       publishState();
       updateQualifying();
-    });
-    registrationAddDriverBtn.addEventListener("click", () => {
-      if (!registrationCanEdit()) return;
-      addDriverRegistrationEntry();
-    });
-    registrationAddDriverSecondaryBtn.addEventListener("click", () => {
-      if (!registrationCanEdit()) return;
-      addDriverRegistrationEntry();
     });
     registrationToQualifyingBtn.addEventListener("click", () => {
       if (currentRole.startsWith("j")) return;
@@ -7309,6 +8700,7 @@
     });
 
     async function bootstrapApp() {
+      initializeTheme();
       await initLocalState();
       renderEventDirectory();
       setWebsiteAdminAccess(isWebsiteAdmin);
