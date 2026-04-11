@@ -561,6 +561,8 @@
     body[data-role="j2"] .admin-only,
     body[data-role="j3"] .admin-only { display: none !important; }
 
+    body[data-role="spectator"] .role-action-col { display: none !important; }
+
     .view-section { display: none; }
     .view-section.is-active { display: block; }
 
@@ -4085,7 +4087,7 @@
                   <th id="thRun1" class="td-score">Run 1 (Avg)</th>
                   <th id="thRun2" class="td-score">Run 2 (Avg)</th>
                   <th class="td-score admin-only">Best Score</th>
-                  <th class="td-actions judge-only"></th>
+                  <th class="td-actions role-action-col"></th>
                 </tr>
               </thead>
               <tbody id="driversTableBody">
@@ -5190,6 +5192,114 @@
       if (!submittedScores.length) return null;
       const sum = submittedScores.reduce((a, b) => a + b, 0);
       return sum / submittedScores.length;
+    }
+
+    function parseAdminJudgeRoleChoice(inputValue, activeRoles) {
+      if (!inputValue) return null;
+      const normalized = String(inputValue).trim().toLowerCase();
+      if (!normalized) return null;
+      if (activeRoles.includes(normalized)) return normalized;
+      const numeric = Number.parseInt(normalized, 10);
+      if (Number.isFinite(numeric)) {
+        const mappedRole = `j${numeric}`;
+        if (activeRoles.includes(mappedRole)) return mappedRole;
+      }
+      const matchedRole = activeRoles.find((role) => getRoleDisplayName(role).toLowerCase() === normalized);
+      return matchedRole || null;
+    }
+
+    function parseAdminRunChoice(inputValue, includeRunoff = false) {
+      if (!inputValue) return null;
+      const normalized = String(inputValue).trim().toLowerCase();
+      if (!normalized) return null;
+      if (normalized === "1" || normalized === "run1" || normalized === "run 1" || normalized === "r1") return "run1";
+      if (normalized === "2" || normalized === "run2" || normalized === "run 2" || normalized === "r2") return "run2";
+      if (includeRunoff && (normalized === "3" || normalized === "runoff" || normalized === "top runoff")) return "runoff";
+      return null;
+    }
+
+    async function editJudgeScoreByAdmin(driverId) {
+      if (!adminCanEdit()) return;
+      const driver = appDrivers.find((entry) => entry.id === driverId);
+      if (!driver) return;
+
+      const activeRoles = getActiveJudgeRoles(activeEventMeta);
+      if (!activeRoles.length) {
+        window.alert("No active judges are configured for this event.");
+        return;
+      }
+
+      const judgePrompt = activeRoles.map((role, index) => `${index + 1}. ${getRoleDisplayName(role)}`).join("\n");
+      const selectedRoleInput = window.prompt(
+        `Edit which judge for ${driver.name || "this driver"}?\n\n${judgePrompt}\n\nEnter the number or judge id.`,
+        "1"
+      );
+      if (selectedRoleInput === null) return;
+
+      const selectedRole = parseAdminJudgeRoleChoice(selectedRoleInput, activeRoles);
+      if (!selectedRole) {
+        window.alert("That judge selection was not recognized.");
+        return;
+      }
+
+      const includeRunoff = activeRoles.some((role) => {
+        const judgeScores = driver?.scores?.[role];
+        return judgeScores?.runoff !== null || judgeScores?.submitted?.runoff !== null;
+      });
+      const runPrompt = includeRunoff
+        ? "1. Run 1\n2. Run 2\n3. Runoff"
+        : "1. Run 1\n2. Run 2";
+      const selectedRunInput = window.prompt(
+        `Edit which run for ${getRoleDisplayName(selectedRole)}?\n\n${runPrompt}\n\nEnter the number or run name.`,
+        "1"
+      );
+      if (selectedRunInput === null) return;
+
+      const runKey = parseAdminRunChoice(selectedRunInput, includeRunoff);
+      if (!runKey) {
+        window.alert("That run selection was not recognized.");
+        return;
+      }
+
+      const judgeScores = driver?.scores?.[selectedRole];
+      if (!judgeScores?.submitted) return;
+      const currentValue = judgeScores.submitted?.[runKey] ?? judgeScores[runKey] ?? null;
+      const runLabel = runKey === "run1" ? "Run 1" : runKey === "run2" ? "Run 2" : "Runoff";
+      const nextValueInput = window.prompt(
+        `Enter the corrected ${runLabel} score for ${getRoleDisplayName(selectedRole)} on ${driver.name || "this driver"}.\n\nCurrent: ${formatScore(currentValue)}\n\nEnter a number from 0 to 100, or type CLEAR to remove it.`,
+        currentValue === null ? "" : String(currentValue)
+      );
+      if (nextValueInput === null) return;
+
+      const trimmedValue = nextValueInput.trim();
+      let nextValue = currentValue;
+      if (/^clear$/i.test(trimmedValue)) {
+        nextValue = null;
+      } else {
+        const parsedValue = toNumber(trimmedValue);
+        if (parsedValue === null) {
+          window.alert("Enter a valid score between 0 and 100, or type CLEAR.");
+          return;
+        }
+        nextValue = clampJudgeScoreValue(parsedValue);
+      }
+
+      judgeScores[runKey] = nextValue;
+      judgeScores.submitted[runKey] = nextValue;
+      if (nextValue !== null && driver.runFlags?.[runKey]) {
+        driver.runFlags[runKey] = null;
+      }
+
+      if (driver.id === qualifyingFlow.currentDriverId) {
+        if (runKey === "run2" && haveAllActiveJudgesSubmittedRun(driver, "run2")) {
+          advanceQualifyingDriver();
+        } else if (haveAllActiveJudgesSubmitted(driver)) {
+          advanceQualifyingDriver();
+        }
+      }
+
+      await publishStateImmediately();
+      renderDriversTable();
     }
 
     function getBestScore(r1Avg, r2Avg) {
@@ -8812,7 +8922,7 @@
             <td class="td-score"><span class="read-only-score r1-avg">${formatScore(liveR1Avg)}</span></td>
             <td class="td-score"><span class="read-only-score r2-avg">${formatScore(liveR2Avg)}</span></td>
             <td class="best-score admin-only">${formatScore(liveBest)}</td>
-            <td class="td-actions judge-only"></td>
+            <td class="td-actions role-action-col">${currentRole === "admin" ? `<button class="micro-button" type="button" data-action="edit-judge-scores">Edit Scores</button>` : ""}</td>
           `;
         } else {
           const myR1 = getJudgeDraftScoreValue(driver, currentRole, "run1");
@@ -8865,6 +8975,7 @@
                 <strong>${formatScore(liveBest)}</strong>
               </div>
             </div>
+            ${currentRole === "admin" ? `<div class="mobile-card-actions admin-only"><button class="button button-secondary" type="button" data-action="edit-judge-scores">Edit Judge Score</button></div>` : ""}
           `;
         } else {
           const myR1 = getJudgeDraftScoreValue(driver, currentRole, "run1");
@@ -8983,6 +9094,15 @@
     });
 
     driversTableBody.addEventListener("click", async (e) => {
+      const editJudgeScoresButton = e.target.closest("[data-action='edit-judge-scores']");
+      if (editJudgeScoresButton) {
+        if (!adminCanEdit()) return;
+        const tr = e.target.closest("tr");
+        if (!tr) return;
+        await editJudgeScoreByAdmin(tr.dataset.id);
+        return;
+      }
+
       const deductionButton = e.target.closest("[data-action='apply-deduction']");
       if (deductionButton) {
         if (!userCanEdit() || currentRole === "admin" || currentRole === "spectator") return;
@@ -9111,6 +9231,13 @@
       const card = e.target.closest("[data-id]");
       if (!card) return;
       const readinessCleared = card.dataset.id === qualifyingFlow.currentDriverId && clearQualifyingReady(currentRole);
+
+      const editJudgeScoresButton = e.target.closest("[data-action='edit-judge-scores']");
+      if (editJudgeScoresButton) {
+        if (!adminCanEdit()) return;
+        await editJudgeScoreByAdmin(card.dataset.id);
+        return;
+      }
 
       const deductionButton = e.target.closest("[data-action='apply-deduction']");
       if (deductionButton) {
