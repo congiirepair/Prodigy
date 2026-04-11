@@ -4466,17 +4466,50 @@
       });
     }
 
+    function resolveRoleForActiveEventSwitch(nextActiveEventId, preferredRole = currentRole) {
+      const nextMeta = eventDirectory[nextActiveEventId];
+      if (!nextMeta) return "spectator";
+      const nextEventReadOnly = nextMeta?.status === "archived";
+      if (preferredRole && preferredRole !== "spectator" && isRoleAvailableForEvent(preferredRole, nextMeta) && !nextEventReadOnly && isRoleUnlockedForEvent(nextActiveEventId, preferredRole)) {
+        return preferredRole;
+      }
+      const savedRole = getSavedRoleForEvent(nextActiveEventId);
+      if (savedRole && savedRole !== "spectator" && isRoleAvailableForEvent(savedRole, nextMeta) && !nextEventReadOnly && isRoleUnlockedForEvent(nextActiveEventId, savedRole)) {
+        return savedRole;
+      }
+      return "spectator";
+    }
+
+    function adoptActiveEvent(nextActiveEventId, preferredRole = currentRole) {
+      if (!nextActiveEventId || !eventDirectory[nextActiveEventId]) return false;
+      const activeEventChanged = nextActiveEventId !== activeEventId;
+      activeEventId = nextActiveEventId;
+      loadActiveEventStateFromCache();
+      applyRoleChange(resolveRoleForActiveEventSwitch(nextActiveEventId, preferredRole));
+      saveDirectoryCache();
+      if (activeEventChanged) {
+        judgeLaneIndex = 0;
+        switchView("qualifying");
+        subscribeToActiveEvent();
+      }
+      return activeEventChanged;
+    }
+
     function applyDirectorySnapshotData(data) {
       if (!data) return false;
       eventDirectory = data.events || eventDirectory;
-      if (!activeEventId || !eventDirectory[activeEventId]) {
+      const shouldFollowSharedActiveEvent = data.activeEventId
+        && eventDirectory[data.activeEventId]
+        && currentRole !== "admin"
+        && data.activeEventId !== activeEventId;
+      if (shouldFollowSharedActiveEvent) {
+        adoptActiveEvent(data.activeEventId, currentRole);
+      } else if (!activeEventId || !eventDirectory[activeEventId]) {
         const fallbackId = data.activeEventId && eventDirectory[data.activeEventId]
           ? data.activeEventId
           : Object.keys(eventDirectory)[0] || null;
         if (fallbackId) {
-          activeEventId = fallbackId;
-          loadActiveEventStateFromCache();
-          applyRoleChange(getSavedRoleForEvent(activeEventId));
+          adoptActiveEvent(fallbackId, currentRole);
         }
       } else {
         activeEventMeta = cloneEventMeta(eventDirectory[activeEventId]);
@@ -4497,14 +4530,7 @@
       if (data.eventMeta) {
         eventDirectory[nextActiveEventId] = cloneEventMeta(data.eventMeta);
       }
-      const activeEventChanged = nextActiveEventId !== activeEventId;
-      activeEventId = nextActiveEventId;
-      loadActiveEventStateFromCache();
-      applyRoleChange(getSavedRoleForEvent(activeEventId));
-      saveDirectoryCache();
-      if (activeEventChanged) {
-        subscribeToActiveEvent();
-      }
+      const activeEventChanged = adoptActiveEvent(nextActiveEventId, currentRole);
       renderEventDirectory();
       renderRoleAdminPanel();
       renderDriversTable();
