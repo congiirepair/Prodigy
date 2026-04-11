@@ -3448,6 +3448,7 @@
               <p class="section-kicker">Archive</p>
               <h2>Event Results</h2>
             </div>
+            <button id="resultsExportPdfBtn" class="button button-secondary spectator-admin-only" type="button">Export Results PDF</button>
           </div>
           <div id="resultsEventList" class="results-list empty-state">
             Completed events and saved results will appear here.
@@ -3877,6 +3878,8 @@
       return {
         championName: null,
         championSeed: null,
+        runnerUpName: null,
+        runnerUpSeed: null,
         thirdPlaceName: null,
         thirdPlaceSeed: null,
         qualifiedCount: 0,
@@ -4443,6 +4446,19 @@
 
     function formatScore(score) { return score === null ? "-" : score.toFixed(1); }
 
+    function formatDateTimeForExport(value) {
+      if (!value) return "Not completed";
+      const parsed = new Date(value);
+      if (Number.isNaN(parsed.getTime())) return String(value);
+      return new Intl.DateTimeFormat(undefined, {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      }).format(parsed);
+    }
+
     function escapeHtml(value) {
       return String(value)
         .replaceAll("&", "&amp;")
@@ -4493,6 +4509,199 @@
 
     function participantKey(driver) {
       return driver ? `${driver.seed}-${driver.registrationNumber}-${driver.name}` : "";
+    }
+
+    function buildResultsPdfHtml(eventMeta, results, rankedDrivers) {
+      const podiumRows = [
+        ["1st Place", results.championName ? `#${results.championSeed} ${results.championName}` : "Waiting for winner"],
+        ["2nd Place", results.runnerUpName ? `#${results.runnerUpSeed} ${results.runnerUpName}` : "Waiting for finalist"],
+        ["3rd Place", results.thirdPlaceName ? `#${results.thirdPlaceSeed} ${results.thirdPlaceName}` : "Waiting for 3rd place battle"],
+      ].map(([label, value]) => `
+        <div class="podium-item">
+          <span>${escapeHtml(label)}</span>
+          <strong>${escapeHtml(value)}</strong>
+        </div>
+      `).join("");
+
+      const standingsRows = rankedDrivers.length
+        ? rankedDrivers.map((driver, index) => {
+            const run1 = getRunAverage(driver, 1);
+            const run2 = getRunAverage(driver, 2);
+            const best = getBestScore(run1, run2);
+            return `
+              <tr>
+                <td>${index + 1}</td>
+                <td>${escapeHtml(String(driver.reg || driver.signUpPosition || "-"))}</td>
+                <td>${escapeHtml(driver.name || "Unnamed Driver")}</td>
+                <td>${escapeHtml(driver.teamName || "-")}</td>
+                <td>${escapeHtml(driver.chassis || "-")}</td>
+                <td>${escapeHtml(formatScore(run1))}</td>
+                <td>${escapeHtml(formatScore(run2))}</td>
+                <td>${escapeHtml(formatScore(best))}</td>
+              </tr>
+            `;
+          }).join("")
+        : `<tr><td colspan="8">No standings available yet.</td></tr>`;
+
+      return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>${escapeHtml(eventMeta.name)} Results</title>
+  <style>
+    @page { size: auto; margin: 16mm; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      color: #111;
+      background: #fff;
+    }
+    .sheet {
+      max-width: 980px;
+      margin: 0 auto;
+    }
+    .header {
+      border-bottom: 3px solid #111;
+      padding-bottom: 18px;
+      margin-bottom: 22px;
+    }
+    .header img {
+      max-width: 320px;
+      display: block;
+      margin-bottom: 12px;
+    }
+    .eyebrow {
+      margin: 0 0 6px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      color: #666;
+    }
+    h1 {
+      margin: 0 0 10px;
+      font-size: 36px;
+      line-height: 1;
+    }
+    .meta {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 22px;
+    }
+    .meta-card, .podium-item {
+      border: 2px solid #111;
+      padding: 12px;
+    }
+    .meta-card span, .podium-item span {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #666;
+    }
+    .meta-card strong, .podium-item strong {
+      display: block;
+      font-size: 18px;
+      line-height: 1.35;
+    }
+    .podium {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    h2 {
+      margin: 0 0 12px;
+      font-size: 22px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      border: 1px solid #111;
+      padding: 9px 10px;
+      text-align: left;
+      font-size: 13px;
+    }
+    th {
+      background: #efefef;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .footer {
+      margin-top: 18px;
+      font-size: 12px;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div class="sheet">
+    <div class="header">
+      <img src="${escapeHtml(new URL("./assets/prodigy-rc-logo-transparent.png", window.location.href).href)}" alt="Prodigy RC Drift Arena" />
+      <p class="eyebrow">Competition Results</p>
+      <h1>${escapeHtml(eventMeta.name || "Event Results")}</h1>
+      <div>${escapeHtml(formatEventDate(eventMeta.date))}</div>
+    </div>
+
+    <div class="meta">
+      <div class="meta-card"><span>Format</span><strong>${escapeHtml(results.planDescription || "Waiting for qualifying scores.")}</strong></div>
+      <div class="meta-card"><span>Total Drivers</span><strong>${escapeHtml(String(results.totalDrivers || rankedDrivers.length || 0))}</strong></div>
+      <div class="meta-card"><span>Qualified Drivers</span><strong>${escapeHtml(String(results.qualifiedCount || 0))}</strong></div>
+      <div class="meta-card"><span>Completed</span><strong>${escapeHtml(formatDateTimeForExport(results.completedAt || results.updatedAt))}</strong></div>
+    </div>
+
+    <h2>Podium</h2>
+    <div class="podium">${podiumRows}</div>
+
+    <h2>Qualifying Standings</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Pos</th>
+          <th>Reg #</th>
+          <th>Driver</th>
+          <th>Team</th>
+          <th>Chassis</th>
+          <th>Run 1</th>
+          <th>Run 2</th>
+          <th>Best</th>
+        </tr>
+      </thead>
+      <tbody>${standingsRows}</tbody>
+    </table>
+
+    <div class="footer">Use your browser's destination setting to save this page as a PDF.</div>
+  </div>
+</body>
+</html>`;
+    }
+
+    function exportResultsPdf() {
+      if (!activeEventMeta) return;
+      const liveResults = buildEventResults();
+      const results = {
+        ...(activeEventMeta.results || buildEmptyEventResults()),
+        ...liveResults,
+      };
+      const rankedDrivers = rankDrivers(appDrivers);
+      const exportWindow = window.open("", "_blank", "noopener,noreferrer");
+      if (!exportWindow) {
+        window.alert("Pop-up blocked. Please allow pop-ups to export the PDF.");
+        return;
+      }
+      exportWindow.document.open();
+      exportWindow.document.write(buildResultsPdfHtml(activeEventMeta, results, rankedDrivers));
+      exportWindow.document.close();
+      exportWindow.focus();
+      setTimeout(() => {
+        exportWindow.print();
+      }, 300);
     }
 
     function nextPowerOfTwo(value) {
@@ -5170,12 +5379,16 @@
     function buildEventResults() {
       const rankedDrivers = rankDrivers(appDrivers);
       const champion = tournamentState?.mainBracket ? getBracketWinner(tournamentState.mainBracket.rounds) : null;
+      const finalMatch = tournamentState?.mainBracket?.rounds?.[tournamentState.mainBracket.rounds.length - 1]?.matches?.[0] || null;
+      const runnerUp = getMatchLoser(finalMatch);
       const thirdPlace = tournamentState?.mainBracket?.thirdPlaceMatch?.winner || null;
       const previousCompletedAt = activeEventMeta?.results?.completedAt || null;
       const completedAt = champion ? previousCompletedAt || new Date().toISOString() : null;
       return {
         championName: champion?.name || null,
         championSeed: champion?.seed || null,
+        runnerUpName: runnerUp?.name || null,
+        runnerUpSeed: runnerUp?.seed || null,
         thirdPlaceName: thirdPlace?.name || null,
         thirdPlaceSeed: thirdPlace?.seed || null,
         qualifiedCount: tournamentState?.qualifiedDrivers?.length || 0,
@@ -5826,6 +6039,7 @@
     const loadSampleBtn = document.getElementById("loadSampleBtn");
     const fullscreenQualifyingBtn = document.getElementById("fullscreenQualifyingBtn");
     const openBracketBtn = document.getElementById("openBracketBtn");
+    const resultsExportPdfBtn = document.getElementById("resultsExportPdfBtn");
     const searchInput = document.getElementById("searchInput");
     const bracketModeSelect = document.getElementById("bracketModeSelect");
     const lowerCountContainer = document.getElementById("lowerCountContainer");
@@ -6903,6 +7117,7 @@
 
     fullscreenBracketBtn?.addEventListener("click", toggleBracketFullscreen);
     document.addEventListener("fullscreenchange", syncBracketFullscreenState);
+    resultsExportPdfBtn?.addEventListener("click", exportResultsPdf);
 
     async function toggleQualifyingFullscreen() {
       const qualifyingView = document.getElementById("view-qualifying");
