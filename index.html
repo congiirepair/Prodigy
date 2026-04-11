@@ -855,7 +855,8 @@
       font-weight: 700;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      pointer-events: none;
+      pointer-events: auto;
+      cursor: pointer;
       backdrop-filter: blur(6px);
     }
 
@@ -6851,7 +6852,8 @@
       lowerCountInput.value = cachedState.lowerCount || "0";
       lowerCountContainer.style.display = "none";
       currentRole = getSavedRoleForEvent(activeEventId);
-      if (!isRoleAvailableForEvent(currentRole, activeEventMeta) || isEventReadOnly() || (currentRole !== "spectator" && !isRoleUnlockedForEvent(activeEventId, currentRole))) {
+      const roleLockedForEvent = currentRole?.startsWith("j") && isJudgeAccessLocked(activeEventMeta);
+      if (!isRoleAvailableForEvent(currentRole, activeEventMeta) || roleLockedForEvent || (currentRole !== "spectator" && !isRoleUnlockedForEvent(activeEventId, currentRole))) {
         currentRole = "spectator";
       }
       document.body.dataset.role = currentRole;
@@ -6956,14 +6958,13 @@
     function resolveRoleForActiveEventSwitch(nextActiveEventId, preferredRole = currentRole) {
       const nextMeta = eventDirectory[nextActiveEventId];
       if (!nextMeta) return "spectator";
-      const nextEventReadOnly = nextMeta?.status === "archived";
       const nextJudgeAccessLocked = isJudgeAccessLocked(nextMeta);
-      const preferredRoleBlocked = preferredRole?.startsWith("j") ? nextJudgeAccessLocked : nextEventReadOnly;
+      const preferredRoleBlocked = preferredRole?.startsWith("j") ? nextJudgeAccessLocked : false;
       if (preferredRole && preferredRole !== "spectator" && isRoleAvailableForEvent(preferredRole, nextMeta) && !preferredRoleBlocked && isRoleUnlockedForEvent(nextActiveEventId, preferredRole)) {
         return preferredRole;
       }
       const savedRole = getSavedRoleForEvent(nextActiveEventId);
-      const savedRoleBlocked = savedRole?.startsWith("j") ? nextJudgeAccessLocked : nextEventReadOnly;
+      const savedRoleBlocked = savedRole?.startsWith("j") ? nextJudgeAccessLocked : false;
       if (savedRole && savedRole !== "spectator" && isRoleAvailableForEvent(savedRole, nextMeta) && !savedRoleBlocked && isRoleUnlockedForEvent(nextActiveEventId, savedRole)) {
         return savedRole;
       }
@@ -7479,6 +7480,15 @@
       }
     }
 
+    function maybeOpenWebsiteAdminFromLocation() {
+      if (typeof window === "undefined") return;
+      const hash = String(window.location.hash || "").toLowerCase();
+      const search = new URLSearchParams(window.location.search || "");
+      if (hash === "#website-admin" || search.get("admin") === "1") {
+        setTimeout(() => openWebsiteAdminAccess(), 0);
+      }
+    }
+
     function resetWebsiteAdminTapSequence() {
       websiteAdminTapCount = 0;
       if (websiteAdminTapResetTimer) {
@@ -7933,7 +7943,7 @@
         globalRoleSelect.value = currentRole;
         return;
       }
-      if ((role?.startsWith("j") && isJudgeAccessLocked()) || (role === "admin" && isEventReadOnly())) {
+      if (role?.startsWith("j") && isJudgeAccessLocked()) {
         globalRoleSelect.value = currentRole;
         return;
       }
@@ -8144,7 +8154,7 @@
       if (!isRoleAvailableForEvent(newRole, activeEventMeta)) {
         newRole = "spectator";
       }
-      if (((newRole?.startsWith("j") && isJudgeAccessLocked()) || (newRole === "admin" && isEventReadOnly())) && newRole !== "spectator") {
+      if ((newRole?.startsWith("j") && isJudgeAccessLocked()) && newRole !== "spectator") {
         newRole = "spectator";
       }
       currentRole = newRole;
@@ -8291,6 +8301,20 @@
       if (e.key === "Escape") hideWebsiteAdminModal();
     });
     buildLabel?.addEventListener("click", registerWebsiteAdminHiddenTap);
+    buildLabel?.addEventListener("dblclick", (e) => {
+      e.preventDefault();
+      openWebsiteAdminAccess();
+    });
+    document.getElementById("syncStatus")?.addEventListener("dblclick", (e) => {
+      e.preventDefault();
+      openWebsiteAdminAccess();
+    });
+    document.querySelectorAll(".hero-logo").forEach((logoEl) => {
+      logoEl.addEventListener("dblclick", (e) => {
+        e.preventDefault();
+        openWebsiteAdminAccess();
+      });
+    });
     document.addEventListener("keydown", (e) => {
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && String(e.key).toLowerCase() === "a") {
         e.preventDefault();
@@ -9971,7 +9995,8 @@
 
     async function bootstrapApp() {
       initializeTheme();
-      await initLocalState();
+    await initLocalState();
+    maybeOpenWebsiteAdminFromLocation();
       renderEventDirectory();
       setWebsiteAdminAccess(isWebsiteAdmin);
       applyRoleChange(currentRole);
