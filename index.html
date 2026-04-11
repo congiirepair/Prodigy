@@ -1135,6 +1135,32 @@
       font-size: 0.86rem;
     }
 
+    .score-deduction-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: center;
+    }
+
+    .score-deduction-btn {
+      min-width: 46px;
+      min-height: 34px;
+      padding: 6px 8px;
+      border: 2px solid #000;
+      background: #fff;
+      color: #000;
+      font-size: 0.74rem;
+      font-weight: 800;
+      line-height: 1;
+      text-transform: uppercase;
+    }
+
+    .score-deduction-btn:hover,
+    .score-deduction-btn:focus-visible {
+      background: #000;
+      color: #fff;
+    }
+
     .judge-score-help {
       color: var(--text-soft);
       font-size: 0.8rem;
@@ -3356,6 +3382,38 @@
       return typeof runRef === "string" ? runRef : `run${runRef}`;
     }
 
+    const QUICK_DEDUCTION_VALUES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20];
+
+    function clampJudgeScoreValue(value) {
+      const numericValue = Number.isFinite(value) ? value : 100;
+      return Math.max(0, Math.min(100, Math.round(numericValue * 10) / 10));
+    }
+
+    function getJudgeDraftScoreValue(driver, role, runRef) {
+      const runKey = getRunKey(runRef);
+      const judgeScores = driver?.scores?.[role];
+      if (!judgeScores) return 100;
+      if (judgeScores[runKey] !== null && judgeScores[runKey] !== undefined) {
+        return clampJudgeScoreValue(judgeScores[runKey]);
+      }
+      if (judgeScores.submitted?.[runKey] !== null && judgeScores.submitted?.[runKey] !== undefined) {
+        return clampJudgeScoreValue(judgeScores.submitted[runKey]);
+      }
+      return 100;
+    }
+
+    function renderScoreDeductionButtons(runKey) {
+      return `
+        <div class="score-deduction-strip" data-run="${runKey}">
+          ${QUICK_DEDUCTION_VALUES.map((value) => `
+            <button class="score-deduction-btn" type="button" data-action="apply-deduction" data-col="${runKey}" data-deduction="${value}">
+              -${value}
+            </button>
+          `).join("")}
+        </div>
+      `;
+    }
+
     function getSubmittedScoreValue(driver, role, runRef) {
       const runKey = getRunKey(runRef);
       return driver?.scores?.[role]?.submitted?.[runKey] ?? null;
@@ -3364,14 +3422,14 @@
     function hasPendingJudgeChanges(driver, role) {
       const judgeScores = driver?.scores?.[role];
       if (!judgeScores) return false;
-      return ["run1", "run2", "runoff"].some((runKey) => (judgeScores[runKey] ?? null) !== (judgeScores.submitted?.[runKey] ?? null));
+      return ["run1", "run2", "runoff"].some((runKey) => getJudgeDraftScoreValue(driver, role, runKey) !== (judgeScores.submitted?.[runKey] ?? null));
     }
 
     function hasPendingJudgeRunChanges(driver, role, runRef) {
       const runKey = getRunKey(runRef);
       const judgeScores = driver?.scores?.[role];
       if (!judgeScores) return false;
-      return (judgeScores[runKey] ?? null) !== (judgeScores.submitted?.[runKey] ?? null);
+      return getJudgeDraftScoreValue(driver, role, runKey) !== (judgeScores.submitted?.[runKey] ?? null);
     }
 
     function hasSubmittedJudgeRun(driver, role, runRef) {
@@ -3383,10 +3441,17 @@
       if (!driver || !role.startsWith("j")) return;
       const judgeScores = driver.scores?.[role];
       if (!judgeScores) return;
+      judgeScores.run1 = getJudgeDraftScoreValue(driver, role, "run1");
+      judgeScores.run2 = getJudgeDraftScoreValue(driver, role, "run2");
+      const runoffValue = (judgeScores.runoff !== null && judgeScores.runoff !== undefined)
+        || (judgeScores.submitted?.runoff !== null && judgeScores.submitted?.runoff !== undefined)
+        ? getJudgeDraftScoreValue(driver, role, "runoff")
+        : null;
+      judgeScores.runoff = runoffValue;
       judgeScores.submitted = {
         run1: judgeScores.run1,
         run2: judgeScores.run2,
-        runoff: judgeScores.runoff,
+        runoff: runoffValue,
       };
     }
 
@@ -3396,6 +3461,7 @@
       if (!driver || !role.startsWith("j")) return;
       const judgeScores = driver.scores?.[role];
       if (!judgeScores || !(runKey in judgeScores.submitted)) return;
+      judgeScores[runKey] = getJudgeDraftScoreValue(driver, role, runKey);
       judgeScores.submitted[runKey] = judgeScores[runKey];
     }
 
@@ -3408,7 +3474,7 @@
 
       if (runRef) {
         const runKey = getRunKey(runRef);
-        const scoreValue = judgeScores?.[runKey];
+        const scoreValue = getJudgeDraftScoreValue(driver, role, runKey);
         if (scoreValue === null || scoreValue === undefined) return false;
         const runLabel = runKey === "run1" ? "Run 1" : runKey === "run2" ? "Run 2" : "Runoff";
         return window.confirm(
@@ -3417,9 +3483,9 @@
       }
 
       const parts = [];
-      if (judgeScores.run1 !== null && judgeScores.run1 !== undefined) parts.push(`Run 1: ${formatScore(judgeScores.run1)}`);
-      if (judgeScores.run2 !== null && judgeScores.run2 !== undefined) parts.push(`Run 2: ${formatScore(judgeScores.run2)}`);
-      if (judgeScores.runoff !== null && judgeScores.runoff !== undefined) parts.push(`Runoff: ${formatScore(judgeScores.runoff)}`);
+      parts.push(`Run 1: ${formatScore(getJudgeDraftScoreValue(driver, role, "run1"))}`);
+      parts.push(`Run 2: ${formatScore(getJudgeDraftScoreValue(driver, role, "run2"))}`);
+      if (judgeScores.runoff !== null && judgeScores.runoff !== undefined) parts.push(`Runoff: ${formatScore(getJudgeDraftScoreValue(driver, role, "runoff"))}`);
       if (!parts.length) return false;
       return window.confirm(
         `Are you sure you want to submit these scores for ${driverName}?\n\n${parts.join("\n")}`
@@ -3618,6 +3684,18 @@
         });
       });
       return drafts;
+    }
+
+    function applyJudgeScoreDeduction(driverId, runRef, deduction, role = currentRole) {
+      const runKey = getRunKey(runRef);
+      const driver = appDrivers.find((entry) => entry.id === driverId);
+      if (!driver || !role?.startsWith("j")) return false;
+      const nextValue = clampJudgeScoreValue(getJudgeDraftScoreValue(driver, role, runKey) - deduction);
+      driver.scores[role][runKey] = nextValue;
+      if (driver.runFlags?.[runKey]) {
+        driver.runFlags[runKey] = null;
+      }
+      return true;
     }
 
     function restoreJudgeDraftScores(drivers, role, drafts) {
@@ -6129,8 +6207,8 @@
     }
 
     function renderJudgeLaneCard(driver, index, total, r1Avg, r2Avg, runoffEligibleIds) {
-      const myR1 = driver.scores[currentRole].run1;
-      const myR2 = driver.scores[currentRole].run2;
+      const myR1 = getJudgeDraftScoreValue(driver, currentRole, "run1");
+      const myR2 = getJudgeDraftScoreValue(driver, currentRole, "run2");
       const myRunoff = driver.scores[currentRole].runoff;
       const run1SubmittedByMe = hasSubmittedJudgeRun(driver, currentRole, "run1");
       const run2SubmittedByMe = hasSubmittedJudgeRun(driver, currentRole, "run2");
@@ -6191,9 +6269,10 @@
                   <span class="judge-score-live">Live Avg ${formatScore(r1Avg)}</span>
                 </div>
                 <div class="judge-score-input-wrap">
-                  <input class="score-input r1 driver-row-input" data-col="r1" type="text" value="${myR1 !== null ? myR1 : ''}" placeholder="0.0" inputmode="decimal" enterkeyhint="send" autocomplete="off" spellcheck="false" />
-                  <div class="judge-score-caption">Tap the score box to overwrite quickly.</div>
-                </div>
+                    <input class="score-input r1 driver-row-input" data-col="r1" type="text" value="${myR1}" placeholder="100.0" inputmode="decimal" enterkeyhint="send" autocomplete="off" spellcheck="false" />
+                    <div class="judge-score-caption">Each run starts at 100. Tap the deductions below or type over the value.</div>
+                  </div>
+                  ${renderScoreDeductionButtons("r1")}
                 <div class="judge-score-help">Your submitted score: ${formatScore(driver.scores[currentRole].submitted.run1)}${run1Flag ? ` | Auto zero: ${run1Flag}` : ""}</div>
                 ${activeRunKey === "run1" ? `<button class="button button-accent judge-run-submit" type="button" data-action="submit-judge-run" data-run="run1" ${activeRunDisabled ? "disabled" : ""}>${activeRunButtonLabel}</button>` : ""}
                 <button class="micro-button" type="button" data-action="clear-score" data-col="r1">Clear</button>
@@ -6205,10 +6284,11 @@
                     <span class="judge-score-live">Live Avg ${formatScore(r2Avg)}</span>
                   </div>
                   <div class="judge-score-input-wrap">
-                    <input class="score-input r2 driver-row-input" data-col="r2" type="text" value="${myR2 !== null ? myR2 : ''}" placeholder="0.0" inputmode="decimal" enterkeyhint="send" autocomplete="off" spellcheck="false" />
-                    <div class="judge-score-caption">Run 2 unlocks right after your Run 1 submit.</div>
+                    <input class="score-input r2 driver-row-input" data-col="r2" type="text" value="${myR2}" placeholder="100.0" inputmode="decimal" enterkeyhint="send" autocomplete="off" spellcheck="false" />
+                    <div class="judge-score-caption">Run 2 starts at 100 right after your Run 1 submit.</div>
                   </div>
-                  <div class="judge-score-help">Your submitted score: ${formatScore(driver.scores[currentRole].submitted.run2)}${run2Flag ? ` | Auto zero: ${run2Flag}` : ""}</div>
+                  ${renderScoreDeductionButtons("r2")}
+                <div class="judge-score-help">Your submitted score: ${formatScore(driver.scores[currentRole].submitted.run2)}${run2Flag ? ` | Auto zero: ${run2Flag}` : ""}</div>
                   ${activeRunKey === "run2" ? `<button class="button button-accent judge-run-submit" type="button" data-action="submit-judge-run" data-run="run2" ${activeRunDisabled ? "disabled" : ""}>${activeRunButtonLabel}</button>` : ""}
                   <button class="micro-button" type="button" data-action="clear-score" data-col="r2">Clear</button>
                 </label>
@@ -6288,15 +6368,15 @@
             <td class="td-actions judge-only"></td>
           `;
         } else {
-          const myR1 = driver.scores[currentRole].run1;
-          const myR2 = driver.scores[currentRole].run2;
+          const myR1 = getJudgeDraftScoreValue(driver, currentRole, "run1");
+          const myR2 = getJudgeDraftScoreValue(driver, currentRole, "run2");
           const submissionState = hasPendingJudgeChanges(driver, currentRole) ? "Changes not submitted" : "Submitted";
           tr.innerHTML = `
             <td class="row-index">${index + 1}</td>
             <td class="td-reg"><span class="read-only-text">${driver.reg || '-'}</span></td>
             <td><div class="driver-meta"><strong>${escapeHtml(driver.name) || '-'}</strong>${driver.teamName?.trim() ? `<small>Team ${escapeHtml(driver.teamName.trim())}</small>` : ""}</div></td>
-            <td class="td-score"><input class="score-input r1 driver-row-input" data-col="r1" type="number" min="0" max="100" step="0.1" value="${myR1 !== null ? myR1 : ''}" placeholder="0.0" /></td>
-            <td class="td-score"><input class="score-input r2 driver-row-input" data-col="r2" type="number" min="0" max="100" step="0.1" value="${myR2 !== null ? myR2 : ''}" placeholder="0.0" /></td>
+            <td class="td-score"><input class="score-input r1 driver-row-input" data-col="r1" type="number" min="0" max="100" step="0.1" value="${myR1}" placeholder="100.0" />${renderScoreDeductionButtons("r1")}</td>
+            <td class="td-score"><input class="score-input r2 driver-row-input" data-col="r2" type="number" min="0" max="100" step="0.1" value="${myR2}" placeholder="100.0" />${renderScoreDeductionButtons("r2")}</td>
             <td class="best-score admin-only">${formatScore(best)}</td>
             <td class="td-actions"><button class="micro-button button-accent" type="button" data-action="submit-judge-scores" ${isJudgeSubmitWaiting(driver, currentRole) ? "disabled" : ""}>${getJudgeSubmitButtonLabel(driver, currentRole)}</button></td>
           `;
@@ -6339,8 +6419,8 @@
             </div>
           `;
         } else {
-          const myR1 = driver.scores[currentRole].run1;
-          const myR2 = driver.scores[currentRole].run2;
+          const myR1 = getJudgeDraftScoreValue(driver, currentRole, "run1");
+          const myR2 = getJudgeDraftScoreValue(driver, currentRole, "run2");
           const myRunoff = driver.scores[currentRole].runoff;
           const submissionState = hasPendingJudgeChanges(driver, currentRole) ? "Submit scores" : "Re-submit to update";
           const run1Flag = driver.runFlags.run1;
@@ -6362,7 +6442,8 @@
                   <strong>Run 1 Score</strong>
                   <button class="micro-button" type="button" data-action="clear-score" data-col="r1">Clear</button>
                 </div>
-                <input class="score-input r1 driver-row-input" data-col="r1" type="number" min="0" max="100" step="0.1" value="${myR1 !== null ? myR1 : ''}" placeholder="0.0" inputmode="decimal" />
+                <input class="score-input r1 driver-row-input" data-col="r1" type="number" min="0" max="100" step="0.1" value="${myR1}" placeholder="100.0" inputmode="decimal" />
+                ${renderScoreDeductionButtons("r1")}
                 <div class="judge-score-help">You can update this score at any time. Current average: ${formatScore(r1Avg)}${run1Flag ? ` | Auto zero: ${run1Flag}` : ""}</div>
                 <button class="micro-button" type="button" data-action="clear-score" data-col="r1">Clear</button>
               </label>
@@ -6371,7 +6452,8 @@
                   <strong>Run 2 Score</strong>
                   <button class="micro-button" type="button" data-action="clear-score" data-col="r2">Clear</button>
                 </div>
-                <input class="score-input r2 driver-row-input" data-col="r2" type="number" min="0" max="100" step="0.1" value="${myR2 !== null ? myR2 : ''}" placeholder="0.0" inputmode="decimal" />
+                <input class="score-input r2 driver-row-input" data-col="r2" type="number" min="0" max="100" step="0.1" value="${myR2}" placeholder="100.0" inputmode="decimal" />
+                ${renderScoreDeductionButtons("r2")}
                 <div class="judge-score-help">You can update this score at any time. Current average: ${formatScore(r2Avg)}${run2Flag ? ` | Auto zero: ${run2Flag}` : ""}</div>
                 <button class="micro-button" type="button" data-action="clear-score" data-col="r2">Clear</button>
               </label>
@@ -6421,7 +6503,9 @@
       if (e.target.classList.contains("driver-name")) {
         driver.name = e.target.value;
       } else if (e.target.classList.contains("score-input")) {
-          const val = toNumber(e.target.value);
+          const parsedValue = toNumber(e.target.value);
+          const val = parsedValue === null ? null : clampJudgeScoreValue(parsedValue);
+          if (val !== null) e.target.value = String(val);
           if (e.target.classList.contains("r1")) driver.scores[currentRole].run1 = val;
           if (e.target.classList.contains("r2")) driver.scores[currentRole].run2 = val;
           if (e.target.classList.contains("runoff")) driver.scores[currentRole].runoff = val;
@@ -6450,6 +6534,23 @@
     });
 
     driversTableBody.addEventListener("click", async (e) => {
+      const deductionButton = e.target.closest("[data-action='apply-deduction']");
+      if (deductionButton) {
+        if (!userCanEdit() || currentRole === "admin" || currentRole === "spectator") return;
+        const tr = e.target.closest("tr");
+        if (!tr) return;
+        const id = tr.dataset.id;
+        const readinessCleared = id === qualifyingFlow.currentDriverId && clearQualifyingReady(currentRole);
+        const deduction = Number.parseInt(deductionButton.dataset.deduction, 10);
+        if (!Number.isFinite(deduction)) return;
+        if (!applyJudgeScoreDeduction(id, deductionButton.dataset.col, deduction, currentRole)) return;
+        if (readinessCleared) {
+          publishState();
+        }
+        renderDriversTable();
+        return;
+      }
+
       const submitButton = e.target.closest("[data-action='submit-judge-scores']");
       if (submitButton) {
         if (!userCanEdit() || currentRole === "admin" || currentRole === "spectator") return;
@@ -6484,7 +6585,9 @@
       if (e.target.classList.contains("driver-name")) {
         driver.name = e.target.value;
       } else if (e.target.classList.contains("score-input")) {
-        const val = toNumber(e.target.value);
+        const parsedValue = toNumber(e.target.value);
+        const val = parsedValue === null ? null : clampJudgeScoreValue(parsedValue);
+        if (val !== null) e.target.value = String(val);
         if (e.target.classList.contains("r1")) driver.scores[currentRole].run1 = val;
         if (e.target.classList.contains("r2")) driver.scores[currentRole].run2 = val;
         if (e.target.classList.contains("runoff")) driver.scores[currentRole].runoff = val;
@@ -6505,10 +6608,10 @@
       if (submitButton) {
         submitButton.textContent = getJudgeSubmitButtonLabel(driver, currentRole);
       }
-      const runSubmitButton = card.querySelector("[data-action='submit-judge-run']");
+        const runSubmitButton = card.querySelector("[data-action='submit-judge-run']");
       if (runSubmitButton) {
         const runKey = runSubmitButton.dataset.run;
-        const runValue = driver.scores[currentRole]?.[runKey];
+        const runValue = getJudgeDraftScoreValue(driver, currentRole, runKey);
         const isPending = hasPendingJudgeRunChanges(driver, currentRole, runKey);
         const isSubmitted = hasSubmittedJudgeRun(driver, currentRole, runKey);
         runSubmitButton.disabled = runValue === null || (isSubmitted && !isPending);
@@ -6558,6 +6661,17 @@
       const card = e.target.closest("[data-id]");
       if (!card) return;
       const readinessCleared = card.dataset.id === qualifyingFlow.currentDriverId && clearQualifyingReady(currentRole);
+
+      const deductionButton = e.target.closest("[data-action='apply-deduction']");
+      if (deductionButton) {
+        if (!userCanEdit() || currentRole === "admin" || currentRole === "spectator") return;
+        const deduction = Number.parseInt(deductionButton.dataset.deduction, 10);
+        if (!Number.isFinite(deduction)) return;
+        if (!applyJudgeScoreDeduction(card.dataset.id, deductionButton.dataset.col, deduction, currentRole)) return;
+        if (readinessCleared) publishState();
+        renderDriversTable();
+        return;
+      }
 
       if (e.target.classList.contains("remove-driver")) {
         if (!adminCanEdit()) return;
