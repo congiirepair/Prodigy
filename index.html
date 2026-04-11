@@ -3698,6 +3698,40 @@
       return true;
     }
 
+    function refreshJudgeDraftUi(container, driver, role = currentRole) {
+      if (!container || !driver || !role?.startsWith("j")) return;
+
+      ["r1", "r2", "runoff"].forEach((col) => {
+        const input = container.querySelector(`.score-input[data-col="${col}"]`);
+        if (!input) return;
+        const runKey = col === "r1" ? "run1" : col === "r2" ? "run2" : "runoff";
+        if (runKey === "runoff") {
+          const runoffValue = driver.scores?.[role]?.runoff;
+          input.value = runoffValue === null || runoffValue === undefined ? "" : String(clampJudgeScoreValue(runoffValue));
+          return;
+        }
+        input.value = String(getJudgeDraftScoreValue(driver, role, runKey));
+      });
+
+      const submitButton = container.querySelector("[data-action='submit-judge-scores']");
+      if (submitButton) {
+        submitButton.textContent = getJudgeSubmitButtonLabel(driver, role);
+        submitButton.disabled = isJudgeSubmitWaiting(driver, role);
+      }
+
+      const runSubmitButton = container.querySelector("[data-action='submit-judge-run']");
+      if (runSubmitButton) {
+        const runKey = runSubmitButton.dataset.run;
+        const runValue = getJudgeDraftScoreValue(driver, role, runKey);
+        const isPending = hasPendingJudgeRunChanges(driver, role, runKey);
+        const isSubmitted = hasSubmittedJudgeRun(driver, role, runKey);
+        runSubmitButton.disabled = runValue === null || (isSubmitted && !isPending);
+        runSubmitButton.textContent = isPending || !isSubmitted
+          ? `Submit ${runKey === "run1" ? "Run 1" : "Run 2"}`
+          : `Waiting For ${runKey === "run1" ? "Run 1" : "Run 2"} Scores`;
+      }
+    }
+
     function restoreJudgeDraftScores(drivers, role, drafts) {
       if (!role?.startsWith("j") || !(drafts instanceof Map) || !drafts.size) return drivers;
       return drivers.map((driver) => {
@@ -6547,7 +6581,8 @@
         if (readinessCleared) {
           publishState();
         }
-        renderDriversTable();
+        const driver = appDrivers.find((entry) => entry.id === id);
+        refreshJudgeDraftUi(tr, driver, currentRole);
         return;
       }
 
@@ -6669,7 +6704,8 @@
         if (!Number.isFinite(deduction)) return;
         if (!applyJudgeScoreDeduction(card.dataset.id, deductionButton.dataset.col, deduction, currentRole)) return;
         if (readinessCleared) publishState();
-        renderDriversTable();
+        const driver = appDrivers.find((entry) => entry.id === card.dataset.id);
+        refreshJudgeDraftUi(card, driver, currentRole);
         return;
       }
 
