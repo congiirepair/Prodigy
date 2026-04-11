@@ -6127,7 +6127,7 @@
                   <span class="judge-score-live">Live Avg ${formatScore(r1Avg)}</span>
                 </div>
                 <div class="judge-score-input-wrap">
-                  <input class="score-input r1 driver-row-input" data-col="r1" type="number" min="0" max="100" step="0.1" value="${myR1 !== null ? myR1 : ''}" placeholder="0.0" inputmode="decimal" enterkeyhint="done" autocomplete="off" />
+                  <input class="score-input r1 driver-row-input" data-col="r1" type="text" value="${myR1 !== null ? myR1 : ''}" placeholder="0.0" inputmode="decimal" enterkeyhint="send" autocomplete="off" spellcheck="false" />
                   <div class="judge-score-caption">Tap the score box to overwrite quickly.</div>
                 </div>
                 <div class="judge-score-help">Your submitted score: ${formatScore(driver.scores[currentRole].submitted.run1)}${run1Flag ? ` | Auto zero: ${run1Flag}` : ""}</div>
@@ -6140,7 +6140,7 @@
                     <span class="judge-score-live">Live Avg ${formatScore(r2Avg)}</span>
                   </div>
                   <div class="judge-score-input-wrap">
-                    <input class="score-input r2 driver-row-input" data-col="r2" type="number" min="0" max="100" step="0.1" value="${myR2 !== null ? myR2 : ''}" placeholder="0.0" inputmode="decimal" enterkeyhint="done" autocomplete="off" />
+                    <input class="score-input r2 driver-row-input" data-col="r2" type="text" value="${myR2 !== null ? myR2 : ''}" placeholder="0.0" inputmode="decimal" enterkeyhint="send" autocomplete="off" spellcheck="false" />
                     <div class="judge-score-caption">Run 2 unlocks right after your Run 1 submit.</div>
                   </div>
                   <div class="judge-score-help">Your submitted score: ${formatScore(driver.scores[currentRole].submitted.run2)}${run2Flag ? ` | Auto zero: ${run2Flag}` : ""}</div>
