@@ -56,6 +56,11 @@
     body[data-role="j1"] .spectator-admin-only,
     body[data-role="j2"] .spectator-admin-only,
     body[data-role="j3"] .spectator-admin-only { display: none !important; }
+
+    body[data-role="admin"] .spectator-only,
+    body[data-role="j1"] .spectator-only,
+    body[data-role="j2"] .spectator-only,
+    body[data-role="j3"] .spectator-only { display: none !important; }
     
     body[data-role="j1"] .admin-only,
     body[data-role="j2"] .admin-only,
@@ -183,6 +188,33 @@
     body.qualifying-fullscreen[data-qualifying-density="ultra"] .qualifying-results-simple {
       font-size: 0.78rem;
       line-height: 1.32;
+    }
+
+    .spectator-shop-button {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      z-index: 2200;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 54px;
+      max-width: min(280px, calc(100vw - 36px));
+      padding: 12px 18px;
+      border: 3px solid #000;
+      background: #000;
+      color: #fff;
+      box-shadow: 6px 6px 0 #000;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      text-align: center;
+    }
+
+    .spectator-shop-button:hover,
+    .spectator-shop-button:focus-visible {
+      background: #fff;
+      color: #000;
     }
 
     #view-bracket.is-active {
@@ -2363,6 +2395,15 @@
     }
 
     @media (max-width: 960px) {
+      .spectator-shop-button {
+        right: 12px;
+        left: 12px;
+        bottom: 12px;
+        max-width: none;
+        min-height: 50px;
+        padding: 11px 14px;
+        font-size: 0.9rem;
+      }
       body[data-role^="j"] .main-topbar {
         display: none;
       }
@@ -2575,6 +2616,7 @@
 </head>
   <body data-role="spectator" data-site-admin="false">
   <div class="page-shell">
+    <a class="spectator-shop-button spectator-only" href="https://www.prodigydrift.com/" target="_blank" rel="noopener noreferrer">Shop Prodigy RC Here</a>
     
     <!-- TOPBAR WITH VIEW NAVIGATION -->
     <div class="topbar main-topbar">
