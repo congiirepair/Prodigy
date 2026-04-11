@@ -4430,6 +4430,7 @@
     const EVENT_DIRECTORY_STORAGE_KEY = `rc-drift-event-directory-v${EVENT_STORAGE_VERSION}`;
     const ACTIVE_EVENT_STORAGE_KEY = `rc-drift-active-event-v${EVENT_STORAGE_VERSION}`;
     const EVENT_ROLE_SESSION_KEY = `rc-drift-event-role-v${EVENT_STORAGE_VERSION}`;
+    const EVENT_ROLE_PERSIST_KEY = `rc-drift-event-role-persist-v${EVENT_STORAGE_VERSION}`;
     const EVENT_ROLE_UNLOCK_KEY = `rc-drift-event-role-unlocks-v${EVENT_STORAGE_VERSION}`;
     const THEME_STORAGE_KEY = `rc-drift-theme-v${EVENT_STORAGE_VERSION}`;
     const ROLE_ORDER = ["admin", "j1", "j2", "j3"];
@@ -6755,7 +6756,7 @@
     }
 
     function readRoleSessionMap() {
-      const raw = sessionStorage.getItem(EVENT_ROLE_SESSION_KEY);
+      const raw = sessionStorage.getItem(EVENT_ROLE_SESSION_KEY) || localStorage.getItem(EVENT_ROLE_PERSIST_KEY);
       if (!raw) return {};
       try {
         const parsed = JSON.parse(raw);
@@ -6767,6 +6768,7 @@
 
     function writeRoleSessionMap(nextMap) {
       sessionStorage.setItem(EVENT_ROLE_SESSION_KEY, JSON.stringify(nextMap));
+      localStorage.setItem(EVENT_ROLE_PERSIST_KEY, JSON.stringify(nextMap));
     }
 
     function readRoleUnlockMap() {
