@@ -4300,6 +4300,19 @@
       localStorage.setItem(EVENT_ROLE_UNLOCK_KEY, JSON.stringify(nextMap));
     }
 
+    function saveBracketPagePreference(eventId, page) {
+      if (!eventId || !page) return;
+      try {
+        const raw = localStorage.getItem(`rc-drift-bracket-page-v${EVENT_STORAGE_VERSION}`);
+        const parsed = raw ? JSON.parse(raw) : {};
+        const nextMap = parsed && typeof parsed === "object" ? parsed : {};
+        nextMap[eventId] = page;
+        localStorage.setItem(`rc-drift-bracket-page-v${EVENT_STORAGE_VERSION}`, JSON.stringify(nextMap));
+      } catch (error) {
+        console.warn("Bracket page preference save failed:", error);
+      }
+    }
+
     function getSavedRoleForEvent(eventId) {
       if (!eventId) return "spectator";
       const role = readRoleSessionMap()[eventId];
