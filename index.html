@@ -4696,6 +4696,24 @@
         return true;
       }
 
+      try {
+        const downloadUrl = URL.createObjectURL(blob);
+        const downloadLink = document.createElement("a");
+        downloadLink.href = downloadUrl;
+        downloadLink.download = fileName;
+        downloadLink.rel = "noopener";
+        downloadLink.style.display = "none";
+        document.body.appendChild(downloadLink);
+        requestAnimationFrame(() => {
+          downloadLink.click();
+          downloadLink.remove();
+        });
+        setTimeout(() => URL.revokeObjectURL(downloadUrl), 2000);
+        return true;
+      } catch (error) {
+        console.warn("Direct blob download failed", error);
+      }
+
       const file = (() => {
         try {
           return new File([blob], fileName, { type: "application/pdf" });
@@ -4713,22 +4731,6 @@
         } catch (error) {
           console.warn("Share-based PDF export unavailable", error);
         }
-      }
-
-      try {
-        const downloadUrl = URL.createObjectURL(blob);
-        const downloadLink = document.createElement("a");
-        downloadLink.href = downloadUrl;
-        downloadLink.download = fileName;
-        downloadLink.rel = "noopener";
-        downloadLink.style.display = "none";
-        document.body.appendChild(downloadLink);
-        downloadLink.click();
-        downloadLink.remove();
-        setTimeout(() => URL.revokeObjectURL(downloadUrl), 2000);
-        return true;
-      } catch (error) {
-        console.warn("Direct blob download failed", error);
       }
 
       try {
