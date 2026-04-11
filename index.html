@@ -3094,18 +3094,45 @@
       .admin-workspace-layout { grid-template-columns: 1fr; }
       .podium-grid { grid-template-columns: 1fr; }
       .mode-tabs, .button-row, .competition-actions { width: 100%; }
+      .main-topbar {
+        gap: 10px;
+        padding: 10px 12px;
+      }
+      .main-topbar .topbar-left,
+      .main-topbar .topbar-center,
+      .main-topbar .topbar-right,
+      .main-topbar .topbar-controls {
+        width: 100%;
+      }
       .main-topbar .mode-tabs {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        display: flex;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
         gap: 6px;
-        justify-content: stretch;
+        justify-content: flex-start;
+        padding-bottom: 2px;
+      }
+      .main-topbar .mode-tabs::-webkit-scrollbar {
+        display: none;
       }
       .main-topbar .mode-tab {
-        width: auto;
-        min-width: 0;
-        padding: 9px 4px;
-        font-size: 0.8rem;
+        flex: 0 0 auto;
+        min-width: max-content;
+        padding: 9px 12px;
+        font-size: 0.78rem;
         text-align: center;
+        white-space: nowrap;
+      }
+      .main-topbar .mode-tab.is-active {
+        color: #000 !important;
+        background: rgba(255,255,255,0.96);
+        border-color: #000;
+      }
+      body[data-theme="dark"] .main-topbar .mode-tab.is-active {
+        color: #080808 !important;
+        background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(218,218,218,0.98));
       }
       .spectator-shop-button {
         min-height: 46px;
@@ -3129,26 +3156,19 @@
       .mobile-drivers-list { display: grid; }
       .mobile-score-grid { grid-template-columns: 1fr; }
       .battle-flow-option { font-size: 0.92rem; }
-      .competition-subtabs { width: 100%; }
+      .competition-subtabs {
+        width: 100%;
+        margin-bottom: 10px;
+      }
       .hero-logo { width: min(260px, 78vw); }
       .main-bracket-panel::before { background-size: min(420px, 88%); opacity: 0.045; }
-      .main-bracket-panel { padding: 18px 16px 24px; }
+      .main-bracket-panel { padding: 12px 6px 16px; }
       #fullscreenQualifyingBtn,
       #fullscreenBracketBtn {
         display: none !important;
       }
       .bracket-header-bar {
-        padding: 10px 14px;
-        gap: 10px;
-        align-items: stretch;
-      }
-      .bracket-header-bar .brand-lockup {
-        display: none;
-      }
-      .bracket-header-bar .button-row {
-        width: 100%;
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        display: none !important;
       }
       #view-qualifying > .hero,
       #view-registration > .hero,
@@ -3192,6 +3212,28 @@
       }
       .battle-flow-card { width: 100%; box-shadow: 5px 5px 0 #000; }
       .battle-flow-option { min-height: 48px; }
+      body.competition-page .page-shell {
+        width: 100vw;
+        max-width: 100vw;
+      }
+      .bracket-workspace {
+        padding: 8px 0 12px;
+      }
+      .main-bracket-board {
+        padding-inline: 2px;
+      }
+      .main-board-round-labels {
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+      .main-board-grid,
+      .main-board-side,
+      .center-stage-stack {
+        gap: 12px;
+      }
+      .main-board-label {
+        font-size: 0.9rem;
+      }
       .judge-lane-toolbar {
         top: 4px;
         padding: 12px;
@@ -3307,6 +3349,29 @@
       .judge-lane-submitbar .button {
         min-height: 46px;
         font-size: 0.88rem;
+      }
+    }
+
+    @media (max-width: 960px) and (orientation: landscape) {
+      body.competition-page .page-shell {
+        width: 100vw;
+        max-width: 100vw;
+        padding: 0;
+      }
+      .bracket-workspace {
+        padding: 4px 0 10px;
+      }
+      .main-bracket-panel {
+        padding: 8px 4px 12px;
+      }
+      .main-bracket-board {
+        padding-inline: 0;
+      }
+      .main-board-round-labels {
+        margin-bottom: 10px;
+      }
+      .main-board-label {
+        font-size: 0.82rem;
       }
     }
   </style>
