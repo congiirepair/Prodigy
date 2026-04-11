@@ -1144,6 +1144,12 @@
       line-height: 1.5;
     }
 
+    .judge-run-submit {
+      min-height: 48px;
+      width: 100%;
+      font-size: 0.92rem;
+    }
+
     .judge-score-actions {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2492,6 +2498,10 @@
       .judge-lane-submitbar .button {
         min-height: 50px;
         font-size: 0.92rem;
+      }
+      .judge-run-submit {
+        min-height: 44px;
+        font-size: 0.86rem;
       }
     }
 
@@ -6131,6 +6141,7 @@
                   <div class="judge-score-caption">Tap the score box to overwrite quickly.</div>
                 </div>
                 <div class="judge-score-help">Your submitted score: ${formatScore(driver.scores[currentRole].submitted.run1)}${run1Flag ? ` | Auto zero: ${run1Flag}` : ""}</div>
+                ${activeRunKey === "run1" ? `<button class="button button-accent judge-run-submit" type="button" data-action="submit-judge-run" data-run="run1" ${activeRunDisabled ? "disabled" : ""}>${activeRunButtonLabel}</button>` : ""}
                 <button class="micro-button" type="button" data-action="clear-score" data-col="r1">Clear</button>
               </label>
               ${showRun2 ? `
@@ -6144,6 +6155,7 @@
                     <div class="judge-score-caption">Run 2 unlocks right after your Run 1 submit.</div>
                   </div>
                   <div class="judge-score-help">Your submitted score: ${formatScore(driver.scores[currentRole].submitted.run2)}${run2Flag ? ` | Auto zero: ${run2Flag}` : ""}</div>
+                  ${activeRunKey === "run2" ? `<button class="button button-accent judge-run-submit" type="button" data-action="submit-judge-run" data-run="run2" ${activeRunDisabled ? "disabled" : ""}>${activeRunButtonLabel}</button>` : ""}
                   <button class="micro-button" type="button" data-action="clear-score" data-col="r2">Clear</button>
                 </label>
               ` : `
@@ -6157,7 +6169,6 @@
               `}
             </div>
             <div class="judge-lane-submitbar">
-              <button class="button button-accent" type="button" data-action="submit-judge-run" data-run="${activeRunKey}" ${activeRunDisabled ? "disabled" : ""}>${activeRunButtonLabel}</button>
               <div class="judge-lane-submitmeta">
                 <div class="helper-text">${submissionState}</div>
                 <div class="judge-next-driver">Next up: ${nextDriverLabel}</div>
