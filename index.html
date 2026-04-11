@@ -5712,17 +5712,32 @@
 
     function applyTheme(theme = "light") {
       const normalizedTheme = theme === "dark" ? "dark" : "light";
-      document.body.dataset.theme = normalizedTheme;
-      if (themeToggleBtn) {
-        themeToggleBtn.textContent = normalizedTheme === "dark" ? "Light Mode" : "Dark Mode";
-        themeToggleBtn.setAttribute("aria-pressed", normalizedTheme === "dark" ? "true" : "false");
-      }
       localStorage.setItem(THEME_STORAGE_KEY, normalizedTheme);
+      syncThemeState();
+    }
+
+    function isJudgeThemeLocked() {
+      return typeof currentRole === "string" && currentRole.startsWith("j");
+    }
+
+    function syncThemeState() {
+      const storedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+      const preferredTheme = storedTheme === "dark" ? "dark" : "light";
+      const effectiveTheme = isJudgeThemeLocked() ? "light" : preferredTheme;
+      document.body.dataset.theme = effectiveTheme;
+      if (themeToggleBtn) {
+        themeToggleBtn.textContent = preferredTheme === "dark" ? "Light Mode" : "Dark Mode";
+        themeToggleBtn.setAttribute("aria-pressed", preferredTheme === "dark" ? "true" : "false");
+        themeToggleBtn.classList.toggle("hidden", isJudgeThemeLocked());
+        themeToggleBtn.disabled = isJudgeThemeLocked();
+      }
+      if (websiteAdminBtn) {
+        websiteAdminBtn.classList.toggle("hidden", false);
+      }
     }
 
     function initializeTheme() {
-      const storedTheme = localStorage.getItem(THEME_STORAGE_KEY);
-      applyTheme(storedTheme || "light");
+      syncThemeState();
     }
 
     function getRoleAccess(role) {
@@ -6429,6 +6444,7 @@
       saveRoleForEvent(activeEventId, currentRole);
       globalRoleSelect.value = currentRole;
       document.body.dataset.role = currentRole;
+      syncThemeState();
       
       if (currentRole.startsWith("j")) {
          judgeLaneIndex = 0;
