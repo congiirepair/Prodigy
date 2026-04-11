@@ -29,6 +29,7 @@
 
     * { box-sizing: border-box; }
     html { color-scheme: light; }
+    html:has(body[data-theme="dark"]) { color-scheme: dark; }
 
     body {
       margin: 0;
@@ -42,6 +43,142 @@
         radial-gradient(rgba(17,17,17,0.11) 0.8px, transparent 0.8px);
       background-size: auto, auto, auto, 18px 18px;
       background-attachment: fixed;
+      transition: background-color 0.25s ease, color 0.25s ease, background-image 0.25s ease;
+    }
+
+    body[data-theme="dark"] {
+      --bg: #0f1012;
+      --panel: rgba(20, 20, 22, 0.96);
+      --text: #f4f4f4;
+      --text-soft: #b3b3b7;
+      --line: rgba(255, 255, 255, 0.84);
+      --accent: #ffffff;
+      --accent-dark: #cfcfcf;
+      --panel-shadow: 0 28px 70px rgba(0, 0, 0, 0.42), 0 1px 0 rgba(255, 255, 255, 0.14);
+      --card-shadow: 0 18px 40px rgba(0, 0, 0, 0.36), 0 1px 0 rgba(255, 255, 255, 0.12);
+      --button-shadow: 0 12px 22px rgba(0, 0, 0, 0.34), 0 1px 0 rgba(255, 255, 255, 0.18);
+      background-color: var(--bg);
+      background-image:
+        radial-gradient(circle at top left, rgba(255,255,255,0.08), transparent 24%),
+        linear-gradient(135deg, rgba(255,255,255,0.035), transparent 34%),
+        linear-gradient(180deg, rgba(255,255,255,0.025), rgba(0,0,0,0.22)),
+        radial-gradient(rgba(255,255,255,0.08) 0.8px, transparent 0.8px);
+    }
+
+    body[data-theme="dark"] .topbar,
+    body[data-theme="dark"] .hero,
+    body[data-theme="dark"] .panel,
+    body[data-theme="dark"] .hero-card,
+    body[data-theme="dark"] .table-wrap,
+    body[data-theme="dark"] .registration-driver-card,
+    body[data-theme="dark"] .registration-entry-panel,
+    body[data-theme="dark"] .qualifying-live-card,
+    body[data-theme="dark"] .battle-flow-card,
+    body[data-theme="dark"] .bracket-stage-card,
+    body[data-theme="dark"] .event-admin-panel,
+    body[data-theme="dark"] .modal-panel,
+    body[data-theme="dark"] .podium-card,
+    body[data-theme="dark"] .results-event-card,
+    body[data-theme="dark"] .website-admin-card {
+      background: linear-gradient(180deg, rgba(30, 30, 33, 0.98), rgba(16, 16, 18, 0.96));
+      color: var(--text);
+    }
+
+    body[data-theme="dark"] .button-secondary,
+    body[data-theme="dark"] .micro-button:not(.button-accent),
+    body[data-theme="dark"] .mode-tab,
+    body[data-theme="dark"] .hero-meta-pill,
+    body[data-theme="dark"] .search-field {
+      background: linear-gradient(180deg, rgba(36, 36, 40, 0.98), rgba(18, 18, 20, 0.96));
+      color: var(--text);
+      border-color: rgba(255, 255, 255, 0.28);
+    }
+
+    body[data-theme="dark"] input[type="text"],
+    body[data-theme="dark"] input[type="number"],
+    body[data-theme="dark"] input[type="search"],
+    body[data-theme="dark"] input[type="password"],
+    body[data-theme="dark"] input[type="date"],
+    body[data-theme="dark"] select,
+    body[data-theme="dark"] textarea {
+      background: rgba(15, 15, 17, 0.96);
+      color: var(--text);
+      border-color: rgba(255, 255, 255, 0.22);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    }
+
+    body[data-theme="dark"] input::placeholder,
+    body[data-theme="dark"] textarea::placeholder {
+      color: rgba(255, 255, 255, 0.42);
+    }
+
+    body[data-theme="dark"] .main-topbar .mode-tab.is-active,
+    body[data-theme="dark"] .sync-status.online,
+    body[data-theme="dark"] .micro-button.button-accent,
+    body[data-theme="dark"] .button-accent {
+      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(218,218,218,0.98));
+      color: #080808;
+      border-color: rgba(255,255,255,0.72);
+    }
+
+    body[data-theme="dark"] .status-pill.active {
+      background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(220,220,220,0.96));
+      color: #080808;
+    }
+
+    body[data-theme="dark"] .status-pill.archived,
+    body[data-theme="dark"] .sync-status {
+      background: rgba(255,255,255,0.08);
+      color: var(--text-soft);
+      border-color: rgba(255,255,255,0.14);
+    }
+
+    body[data-theme="dark"] .hero-logo,
+    body[data-theme="dark"] .bracket-stage-logo {
+      filter: brightness(0) invert(1);
+    }
+
+    body[data-theme="dark"] .main-bracket-panel::before {
+      opacity: 0.14;
+    }
+
+    body[data-theme="dark"] .section-kicker,
+    body[data-theme="dark"] .eyebrow,
+    body[data-theme="dark"] .hero-copy p,
+    body[data-theme="dark"] .hero-copy-block p,
+    body[data-theme="dark"] .panel-header p,
+    body[data-theme="dark"] .driver-submeta,
+    body[data-theme="dark"] .qualifying-live-label,
+    body[data-theme="dark"] .meta-label,
+    body[data-theme="dark"] .registration-meta-label,
+    body[data-theme="dark"] .score-subtext {
+      color: var(--text-soft);
+    }
+
+    body[data-theme="dark"] th,
+    body[data-theme="dark"] td {
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+
+    body[data-theme="dark"] .topbar,
+    body[data-theme="dark"] .hero,
+    body[data-theme="dark"] .panel,
+    body[data-theme="dark"] .hero-card,
+    body[data-theme="dark"] .table-wrap,
+    body[data-theme="dark"] .registration-driver-card,
+    body[data-theme="dark"] .registration-entry-panel,
+    body[data-theme="dark"] .qualifying-live-card,
+    body[data-theme="dark"] .battle-flow-card,
+    body[data-theme="dark"] .bracket-stage-card,
+    body[data-theme="dark"] .event-admin-panel,
+    body[data-theme="dark"] .modal-panel,
+    body[data-theme="dark"] .podium-card,
+    body[data-theme="dark"] .results-event-card,
+    body[data-theme="dark"] .website-admin-card,
+    body[data-theme="dark"] .search-field,
+    body[data-theme="dark"] .mode-tab,
+    body[data-theme="dark"] .hero-meta-pill {
+      border-color: rgba(255, 255, 255, 0.18);
     }
 
     button, input, select, a { font: inherit; }
@@ -2882,7 +3019,7 @@
     }
   </style>
 </head>
-  <body data-role="spectator" data-site-admin="false">
+  <body data-role="spectator" data-site-admin="false" data-theme="light">
   <div class="page-shell">
     <a class="spectator-shop-button spectator-only" href="https://www.prodigydrift.com/" target="_blank" rel="noopener noreferrer">Shop Prodigy RC Here</a>
     
@@ -2890,6 +3027,7 @@
     <div class="topbar main-topbar">
       <div class="topbar-left">
         <div id="syncStatus" class="sync-status">Offline Sync</div>
+        <button id="themeToggleBtn" class="micro-button" type="button">Dark Mode</button>
         <button id="websiteAdminBtn" class="micro-button" type="button">Website Admin</button>
       </div>
       <div class="topbar-center">
@@ -3393,6 +3531,7 @@
     const ACTIVE_EVENT_STORAGE_KEY = `rc-drift-active-event-v${EVENT_STORAGE_VERSION}`;
     const EVENT_ROLE_SESSION_KEY = `rc-drift-event-role-v${EVENT_STORAGE_VERSION}`;
     const EVENT_ROLE_UNLOCK_KEY = `rc-drift-event-role-unlocks-v${EVENT_STORAGE_VERSION}`;
+    const THEME_STORAGE_KEY = `rc-drift-theme-v${EVENT_STORAGE_VERSION}`;
     const ROLE_ORDER = ["admin", "j1", "j2", "j3"];
     const JUDGE_ROLE_ORDER = ["j1", "j2", "j3"];
     const ROLE_LABELS = {
@@ -5424,6 +5563,7 @@
     // ==========================================
     const eventSelect = document.getElementById("eventSelect");
     const newEventBtn = document.getElementById("newEventBtn");
+    const themeToggleBtn = document.getElementById("themeToggleBtn");
     const websiteAdminBtn = document.getElementById("websiteAdminBtn");
     const globalRoleSelect = document.getElementById("globalRoleSelect");
     const registrationHeroEventName = document.getElementById("registrationHeroEventName");
@@ -5515,6 +5655,21 @@
       judge2InviteInput?.closest(".modal-field"),
       judge3InviteInput?.closest(".modal-field"),
     ].filter(Boolean);
+
+    function applyTheme(theme = "light") {
+      const normalizedTheme = theme === "dark" ? "dark" : "light";
+      document.body.dataset.theme = normalizedTheme;
+      if (themeToggleBtn) {
+        themeToggleBtn.textContent = normalizedTheme === "dark" ? "Light Mode" : "Dark Mode";
+        themeToggleBtn.setAttribute("aria-pressed", normalizedTheme === "dark" ? "true" : "false");
+      }
+      localStorage.setItem(THEME_STORAGE_KEY, normalizedTheme);
+    }
+
+    function initializeTheme() {
+      const storedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+      applyTheme(storedTheme || "light");
+    }
 
     function getRoleAccess(role) {
       return activeEventMeta?.roleAccess?.[role] || null;
@@ -6338,6 +6493,9 @@
       } else {
         showWebsiteAdminModal();
       }
+    });
+    themeToggleBtn?.addEventListener("click", () => {
+      applyTheme(document.body.dataset.theme === "dark" ? "light" : "dark");
     });
     websiteAdminNewEventBtn.addEventListener("click", () => {
       if (!isWebsiteAdmin) return;
@@ -7968,6 +8126,7 @@
     });
 
     async function bootstrapApp() {
+      initializeTheme();
       await initLocalState();
       renderEventDirectory();
       setWebsiteAdminAccess(isWebsiteAdmin);
