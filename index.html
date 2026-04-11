@@ -2928,7 +2928,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-  import { getFirestore, doc, setDoc, onSnapshot, deleteDoc, getDoc, updateDoc, deleteField } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+  import { getFirestore, doc, setDoc, onSnapshot, deleteDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
     // ==========================================
     // DATA MODEL & STATE
@@ -4432,12 +4432,10 @@
       Promise.all([
         setDoc(getActiveEventSelectionDocRef(), activeEventPayload, { merge: true }),
         setDoc(getDirectoryDocRef(), {
-        events: {
-          [activeEventId]: cloneEventMeta(eventDirectory[activeEventId] || activeEventMeta),
-        },
-        activeEventId,
-        syncStamp: lastLocalPush,
-        }, { merge: true }),
+          events: eventDirectory,
+          activeEventId,
+          syncStamp: lastLocalPush,
+        }),
       ]).catch((error) => {
         console.error("Active event sync failed:", error);
       });
@@ -4595,11 +4593,10 @@
               syncStamp: lastLocalPush,
             }),
             setDoc(getDirectoryDocRef(), {
-              events: {
-                [activeEventId]: cloneEventMeta(eventDirectory[activeEventId] || activeEventMeta),
-              },
+              events: eventDirectory,
+              activeEventId,
               syncStamp: lastLocalPush,
-            }, { merge: true }),
+            }),
           ]);
         } catch (e) {
           console.error("Cloud sync failed:", e);
@@ -4642,12 +4639,10 @@
             syncStamp: lastLocalPush,
           }),
           setDoc(getDirectoryDocRef(), {
-            events: {
-              [activeEventId]: cloneEventMeta(eventDirectory[activeEventId] || activeEventMeta),
-            },
+            events: eventDirectory,
             activeEventId,
             syncStamp: lastLocalPush,
-          }, { merge: true }),
+          }),
           setDoc(getActiveEventSelectionDocRef(), {
             activeEventId,
             eventMeta: cloneEventMeta(eventDirectory[activeEventId] || activeEventMeta),
@@ -5457,8 +5452,8 @@
             eventMeta: activeEventId ? cloneEventMeta(eventDirectory[activeEventId] || activeEventMeta) : null,
             syncStamp: lastLocalPush,
           }, { merge: true }),
-          updateDoc(getDirectoryDocRef(), {
-            [`events.${eventId}`]: deleteField(),
+          setDoc(getDirectoryDocRef(), {
+            events: eventDirectory,
             activeEventId,
             syncStamp: lastLocalPush,
           }),
