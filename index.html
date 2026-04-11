@@ -2749,13 +2749,13 @@
             <div class="panel-header compact">
               <div>
                 <p class="section-kicker">Live Standings</p>
-                <h2>Qualifying Order</h2>
+                <h2>Standings</h2>
               </div>
               <span id="currentEventStatus" class="status-pill active">Active</span>
             </div>
             <div id="topQualifierTiePanel" class="inline-note hidden"></div>
             <div id="qualifyingResults" class="results-list empty-state">
-              Add driver names in registration, then enter scores to build the qualifying order.
+              Add driver names in registration, then enter scores to build the standings.
             </div>
           </section>
         </aside>
@@ -6792,7 +6792,7 @@
       if (!rankedDrivers.length) {
         topQualifierTiePanel.classList.add("hidden");
         topQualifierTiePanel.textContent = "";
-        qResults.textContent = "Add driver names in registration, then enter scores to build the qualifying order.";
+        qResults.textContent = "Add driver names in registration, then enter scores to build the standings.";
         qResults.classList.add("empty-state");
         return;
       }
@@ -6816,7 +6816,7 @@
         const isQualified = index < cutoffCount;
         const item = document.createElement("li");
         if (!isQualified) item.style.opacity = "0.5";
-        item.textContent = `${driver.seed}. ${driver.name} - Best score: ${formatScore(driver.bestScore)}`;
+        item.textContent = `${index + 1}. ${driver.name} - Best score: ${formatScore(driver.bestScore)}`;
         list.appendChild(item);
       });
 
