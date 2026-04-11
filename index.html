@@ -2928,7 +2928,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, onSnapshot, deleteDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+  import { getFirestore, doc, setDoc, onSnapshot, deleteDoc, getDoc, updateDoc, deleteField } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
     // ==========================================
     // DATA MODEL & STATE
@@ -5457,11 +5457,11 @@
             eventMeta: activeEventId ? cloneEventMeta(eventDirectory[activeEventId] || activeEventMeta) : null,
             syncStamp: lastLocalPush,
           }, { merge: true }),
-          setDoc(getDirectoryDocRef(), {
-            events: eventDirectory,
+          updateDoc(getDirectoryDocRef(), {
+            [`events.${eventId}`]: deleteField(),
             activeEventId,
             syncStamp: lastLocalPush,
-          }, { merge: true }),
+          }),
         ]);
       } catch (error) {
         console.error("Event delete sync failed:", error);
