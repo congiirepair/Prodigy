@@ -4607,6 +4607,58 @@
       }, 800);
     }
 
+    async function publishStateImmediately() {
+      if (!activeEventId || !activeEventMeta) return;
+      syncQualifyingFlowState();
+
+      clearTimeout(syncTimeout);
+
+      const updatedAt = new Date().toISOString();
+      activeEventMeta = {
+        ...activeEventMeta,
+        updatedAt,
+        results: buildEventResults(),
+      };
+      eventDirectory[activeEventId] = cloneEventMeta(activeEventMeta);
+
+      saveDirectoryCache();
+      saveEventStateCache();
+
+      if (!db) return;
+      lastLocalPush = Date.now();
+      activeEventMeta.syncStamp = lastLocalPush;
+      eventDirectory[activeEventId] = cloneEventMeta(activeEventMeta);
+      saveDirectoryCache();
+
+      try {
+        await Promise.all([
+          setDoc(getEventDocRef(activeEventId), {
+            ...activeEventMeta,
+            drivers: appDrivers,
+            bracket: tournamentState,
+            qualifyingFlow,
+            formatMode: bracketModeSelect.value,
+            lowerCount: String(getRequestedSdcMainBracketSize(bracketModeSelect.value) || 0),
+            syncStamp: lastLocalPush,
+          }),
+          setDoc(getDirectoryDocRef(), {
+            events: {
+              [activeEventId]: cloneEventMeta(eventDirectory[activeEventId] || activeEventMeta),
+            },
+            activeEventId,
+            syncStamp: lastLocalPush,
+          }, { merge: true }),
+          setDoc(getActiveEventSelectionDocRef(), {
+            activeEventId,
+            eventMeta: cloneEventMeta(eventDirectory[activeEventId] || activeEventMeta),
+            syncStamp: lastLocalPush,
+          }, { merge: true }),
+        ]);
+      } catch (e) {
+        console.error("Immediate cloud sync failed:", e);
+      }
+    }
+
     function setupCloudSync(user) {
       if (!db || !user) return;
       const statusEl = document.getElementById('syncStatus');
@@ -6525,7 +6577,7 @@
       switchView("qualifying");
     });
     
-    loadSampleBtn.addEventListener("click", () => {
+    loadSampleBtn.addEventListener("click", async () => {
       if (!adminCanEdit()) return;
       const samples = [
         ["Takumi Sato", "Project D", "Yokomo MD 2.0"],
@@ -6559,6 +6611,15 @@
         driver.name = name;
         driver.teamName = teamName;
         driver.chassis = chassis;
+        driver.runFlags = { run1: null, run2: null, runoff: null };
+        for (const role of JUDGE_ROLE_ORDER) {
+          driver.scores[role] = {
+            run1: null,
+            run2: null,
+            runoff: null,
+            submitted: { run1: null, run2: null, runoff: null },
+          };
+        }
         return driver;
       });
       qualifyingFlow = createEmptyQualifyingFlow();
@@ -6566,7 +6627,7 @@
       tournamentState = null;
       activeCompetitionBracketPage = "main";
       saveBracketPagePreference(activeEventId, activeCompetitionBracketPage);
-      publishState();
+      await publishStateImmediately();
       renderDriversTable();
     });
 
