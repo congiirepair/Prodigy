@@ -8597,6 +8597,7 @@
       const run1AllSubmitted = totalJudgeCount > 0 && run1SubmitCount === totalJudgeCount;
       const run2AllSubmitted = totalJudgeCount > 0 && run2SubmitCount === totalJudgeCount;
       const showRun2 = run1SubmittedByMe;
+      const showRun1Card = !run1SubmittedByMe || run1Pending;
       const run1Flag = driver.runFlags.run1;
       const run2Flag = driver.runFlags.run2;
       const queue = getQualifyingDriverQueue();
@@ -8641,21 +8642,28 @@
             <div class="judge-lane-note">This phone view is run-by-run. Submit Run 1 first, then Run 2. The live board only advances after all active judges submit Run 2 for this driver.</div>
           </div>
           <article class="mobile-driver-card" data-id="${driver.id}">
+            ${!showRun1Card ? `
+              <div class="judge-lane-note" style="margin-bottom: 12px;">
+                Run 1 submitted: ${formatScore(driver.scores[currentRole].submitted.run1)}${run1Flag ? ` | Auto zero: ${run1Flag}` : ""}
+              </div>
+            ` : ""}
             <div class="judge-run-grid">
-              <label class="judge-score-card">
-                <div class="judge-score-head">
-                  <strong>Run 1 Score</strong>
-                  <span class="judge-score-live">Live Avg ${formatScore(r1Avg)}</span>
-                </div>
-                <div class="judge-score-input-wrap">
-                    <input class="score-input r1 driver-row-input" data-col="r1" type="text" value="${myR1}" placeholder="100.0" inputmode="decimal" enterkeyhint="send" autocomplete="off" spellcheck="false" />
-                    <div class="judge-score-caption">Each run starts at 100. Tap the deductions below or type over the value.</div>
+              ${showRun1Card ? `
+                <label class="judge-score-card">
+                  <div class="judge-score-head">
+                    <strong>Run 1 Score</strong>
+                    <span class="judge-score-live">Live Avg ${formatScore(r1Avg)}</span>
                   </div>
-                  ${renderScoreDeductionButtons("r1")}
-                <div class="judge-score-help">Your submitted score: ${formatScore(driver.scores[currentRole].submitted.run1)}${run1Flag ? ` | Auto zero: ${run1Flag}` : ""}</div>
-                ${activeRunKey === "run1" ? `<button class="button button-accent judge-run-submit ${run1JustSubmitted ? "just-submitted" : ""}" type="button" data-action="submit-judge-run" data-run="run1" ${activeRunDisabled ? "disabled" : ""}>${activeRunButtonLabel}</button>` : ""}
-                <button class="micro-button" type="button" data-action="clear-score" data-col="r1">Clear</button>
-              </label>
+                  <div class="judge-score-input-wrap">
+                      <input class="score-input r1 driver-row-input" data-col="r1" type="text" value="${myR1}" placeholder="100.0" inputmode="decimal" enterkeyhint="send" autocomplete="off" spellcheck="false" />
+                      <div class="judge-score-caption">Each run starts at 100. Tap the deductions below or type over the value.</div>
+                    </div>
+                    ${renderScoreDeductionButtons("r1")}
+                  <div class="judge-score-help">Your submitted score: ${formatScore(driver.scores[currentRole].submitted.run1)}${run1Flag ? ` | Auto zero: ${run1Flag}` : ""}</div>
+                  ${activeRunKey === "run1" ? `<button class="button button-accent judge-run-submit ${run1JustSubmitted ? "just-submitted" : ""}" type="button" data-action="submit-judge-run" data-run="run1" ${activeRunDisabled ? "disabled" : ""}>${activeRunButtonLabel}</button>` : ""}
+                  <button class="micro-button" type="button" data-action="clear-score" data-col="r1">Clear</button>
+                </label>
+              ` : ""}
               ${showRun2 ? `
                 <label class="judge-score-card">
                   <div class="judge-score-head">
