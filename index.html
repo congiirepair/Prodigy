@@ -2690,8 +2690,7 @@
             <div class="panel-header">
               <div>
                 <p class="section-kicker">Qualifying</p>
-                <h2 class="admin-only">Driver Scores</h2>
-                <h2 class="judge-only">Judges Panel</h2>
+                <h2 id="qualifyingPanelTitle">Driver Scores</h2>
               </div>
             </div>
 
@@ -4992,6 +4991,7 @@
     const websiteAdminNewEventBtn = document.getElementById("websiteAdminNewEventBtn");
     const websiteAdminBackBtn = document.getElementById("websiteAdminBackBtn");
     const websiteAdminSignOutBtn = document.getElementById("websiteAdminSignOutBtn");
+    const qualifyingPanelTitle = document.getElementById("qualifyingPanelTitle");
     const driversTableBody = document.getElementById("driversTableBody");
     const driversTableWrap = document.getElementById("driversTableWrap");
     const mobileDriversList = document.getElementById("mobileDriversList");
@@ -5153,6 +5153,9 @@
       document.getElementById("judgeBoardCopy").textContent = judgeCount === 1
         ? "Enter the official run score for each driver. That score becomes the driver's final run score immediately."
         : `Enter your personal scores for each driver. Your score will be averaged dynamically with the other ${judgeCount - 1} judge${judgeCount === 2 ? "" : "s"} to form the driver's final run score.`;
+      if (qualifyingPanelTitle) {
+        qualifyingPanelTitle.textContent = currentRole.startsWith("j") ? "Judges Panel" : "Driver Scores";
+      }
       document.getElementById("thRun1").textContent = getAverageColumnLabel(1, currentRole, activeEventMeta);
       document.getElementById("thRun2").textContent = getAverageColumnLabel(2, currentRole, activeEventMeta);
       currentEventStatus.textContent = activeEventMeta?.status === "archived" ? "Archived" : "Active";
