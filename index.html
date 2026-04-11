@@ -5119,72 +5119,13 @@
 
     function triggerPdfDownload(blob, fileName) {
       if (!blob) return false;
-
-      if (typeof navigator !== "undefined" && typeof navigator.msSaveOrOpenBlob === "function") {
-        navigator.msSaveOrOpenBlob(blob, fileName);
-        return true;
-      }
-
-      if (prefersPdfPreviewModal()) {
-        return showPdfPreview(blob, fileName, "This browser may not auto-download PDFs reliably, so the generated file is opened here for download or sharing.");
-      }
-
-      try {
-        const downloadUrl = URL.createObjectURL(blob);
-        const downloadLink = document.createElement("a");
-        downloadLink.href = downloadUrl;
-        downloadLink.download = fileName;
-        downloadLink.rel = "noopener";
-        downloadLink.style.display = "none";
-        document.body.appendChild(downloadLink);
-        requestAnimationFrame(() => {
-          downloadLink.click();
-          downloadLink.remove();
-        });
-        setTimeout(() => URL.revokeObjectURL(downloadUrl), 2000);
-        return true;
-      } catch (error) {
-        console.warn("Direct blob download failed", error);
-      }
-
-      const file = (() => {
-        try {
-          return new File([blob], fileName, { type: "application/pdf" });
-        } catch (error) {
-          return null;
-        }
-      })();
-
-      if (file && navigator?.canShare && navigator?.share) {
-        try {
-          if (navigator.canShare({ files: [file] })) {
-            navigator.share({ files: [file], title: fileName }).catch(() => {});
-            return true;
-          }
-        } catch (error) {
-          console.warn("Share-based PDF export unavailable", error);
-        }
-      }
-
-      try {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const fallbackLink = document.createElement("a");
-          fallbackLink.href = String(reader.result || "");
-          fallbackLink.download = fileName;
-          fallbackLink.rel = "noopener";
-          fallbackLink.style.display = "none";
-          document.body.appendChild(fallbackLink);
-          fallbackLink.click();
-          fallbackLink.remove();
-        };
-        reader.readAsDataURL(blob);
-        return true;
-      } catch (error) {
-        console.warn("Data URL PDF download failed", error);
-      }
-
-      return showPdfPreview(blob, fileName, "Automatic download did not start, but the PDF was generated successfully below.");
+      return showPdfPreview(
+        blob,
+        fileName,
+        prefersPdfPreviewModal()
+          ? "The PDF was generated successfully. Use Download PDF or Open PDF below."
+          : "The PDF was generated successfully. Use Download PDF or Open PDF below."
+      );
     }
 
     function exportResultsPdf() {
