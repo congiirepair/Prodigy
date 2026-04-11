@@ -3100,6 +3100,7 @@
     }
 
     .modal-content.modal-wide { max-width: 560px; }
+    .modal-content.modal-pdf { max-width: min(960px, 94vw); padding: 24px; }
 
     .modal-content h3 {
       font-family: var(--font-graffiti);
@@ -3148,6 +3149,27 @@
       font-size: 0.82rem;
       font-weight: 700;
       line-height: 1.5;
+    }
+
+    .pdf-preview-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .pdf-preview-frame {
+      width: 100%;
+      min-height: 60vh;
+      height: 68vh;
+      border: 2px solid rgba(0, 0, 0, 0.14);
+      border-radius: 18px;
+      background: #fff;
+    }
+
+    body[data-theme="dark"] .pdf-preview-frame {
+      background: #111;
+      border-color: rgba(255, 255, 255, 0.18);
     }
 
     .admin-lock-note {
@@ -3253,6 +3275,14 @@
     }
 
     @media (max-width: 720px) {
+      .modal-content.modal-pdf {
+        width: min(96vw, 96vw);
+        padding: 18px;
+      }
+      .pdf-preview-frame {
+        min-height: 52vh;
+        height: 56vh;
+      }
       .page-shell { width: min(100% - 20px, 100%); padding-top: 16px; }
       .topbar, .hero, .panel { padding: 16px; }
       .panel-header, .toolbar, .competition-header {
@@ -4128,6 +4158,20 @@
         <button id="websiteAdminCancelBtn" class="button button-secondary" style="min-height: 40px; font-size: 0.9rem;">Cancel</button>
         <button id="websiteAdminSubmitBtn" class="button button-accent" style="min-height: 40px; font-size: 0.9rem;">Unlock</button>
       </div>
+    </div>
+  </div>
+
+  <!-- PDF Preview Modal -->
+  <div id="pdfPreviewModal" class="modal-overlay hidden" aria-hidden="true">
+    <div class="modal-content modal-pdf">
+      <h3>Results PDF Ready</h3>
+      <p id="pdfPreviewCopy" class="modal-copy">Your browser can open the generated PDF here even if it does not auto-download it.</p>
+      <div class="pdf-preview-actions">
+        <a id="pdfPreviewDownloadLink" class="button button-accent" href="#" download="results.pdf">Download PDF</a>
+        <a id="pdfPreviewOpenLink" class="button button-secondary" href="#" target="_blank" rel="noopener">Open PDF</a>
+        <button id="pdfPreviewCloseBtn" class="button button-secondary" type="button">Close</button>
+      </div>
+      <iframe id="pdfPreviewFrame" class="pdf-preview-frame" title="Results PDF Preview"></iframe>
     </div>
   </div>
 
@@ -5081,6 +5125,10 @@
         return true;
       }
 
+      if (prefersPdfPreviewModal()) {
+        return showPdfPreview(blob, fileName, "This browser may not auto-download PDFs reliably, so the generated file is opened here for download or sharing.");
+      }
+
       try {
         const downloadUrl = URL.createObjectURL(blob);
         const downloadLink = document.createElement("a");
@@ -5136,7 +5184,7 @@
         console.warn("Data URL PDF download failed", error);
       }
 
-      return false;
+      return showPdfPreview(blob, fileName, "Automatic download did not start, but the PDF was generated successfully below.");
     }
 
     function exportResultsPdf() {
@@ -6583,12 +6631,19 @@
     const websiteAdminError = document.getElementById("websiteAdminError");
     const websiteAdminCancelBtn = document.getElementById("websiteAdminCancelBtn");
     const websiteAdminSubmitBtn = document.getElementById("websiteAdminSubmitBtn");
+    const pdfPreviewModal = document.getElementById("pdfPreviewModal");
+    const pdfPreviewCopy = document.getElementById("pdfPreviewCopy");
+    const pdfPreviewFrame = document.getElementById("pdfPreviewFrame");
+    const pdfPreviewDownloadLink = document.getElementById("pdfPreviewDownloadLink");
+    const pdfPreviewOpenLink = document.getElementById("pdfPreviewOpenLink");
+    const pdfPreviewCloseBtn = document.getElementById("pdfPreviewCloseBtn");
     const createEventInviteFields = [
       adminInviteInput?.closest(".modal-field"),
       judge1InviteInput?.closest(".modal-field"),
       judge2InviteInput?.closest(".modal-field"),
       judge3InviteInput?.closest(".modal-field"),
     ].filter(Boolean);
+    let pdfPreviewUrl = "";
 
     function applyTheme(theme = "light") {
       const normalizedTheme = theme === "dark" ? "dark" : "light";
@@ -6663,6 +6718,46 @@
       modalEl.classList.add("hidden");
       modalEl.style.removeProperty("display");
       modalEl.setAttribute("aria-hidden", "true");
+    }
+
+    function cleanupPdfPreview() {
+      if (pdfPreviewFrame) pdfPreviewFrame.src = "about:blank";
+      if (pdfPreviewDownloadLink) pdfPreviewDownloadLink.removeAttribute("href");
+      if (pdfPreviewOpenLink) pdfPreviewOpenLink.removeAttribute("href");
+      if (pdfPreviewUrl) {
+        URL.revokeObjectURL(pdfPreviewUrl);
+        pdfPreviewUrl = "";
+      }
+    }
+
+    function showPdfPreview(blob, fileName, message = "") {
+      if (!blob || !pdfPreviewModal) return false;
+      cleanupPdfPreview();
+      pdfPreviewUrl = URL.createObjectURL(blob);
+      if (pdfPreviewFrame) pdfPreviewFrame.src = pdfPreviewUrl;
+      if (pdfPreviewDownloadLink) {
+        pdfPreviewDownloadLink.href = pdfPreviewUrl;
+        pdfPreviewDownloadLink.download = fileName;
+      }
+      if (pdfPreviewOpenLink) pdfPreviewOpenLink.href = pdfPreviewUrl;
+      if (pdfPreviewCopy) {
+        pdfPreviewCopy.textContent = message || "Your browser can open the generated PDF here even if it does not auto-download it.";
+      }
+      openModal(pdfPreviewModal);
+      return true;
+    }
+
+    function hidePdfPreview() {
+      closeModal(pdfPreviewModal);
+      setTimeout(cleanupPdfPreview, 120);
+    }
+
+    function prefersPdfPreviewModal() {
+      if (typeof navigator === "undefined") return false;
+      const ua = navigator.userAgent || "";
+      const platform = navigator.platform || "";
+      const touchMac = platform === "MacIntel" && navigator.maxTouchPoints > 1;
+      return /iPhone|iPad|iPod/i.test(ua) || touchMac;
     }
 
     function showWebsiteAdminModal() {
@@ -7477,6 +7572,10 @@
     websiteAdminPasswordInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter") websiteAdminSubmitBtn.click();
       if (e.key === "Escape") hideWebsiteAdminModal();
+    });
+    pdfPreviewCloseBtn?.addEventListener("click", hidePdfPreview);
+    pdfPreviewModal?.addEventListener("click", (e) => {
+      if (e.target === pdfPreviewModal) hidePdfPreview();
     });
     
     // Role Switching Listener
