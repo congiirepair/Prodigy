@@ -452,6 +452,7 @@
     body[data-theme="dark"] .qualifying-results-simple li,
     body[data-theme="dark"] .qualifying-side-column > .panel,
     body[data-theme="dark"] .qualifying-live-stat,
+    body[data-theme="dark"] .mobile-score-card,
     body[data-theme="dark"] .read-only-text,
     body[data-theme="dark"] .read-only-score,
     body[data-theme="dark"] .best-score {
@@ -480,6 +481,21 @@
 
     body[data-theme="dark"] .qualifying-live-stat strong {
       color: var(--text);
+    }
+
+    body[data-theme="dark"] .mobile-score-card {
+      background: linear-gradient(180deg, rgba(30, 30, 33, 0.98), rgba(16, 16, 18, 0.96)) !important;
+      border-color: rgba(255, 255, 255, 0.16) !important;
+      color: var(--text) !important;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+    }
+
+    body[data-theme="dark"] .mobile-score-card span {
+      color: var(--text-soft) !important;
+    }
+
+    body[data-theme="dark"] .mobile-score-card strong {
+      color: var(--text) !important;
     }
 
     @media (max-width: 960px) {
@@ -3303,6 +3319,9 @@
         min-height: 46px;
         padding: 10px 14px;
         font-size: 0.78rem;
+      }
+      body:not(.competition-page) .spectator-shop-button {
+        display: none !important;
       }
       body.competition-page .spectator-shop-button {
         display: none !important;
