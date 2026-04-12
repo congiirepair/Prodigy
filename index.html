@@ -8120,6 +8120,7 @@
               </div>
             </div>
             <div class="role-admin-actions">
+              ${role.startsWith("j") ? `<button class="micro-button" type="button" data-action="rename-role" data-role="${role}" ${isEventReadOnly() ? "disabled" : ""}>Edit Name</button>` : ""}
               <button class="micro-button" type="button" data-action="reset-role-access" data-role="${role}" ${isEventReadOnly() ? "disabled" : ""}>Clear Password</button>
             </div>
           </article>
@@ -8310,6 +8311,26 @@
       publishState();
       renderEventDirectory();
       renderRoleAdminPanel();
+    }
+
+    async function renameJudgeRole(role) {
+      if (!isWebsiteAdmin || isEventReadOnly() || !activeEventMeta || !role?.startsWith("j")) return;
+      const currentName = activeEventMeta.roleNames?.[role] || ROLE_LABELS[role] || role;
+      const nextNameInput = window.prompt(`Enter the display name for ${currentName}.`, currentName);
+      if (nextNameInput === null) return;
+      const nextName = nextNameInput.trim();
+      if (!nextName) {
+        window.alert("Judge name cannot be blank.");
+        return;
+      }
+      activeEventMeta.roleNames = buildDefaultRoleNames({
+        ...(activeEventMeta.roleNames || {}),
+        [role]: nextName,
+      });
+      publishState();
+      renderEventDirectory();
+      renderRoleAdminPanel();
+      renderDriversTable();
     }
 
     async function deleteEventById(eventId) {
@@ -8647,6 +8668,7 @@
       const setPasswordButton = e.target.closest("[data-action='set-role-password']");
       const resetButton = e.target.closest("[data-action='reset-role-access']");
       const resetAllButton = e.target.closest("[data-action='reset-all-judges']");
+      const renameRoleButton = e.target.closest("[data-action='rename-role']");
 
       if (setPasswordButton && isWebsiteAdmin && !isEventReadOnly()) {
         await setRolePassword(setPasswordButton.dataset.role);
@@ -8655,6 +8677,11 @@
 
       if (resetAllButton && isWebsiteAdmin && !isEventReadOnly()) {
         await resetAllJudgeAccess();
+        return;
+      }
+
+      if (renameRoleButton && isWebsiteAdmin && !isEventReadOnly()) {
+        await renameJudgeRole(renameRoleButton.dataset.role);
         return;
       }
 
