@@ -886,10 +886,11 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 16px 24px;
-      background: linear-gradient(180deg, rgba(255,252,246,0.98), rgba(244,237,228,0.96));
-      border-bottom: 4px solid var(--line);
-      box-shadow: 0 10px 26px rgba(0, 0, 0, 0.12);
+      gap: 16px;
+      padding: 8px 16px;
+      background: linear-gradient(180deg, rgba(255,252,246,0.98), rgba(244,237,228,0.95));
+      border-bottom: 2px solid var(--line);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
       position: relative;
       z-index: 100;
     }
@@ -900,15 +901,53 @@
       justify-content: flex-start;
       min-width: 0;
       flex: 1 1 auto;
-      max-width: 420px;
+      max-width: 340px;
     }
 
     .bracket-header-logo {
       display: block;
-      width: min(100%, 320px);
+      width: auto;
+      max-width: 100%;
+      max-height: 54px;
       height: auto;
       object-fit: contain;
-      filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.18));
+      filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.12));
+    }
+
+    .bracket-header-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      flex: 0 0 auto;
+      flex-wrap: wrap;
+    }
+
+    .bracket-header-actions .button {
+      min-height: 34px;
+      min-width: 34px;
+      padding: 8px 10px;
+      font-size: 0.82rem;
+      border-radius: 999px;
+    }
+
+    .bracket-header-icon-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      width: 38px;
+      min-width: 38px;
+      height: 38px;
+      min-height: 38px;
+      padding: 0;
+      font-size: 1.05rem;
+      line-height: 1;
+      font-weight: 900;
+    }
+
+    .bracket-header-icon-button .icon-label {
+      display: none;
     }
 
     .bracket-workspace {
@@ -4315,10 +4354,10 @@
         <div id="bracketHeaderLogoSlot">
           <img class="bracket-header-logo" src="./assets/rcdriftsync-logo-metallic.png" alt="RCDriftSync logo" />
         </div>
-        <div class="button-row">
-          <button id="fullscreenBracketBtn" class="button button-secondary" type="button" style="min-height: 40px; font-size: 0.9rem;">Fullscreen</button>
-          <button id="resetBracketBtn" class="button button-accent admin-action" type="button" style="min-height: 40px; font-size: 0.9rem;">Reset Winners</button>
-          <button id="backToQualifyingBtn" class="button button-secondary" type="button" style="min-height: 40px; font-size: 0.9rem;">Back to Qualifying</button>
+        <div class="button-row bracket-header-actions">
+          <button id="fullscreenBracketBtn" class="button button-secondary bracket-header-icon-button" type="button" aria-label="Toggle fullscreen bracket" title="Toggle fullscreen">⛶<span class="icon-label">Fullscreen</span></button>
+          <button id="resetBracketBtn" class="button button-accent admin-action bracket-header-icon-button" type="button" aria-label="Reset bracket winners" title="Reset winners">↺<span class="icon-label">Reset Winners</span></button>
+          <button id="backToQualifyingBtn" class="button button-secondary bracket-header-icon-button" type="button" aria-label="Back to qualifying" title="Back to qualifying">←<span class="icon-label">Back to Qualifying</span></button>
         </div>
       </div>
 
@@ -8944,7 +8983,9 @@
       const isFullscreen = document.fullscreenElement === bracketView;
       document.body.classList.toggle("bracket-fullscreen", isFullscreen);
       if (fullscreenBracketBtn) {
-        fullscreenBracketBtn.textContent = isFullscreen ? "Exit Fullscreen" : "Fullscreen";
+        fullscreenBracketBtn.innerHTML = `${isFullscreen ? "⤢" : "⛶"}<span class="icon-label">Fullscreen</span>`;
+        fullscreenBracketBtn.setAttribute("title", isFullscreen ? "Exit fullscreen" : "Toggle fullscreen");
+        fullscreenBracketBtn.setAttribute("aria-label", isFullscreen ? "Exit fullscreen bracket" : "Toggle fullscreen bracket");
       }
       requestAnimationFrame(fitAllBracketBoards);
     }
