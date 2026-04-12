@@ -2824,6 +2824,50 @@
     .main-bracket-header,
     .main-bracket-board { position: relative; z-index: 1; }
 
+    .bracket-alert-banner {
+      margin: 16px auto 0;
+      width: min(100%, 620px);
+      padding: 14px 18px;
+      border: 2px solid #000;
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(240,240,240,0.96));
+      box-shadow: 0 12px 26px rgba(0, 0, 0, 0.12);
+      text-align: center;
+    }
+
+    .bracket-alert-banner strong {
+      display: block;
+      font-family: var(--font-graffiti);
+      font-size: clamp(1.2rem, 2vw, 1.7rem);
+      line-height: 1.02;
+      letter-spacing: 0.03em;
+      color: #000;
+    }
+
+    .bracket-alert-banner small {
+      display: block;
+      margin-top: 6px;
+      color: var(--text-soft);
+      font-size: 0.78rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    body[data-theme="dark"] .bracket-alert-banner {
+      background: linear-gradient(180deg, rgba(28, 28, 31, 0.98), rgba(16, 16, 18, 0.96));
+      border-color: rgba(255, 255, 255, 0.18);
+      box-shadow: 0 16px 34px rgba(0, 0, 0, 0.32), 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+
+    body[data-theme="dark"] .bracket-alert-banner strong {
+      color: var(--text);
+    }
+
+    body[data-theme="dark"] .bracket-alert-banner small {
+      color: var(--text-soft);
+    }
+
     .bracket-stage-logo {
       display: block;
       width: min(320px, 40vw);
@@ -4297,6 +4341,10 @@
                 <img class="bracket-stage-logo" src="./assets/prodigy-rc-logo-transparent.png" alt="Prodigy RC logo" />
               </div>
               <div id="lowerBracketNextBattle" class="bracket-flow-slot right"></div>
+            </div>
+            <div id="lowerBracketRuleAlert" class="bracket-alert-banner hidden">
+              <strong>FIRST TO CRASH IN PLAY</strong>
+              <small>Lower bracket rule applies to every lower bracket battle except the lower bracket final.</small>
             </div>
           </div>
           <div id="lowerBracketBoard" class="main-bracket-board"></div>
@@ -10079,6 +10127,16 @@
       return entries;
     }
 
+    function shouldShowLowerBracketRuleAlert() {
+      const lowerRounds = tournamentState?.lowerBracket?.rounds || [];
+      if (!lowerRounds.length) return false;
+      const lowerEntries = getLowerBattleFlowEntries(lowerRounds);
+      if (!lowerEntries.length) return false;
+      const currentEntry = lowerEntries[0];
+      const isLowerFinal = currentEntry.roundIndex === lowerRounds.length - 1 && currentEntry.matchIndex === 0;
+      return !isLowerFinal;
+    }
+
     function renderBattleFlowCard(entry, label, isCurrent = false, slotClass = "") {
       if (!entry) {
         return `
@@ -10435,6 +10493,7 @@
         document.getElementById("battleFlowPanel").classList.add("hidden");
         document.getElementById("battleFlowContent").innerHTML = "";
         document.getElementById("competitionBracketTabs").classList.add("hidden");
+        document.getElementById("lowerBracketRuleAlert")?.classList.add("hidden");
         document.getElementById("lowerBracketPage").classList.remove("is-active");
         document.getElementById("mainBracketPage").classList.add("is-active");
         document.getElementById("lowerBracketBoard").innerHTML = "";
@@ -10450,6 +10509,7 @@
       renderSummary();
       renderBattleFlow();
       renderChampion();
+      document.getElementById("lowerBracketRuleAlert")?.classList.toggle("hidden", !shouldShowLowerBracketRuleAlert());
 
       if (tournamentState.lowerBracket) {
         document.getElementById("competitionBracketTabs").classList.remove("hidden");
