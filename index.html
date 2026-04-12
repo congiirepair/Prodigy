@@ -894,6 +894,23 @@
       z-index: 100;
     }
 
+    #bracketHeaderLogoSlot {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      min-width: 0;
+      flex: 1 1 auto;
+      max-width: 420px;
+    }
+
+    .bracket-header-logo {
+      display: block;
+      width: min(100%, 320px);
+      height: auto;
+      object-fit: contain;
+      filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.18));
+    }
+
     .bracket-workspace {
       flex: 1;
       overflow-y: auto;
@@ -4295,7 +4312,9 @@
     <div id="view-bracket" class="view-section">
       <!-- Fixed Fullscreen Toolbar -->
       <div class="bracket-header-bar">
-        <div id="bracketHeaderLogoSlot" aria-hidden="true"></div>
+        <div id="bracketHeaderLogoSlot">
+          <img class="bracket-header-logo" src="./assets/rcdriftsync-logo-metallic.png" alt="RCDriftSync logo" />
+        </div>
         <div class="button-row">
           <button id="fullscreenBracketBtn" class="button button-secondary" type="button" style="min-height: 40px; font-size: 0.9rem;">Fullscreen</button>
           <button id="resetBracketBtn" class="button button-accent admin-action" type="button" style="min-height: 40px; font-size: 0.9rem;">Reset Winners</button>
