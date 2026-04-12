@@ -4295,13 +4295,7 @@
     <div id="view-bracket" class="view-section">
       <!-- Fixed Fullscreen Toolbar -->
       <div class="bracket-header-bar">
-        <div class="brand-lockup">
-          <span class="brand-mark" style="width: 44px; height: 44px; font-size: 1.2rem;">PD</span>
-          <div>
-            <p class="eyebrow" style="margin-bottom: 2px;">Prodigy RC Drift Arena</p>
-            <strong class="brand-name" id="bracketHeroFormatLabel" style="font-size: 1.15rem;">Competition Bracket</strong>
-          </div>
-        </div>
+        <div id="bracketHeaderLogoSlot" aria-hidden="true"></div>
         <div class="button-row">
           <button id="fullscreenBracketBtn" class="button button-secondary" type="button" style="min-height: 40px; font-size: 0.9rem;">Fullscreen</button>
           <button id="resetBracketBtn" class="button button-accent admin-action" type="button" style="min-height: 40px; font-size: 0.9rem;">Reset Winners</button>
@@ -10267,7 +10261,6 @@
     }
 
     function renderSummary() {
-      document.getElementById("bracketHeroFormatLabel").textContent = tournamentState.mainBracket.title;
       document.getElementById("mainBracketTitle").textContent = activeEventMeta?.name || "Main Competition";
       const summaryStrip = document.getElementById("summaryStrip");
       summaryStrip.innerHTML = "";
