@@ -5581,12 +5581,12 @@
         addLine("No standings available yet.");
       } else {
         rankedDrivers.forEach((driver, index) => {
-          const run1 = getRunAverage(driver, 1);
-          const run2 = getRunAverage(driver, 2);
-          const best = getBestScore(run1, run2);
+          const run1 = driver.run1 ?? null;
+          const run2 = driver.run2 ?? null;
+          const best = driver.bestScore ?? getBestScore(run1, run2);
           addLine([
             padPdfCell(index + 1, 4),
-            padPdfCell(driver.reg || driver.signUpPosition || "-", 5),
+            padPdfCell(driver.registrationNumber || driver.reg || driver.signUpPosition || "-", 5),
             padPdfCell(driver.name || "Unnamed Driver", 24),
             padPdfCell(driver.teamName || "-", 18),
             padPdfCell(driver.chassis || "-", 14),
@@ -5984,12 +5984,12 @@
 
       const tableRows = rankedDrivers.length
         ? rankedDrivers.map((driver, index) => {
-            const run1 = getRunAverage(driver, 1);
-            const run2 = getRunAverage(driver, 2);
-            const best = getBestScore(run1, run2);
+            const run1 = driver.run1 ?? null;
+            const run2 = driver.run2 ?? null;
+            const best = driver.bestScore ?? getBestScore(run1, run2);
             return {
               pos: String(index + 1),
-              reg: String(driver.reg || driver.signUpPosition || "-"),
+              reg: String(driver.registrationNumber || driver.reg || driver.signUpPosition || "-"),
               driver: normalizePdfText(driver.name || "Unnamed Driver"),
               team: normalizePdfText(driver.teamName || "-"),
               chassis: normalizePdfText(driver.chassis || "-"),
