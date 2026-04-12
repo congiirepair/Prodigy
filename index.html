@@ -4602,6 +4602,8 @@
         runnerUpSeed: null,
         thirdPlaceName: null,
         thirdPlaceSeed: null,
+        fourthPlaceName: null,
+        fourthPlaceSeed: null,
         qualifiedCount: 0,
         totalDrivers: 0,
         planDescription: "Waiting for qualifying scores.",
@@ -5529,6 +5531,17 @@
       const lines = [];
       const addLine = (line = "") => lines.push(normalizePdfText(line));
       const addSeparator = (length = 96) => addLine("-".repeat(length));
+      const rankedLookup = new Map(rankedDrivers.map((driver) => [`${driver.seed}:${driver.name}`, driver]));
+      const resolvePlacedDriver = (seed, name) => {
+        if (!seed || !name) return null;
+        return rankedLookup.get(`${seed}:${name}`) || { seed, name, bestScore: null, teamName: "" };
+      };
+      const formatPlacedDriverLine = (label, seed, name, fallback) => {
+        const driver = resolvePlacedDriver(seed, name);
+        if (!driver) return `${label}: ${fallback}`;
+        const teamText = driver.teamName?.trim() ? ` | Team ${driver.teamName.trim()}` : "";
+        return `${label}: #${driver.seed} ${driver.name} | Qual ${formatScore(driver.bestScore ?? null)}${teamText}`;
+      };
 
       addLine("PRODIGY RC DRIFT ARENA");
       addLine("COMPETITION RESULTS");
@@ -5540,11 +5553,12 @@
       addLine(`Qualified Drivers: ${results.qualifiedCount || 0}`);
       addLine(`Completed: ${formatDateTimeForExport(results.completedAt || results.updatedAt)}`);
       addLine("");
-      addLine("PODIUM");
+      addLine("TOP RESULTS");
       addSeparator();
-      addLine(`1st Place: ${results.championName ? `#${results.championSeed} ${results.championName}` : "Waiting for winner"}`);
-      addLine(`2nd Place: ${results.runnerUpName ? `#${results.runnerUpSeed} ${results.runnerUpName}` : "Waiting for finalist"}`);
-      addLine(`3rd Place: ${results.thirdPlaceName ? `#${results.thirdPlaceSeed} ${results.thirdPlaceName}` : "Waiting for 3rd place battle"}`);
+      addLine(formatPlacedDriverLine("1st Place", results.championSeed, results.championName, "Waiting for winner"));
+      addLine(formatPlacedDriverLine("2nd Place", results.runnerUpSeed, results.runnerUpName, "Waiting for finalist"));
+      addLine(formatPlacedDriverLine("3rd Place", results.thirdPlaceSeed, results.thirdPlaceName, "Waiting for 3rd place battle"));
+      addLine(formatPlacedDriverLine("4th Place", results.fourthPlaceSeed, results.fourthPlaceName, "Waiting for 4th place result"));
       addLine("");
       addLine("QUALIFYING STANDINGS");
       addSeparator();
@@ -5786,7 +5800,13 @@
           : driver
             ? `Qual ${formatScore(driver.bestScore ?? null)}`
             : "Waiting for result";
-        doc.text(doc.splitTextToSize(secondary, w - 24).slice(0, 2), x + 12, y + h - 16);
+        const tertiary = driver?.teamName?.trim()
+          ? `Qual ${formatScore(driver.bestScore ?? null)}`
+          : "";
+        doc.text(doc.splitTextToSize(secondary, w - 24).slice(0, 2), x + 12, y + h - 28);
+        if (tertiary) {
+          doc.text(doc.splitTextToSize(tertiary, w - 24).slice(0, 1), x + 12, y + h - 14);
+        }
       };
 
       const rowHeights = {
@@ -5934,19 +5954,22 @@
       });
       cursorY += (Math.ceil(summaryCards.length / 2) * (summaryCardHeight + 10)) - 10 + sectionGap;
 
-      drawSectionHeader("Podium");
+      drawSectionHeader("Top Results");
       const rankedLookup = new Map(rankedDrivers.map((driver) => [`${driver.seed}:${driver.name}`, driver]));
       const podiumCards = [
         ["1st Place", results.championName ? (rankedLookup.get(`${results.championSeed}:${results.championName}`) || { seed: results.championSeed, name: results.championName, bestScore: null, teamName: "" }) : null, "Waiting for winner"],
         ["2nd Place", results.runnerUpName ? (rankedLookup.get(`${results.runnerUpSeed}:${results.runnerUpName}`) || { seed: results.runnerUpSeed, name: results.runnerUpName, bestScore: null, teamName: "" }) : null, "Waiting for finalist"],
         ["3rd Place", results.thirdPlaceName ? (rankedLookup.get(`${results.thirdPlaceSeed}:${results.thirdPlaceName}`) || { seed: results.thirdPlaceSeed, name: results.thirdPlaceName, bestScore: null, teamName: "" }) : null, "Waiting for 3rd place battle"],
+        ["4th Place", results.fourthPlaceName ? (rankedLookup.get(`${results.fourthPlaceSeed}:${results.fourthPlaceName}`) || { seed: results.fourthPlaceSeed, name: results.fourthPlaceName, bestScore: null, teamName: "" }) : null, "Waiting for 4th place result"],
       ];
-      const podiumWidth = (contentWidth - (cardGap * 2)) / 3;
-      const podiumHeight = 78;
+      const podiumWidth = (contentWidth - cardGap) / 2;
+      const podiumHeight = 84;
       podiumCards.forEach(([place, driver, fallback], index) => {
+        const col = index % 2;
+        const row = Math.floor(index / 2);
         drawPodiumCard(
-          marginX + (index * (podiumWidth + cardGap)),
-          cursorY,
+          marginX + (col * (podiumWidth + cardGap)),
+          cursorY + (row * (podiumHeight + 10)),
           podiumWidth,
           podiumHeight,
           place,
@@ -5954,7 +5977,7 @@
           fallback,
         );
       });
-      cursorY += podiumHeight + sectionGap;
+      cursorY += (Math.ceil(podiumCards.length / 2) * (podiumHeight + 10)) - 10 + sectionGap;
 
       drawSectionHeader("Qualifying Standings");
       drawTableHeader();
@@ -6572,6 +6595,7 @@
     let lastQualifyingDriverId = null;
     let currentRole = "spectator"; // 'admin', 'spectator', 'j1', 'j2', 'j3'
     let isWebsiteAdmin = false;
+    let localEventPreviewMode = false;
     let eventDirectory = {};
     let activeEventId = null;
     let activeEventMeta = null;
@@ -6737,6 +6761,7 @@
       const finalMatch = tournamentState?.mainBracket?.rounds?.[tournamentState.mainBracket.rounds.length - 1]?.matches?.[0] || null;
       const runnerUp = getMatchLoser(finalMatch);
       const thirdPlace = tournamentState?.mainBracket?.thirdPlaceMatch?.winner || null;
+      const fourthPlace = getMatchLoser(tournamentState?.mainBracket?.thirdPlaceMatch || null);
       const previousCompletedAt = activeEventMeta?.results?.completedAt || null;
       const completedAt = champion ? previousCompletedAt || new Date().toISOString() : null;
       return {
@@ -6746,6 +6771,8 @@
         runnerUpSeed: runnerUp?.seed || null,
         thirdPlaceName: thirdPlace?.name || null,
         thirdPlaceSeed: thirdPlace?.seed || null,
+        fourthPlaceName: fourthPlace?.name || null,
+        fourthPlaceSeed: fourthPlace?.seed || null,
         qualifiedCount: tournamentState?.qualifiedDrivers?.length || 0,
         totalDrivers: rankedDrivers.length,
         planDescription: tournamentState?.plan?.description || "Waiting for qualifying scores.",
@@ -7218,6 +7245,7 @@
       const shouldFollowSharedActiveEvent = data.activeEventId
         && eventDirectory[data.activeEventId]
         && currentRole !== "admin"
+        && !localEventPreviewMode
         && data.activeEventId !== activeEventId;
       if (shouldFollowSharedActiveEvent) {
         adoptActiveEvent(data.activeEventId, currentRole);
@@ -7241,6 +7269,10 @@
       const nextActiveEventId = data.activeEventId;
       if (data.eventMeta) {
         eventDirectory[nextActiveEventId] = cloneEventMeta(data.eventMeta);
+      }
+      if (localEventPreviewMode && activeEventId && eventDirectory[activeEventId] && nextActiveEventId !== activeEventId) {
+        renderAfterRemoteSync();
+        return false;
       }
       const activeEventChanged = adoptActiveEvent(nextActiveEventId, currentRole);
       renderAfterRemoteSync();
@@ -7985,6 +8017,11 @@
           </div>
           <div class="event-card-actions">
             <button class="micro-button ${isCurrent ? "" : "button-accent"}" type="button" data-action="open-event" data-event-id="${eventMeta.id}" ${isCurrent ? "disabled" : ""}>${openLabel}</button>
+            ${includeAdminControls
+              ? `<button class="micro-button" type="button" data-action="open-event-view" data-event-id="${eventMeta.id}" data-view="qualifying">View Qualifying</button>
+                 <button class="micro-button" type="button" data-action="open-event-view" data-event-id="${eventMeta.id}" data-view="bracket">View Bracket</button>`
+              : ""
+            }
             ${includeAdminControls && isCurrent && currentRole === "admin"
               ? `<button class="micro-button" type="button" data-action="toggle-archive">${eventMeta.status === "archived" ? "Archived" : "Archive Event"}</button>`
               : ""
@@ -8609,9 +8646,12 @@
       globalRoleSelect.value = currentRole;
     });
 
-    eventSelect.addEventListener("change", () => {
-      const nextId = eventSelect.value;
-      if (!nextId || nextId === activeEventId || !eventDirectory[nextId]) return;
+    function openEventById(nextId, nextView = null, publishSelection = true) {
+      if (!nextId || nextId === activeEventId || !eventDirectory[nextId]) {
+        if (nextView) switchView(nextView);
+        return;
+      }
+      localEventPreviewMode = !publishSelection;
       activeEventId = nextId;
       loadActiveEventStateFromCache();
       applyRoleChange(resolveRoleForActiveEventSwitch(activeEventId, currentRole));
@@ -8623,17 +8663,35 @@
         renderBracket();
       }
       subscribeToActiveEvent();
-      publishActiveEventSelection();
+      if (publishSelection) {
+        publishActiveEventSelection();
+      }
+      if (nextView) {
+        switchView(nextView);
+      }
+    }
+
+    eventSelect.addEventListener("change", () => {
+      openEventById(eventSelect.value);
     });
 
     const handleEventArchiveClick = (e) => {
       const openButton = e.target.closest("[data-action='open-event']");
+      const openViewButton = e.target.closest("[data-action='open-event-view']");
       const archiveButton = e.target.closest("[data-action='toggle-archive']");
       const deleteButton = e.target.closest("[data-action='delete-event']");
 
       if (openButton) {
         eventSelect.value = openButton.dataset.eventId;
-        eventSelect.dispatchEvent(new Event("change"));
+        openEventById(openButton.dataset.eventId);
+        return;
+      }
+
+      if (openViewButton) {
+        const eventId = openViewButton.dataset.eventId;
+        const viewName = openViewButton.dataset.view === "bracket" ? "bracket" : "qualifying";
+        eventSelect.value = eventId;
+        openEventById(eventId, viewName, false);
         return;
       }
 
@@ -10291,7 +10349,7 @@
     function updateCompetitionBracketPage() {
       const hasLowerBracket = Boolean(tournamentState?.lowerBracket?.rounds?.length);
       const lowerHasPendingBattles = hasLowerBracket && getLowerBattleFlowEntries(tournamentState.lowerBracket.rounds).length > 0;
-      if (hasLowerBracket && !lowerHasPendingBattles && activeCompetitionBracketPage === "lower") {
+      if (hasLowerBracket && !lowerHasPendingBattles && activeCompetitionBracketPage === "lower" && !adminCanEdit()) {
         activeCompetitionBracketPage = "main";
       }
       const resolvedPage = hasLowerBracket ? activeCompetitionBracketPage : "main";
