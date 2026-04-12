@@ -7931,7 +7931,10 @@
                 <small>Registration #${driver.signUpPosition}</small>
               </div>
               ${canEditRegistration
-                ? `<button class="micro-button" type="button" data-action="remove-registration-driver" ${removeDisabled}>Remove</button>`
+                ? `<div class="role-admin-actions">
+                     <button class="micro-button" type="button" data-action="edit-registration-driver">Edit</button>
+                     <button class="micro-button" type="button" data-action="remove-registration-driver" ${removeDisabled}>Remove</button>
+                   </div>`
                 : ""
               }
             </div>
@@ -8157,7 +8160,7 @@
               </div>
             </div>
             <div class="role-admin-actions">
-              ${role.startsWith("j") ? `<button class="micro-button" type="button" data-action="rename-role" data-role="${role}" ${isEventReadOnly() ? "disabled" : ""}>Edit Name</button>` : ""}
+              ${(role === "admin" || role.startsWith("j")) ? `<button class="micro-button" type="button" data-action="rename-role" data-role="${role}" ${isEventReadOnly() ? "disabled" : ""}>Edit Name</button>` : ""}
               <button class="micro-button" type="button" data-action="reset-role-access" data-role="${role}" ${isEventReadOnly() ? "disabled" : ""}>Clear Password</button>
             </div>
           </article>
@@ -8350,14 +8353,15 @@
       renderRoleAdminPanel();
     }
 
-    async function renameJudgeRole(role) {
-      if (!isWebsiteAdmin || isEventReadOnly() || !activeEventMeta || !role?.startsWith("j")) return;
+    async function renameManagedRole(role) {
+      if (!isWebsiteAdmin || isEventReadOnly() || !activeEventMeta) return;
+      if (role !== "admin" && !role?.startsWith("j")) return;
       const currentName = activeEventMeta.roleNames?.[role] || ROLE_LABELS[role] || role;
       const nextNameInput = window.prompt(`Enter the display name for ${currentName}.`, currentName);
       if (nextNameInput === null) return;
       const nextName = nextNameInput.trim();
       if (!nextName) {
-        window.alert("Judge name cannot be blank.");
+        window.alert("Role name cannot be blank.");
         return;
       }
       activeEventMeta.roleNames = buildDefaultRoleNames({
@@ -8367,6 +8371,29 @@
       publishState();
       renderEventDirectory();
       renderRoleAdminPanel();
+      renderDriversTable();
+    }
+
+    async function editRegistrationDriver(driverId) {
+      if (!registrationCanEdit()) return;
+      const driver = appDrivers.find((entry) => entry.id === driverId);
+      if (!driver) return;
+      const nextNameInput = window.prompt("Edit driver name.", driver.name || "");
+      if (nextNameInput === null) return;
+      const nextName = nextNameInput.trim();
+      if (!nextName) {
+        window.alert("Driver name cannot be blank.");
+        return;
+      }
+      const nextTeamInput = window.prompt(`Edit team for ${nextName}.`, driver.teamName || "");
+      if (nextTeamInput === null) return;
+      const nextChassisInput = window.prompt(`Edit chassis for ${nextName}.`, driver.chassis || "");
+      if (nextChassisInput === null) return;
+
+      driver.name = nextName;
+      driver.teamName = nextTeamInput.trim();
+      driver.chassis = nextChassisInput.trim();
+      publishState();
       renderDriversTable();
     }
 
@@ -8739,7 +8766,7 @@
       }
 
       if (renameRoleButton && isWebsiteAdmin && !isEventReadOnly()) {
-        await renameJudgeRole(renameRoleButton.dataset.role);
+        await renameManagedRole(renameRoleButton.dataset.role);
         return;
       }
 
@@ -9699,10 +9726,15 @@
 
     registrationForms.addEventListener("click", (e) => {
       if (!registrationCanEdit()) return;
-      const removeButton = e.target.closest("[data-action='remove-registration-driver']");
-      if (!removeButton) return;
       const card = e.target.closest("[data-id]");
       if (!card) return;
+      const editButton = e.target.closest("[data-action='edit-registration-driver']");
+      if (editButton) {
+        editRegistrationDriver(card.dataset.id);
+        return;
+      }
+      const removeButton = e.target.closest("[data-action='remove-registration-driver']");
+      if (!removeButton) return;
       if (appDrivers.length <= 1) return;
       appDrivers = resequenceDrivers(appDrivers.filter((entry) => entry.id !== card.dataset.id), true);
       publishState();
