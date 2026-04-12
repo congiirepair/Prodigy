@@ -4670,9 +4670,9 @@
           runoff: null,
         },
         scores: {
-          j1: { run1: null, run2: null, runoff: null, submitted: { run1: null, run2: null, runoff: null } },
-          j2: { run1: null, run2: null, runoff: null, submitted: { run1: null, run2: null, runoff: null } },
-          j3: { run1: null, run2: null, runoff: null, submitted: { run1: null, run2: null, runoff: null } }
+          j1: { run1: null, run2: null, runoff: null, submitted: { run1: null, run2: null, runoff: null }, deductionHistory: { run1: [], run2: [], runoff: [] } },
+          j2: { run1: null, run2: null, runoff: null, submitted: { run1: null, run2: null, runoff: null }, deductionHistory: { run1: [], run2: [], runoff: [] } },
+          j3: { run1: null, run2: null, runoff: null, submitted: { run1: null, run2: null, runoff: null }, deductionHistory: { run1: [], run2: [], runoff: [] } }
         }
       };
     }
@@ -4694,14 +4694,17 @@
         j1: {
           run1: null, run2: null, runoff: null, ...(normalized.scores?.j1 || {}),
           submitted: { run1: null, run2: null, runoff: null, ...(normalized.scores?.j1?.submitted || {}) },
+          deductionHistory: { run1: [], run2: [], runoff: [], ...(normalized.scores?.j1?.deductionHistory || {}) },
         },
         j2: {
           run1: null, run2: null, runoff: null, ...(normalized.scores?.j2 || {}),
           submitted: { run1: null, run2: null, runoff: null, ...(normalized.scores?.j2?.submitted || {}) },
+          deductionHistory: { run1: [], run2: [], runoff: [], ...(normalized.scores?.j2?.deductionHistory || {}) },
         },
         j3: {
           run1: null, run2: null, runoff: null, ...(normalized.scores?.j3 || {}),
           submitted: { run1: null, run2: null, runoff: null, ...(normalized.scores?.j3?.submitted || {}) },
+          deductionHistory: { run1: [], run2: [], runoff: [], ...(normalized.scores?.j3?.deductionHistory || {}) },
         },
       };
       for (const role of JUDGE_ROLE_ORDER) {
@@ -4776,7 +4779,7 @@
       return typeof runRef === "string" ? runRef : `run${runRef}`;
     }
 
-    const QUICK_DEDUCTION_VALUES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20];
+    const QUICK_DEDUCTION_VALUES = [1, 2, 5, 10, 20];
 
     function clampJudgeScoreValue(value) {
       const numericValue = Number.isFinite(value) ? value : 100;
@@ -4796,6 +4799,39 @@
       return 100;
     }
 
+    function getJudgeDeductionHistory(driver, role, runRef) {
+      const runKey = getRunKey(runRef);
+      return Array.isArray(driver?.scores?.[role]?.deductionHistory?.[runKey])
+        ? driver.scores[role].deductionHistory[runKey]
+        : [];
+    }
+
+    function setJudgeDeductionHistory(driver, role, runRef, nextHistory) {
+      const runKey = getRunKey(runRef);
+      if (!driver?.scores?.[role]) return;
+      if (!driver.scores[role].deductionHistory) {
+        driver.scores[role].deductionHistory = { run1: [], run2: [], runoff: [] };
+      }
+      driver.scores[role].deductionHistory[runKey] = Array.isArray(nextHistory) ? nextHistory : [];
+    }
+
+    function clearJudgeDeductionHistory(driver, role, runRef) {
+      setJudgeDeductionHistory(driver, role, runRef, []);
+    }
+
+    function appendJudgeDeductionHistory(driver, role, runRef, label) {
+      const history = getJudgeDeductionHistory(driver, role, runRef);
+      setJudgeDeductionHistory(driver, role, runRef, [...history, label].slice(-10));
+    }
+
+    function renderDeductionHistory(driver, role, runRef) {
+      const history = getJudgeDeductionHistory(driver, role, runRef);
+      const runKey = getRunKey(runRef);
+      const flag = driver?.runFlags?.[runKey];
+      const historyText = history.length ? history.join("  ") : "No deductions yet.";
+      return `<div class="judge-score-help">Deductions: ${escapeHtml(historyText)}${flag ? ` | Auto zero: ${escapeHtml(flag)}` : ""}</div>`;
+    }
+
     function renderScoreDeductionButtons(runKey) {
       return `
         <div class="score-deduction-strip" data-run="${runKey}">
@@ -4804,6 +4840,9 @@
               -${value}
             </button>
           `).join("")}
+          <button class="score-deduction-btn" type="button" data-action="apply-deduction" data-col="${runKey}" data-deduction="crash">
+            Crash
+          </button>
         </div>
       `;
     }
@@ -5107,11 +5146,20 @@
       const runKey = getRunKey(runRef);
       const driver = appDrivers.find((entry) => entry.id === driverId);
       if (!driver || !role?.startsWith("j")) return false;
-      const nextValue = clampJudgeScoreValue(getJudgeDraftScoreValue(driver, role, runKey) - deduction);
+      if (deduction === "crash") {
+        driver.scores[role][runKey] = 0;
+        driver.runFlags[runKey] = "Crash";
+        appendJudgeDeductionHistory(driver, role, runKey, "Crash");
+        return true;
+      }
+      const numericDeduction = Number(deduction);
+      if (!Number.isFinite(numericDeduction)) return false;
+      const nextValue = clampJudgeScoreValue(getJudgeDraftScoreValue(driver, role, runKey) - numericDeduction);
       driver.scores[role][runKey] = nextValue;
       if (driver.runFlags?.[runKey]) {
         driver.runFlags[runKey] = null;
       }
+      appendJudgeDeductionHistory(driver, role, runKey, `-${numericDeduction}`);
       return true;
     }
 
@@ -5128,6 +5176,13 @@
           return;
         }
         input.value = String(getJudgeDraftScoreValue(driver, role, runKey));
+      });
+
+      ["r1", "r2", "runoff"].forEach((col) => {
+        const historyEl = container.querySelector(`.judge-deduction-history[data-col="${col}"]`);
+        if (!historyEl) return;
+        const runKey = col === "r1" ? "run1" : col === "r2" ? "run2" : "runoff";
+        historyEl.innerHTML = renderDeductionHistory(driver, role, runKey);
       });
 
       const submitButton = container.querySelector("[data-action='submit-judge-scores']");
@@ -9009,7 +9064,8 @@
                       <div class="judge-score-caption">Each run starts at 100. Tap the deductions below or type over the value.</div>
                     </div>
                     ${renderScoreDeductionButtons("r1")}
-                  <div class="judge-score-help">Your submitted score: ${formatScore(driver.scores[currentRole].submitted.run1)}${run1Flag ? ` | Auto zero: ${run1Flag}` : ""}</div>
+                  <div class="judge-deduction-history" data-col="r1">${renderDeductionHistory(driver, currentRole, "run1")}</div>
+                  <div class="judge-score-help">Your submitted score: ${formatScore(driver.scores[currentRole].submitted.run1)}</div>
                   ${activeRunKey === "run1" ? `<button class="button button-accent judge-run-submit ${run1JustSubmitted ? "just-submitted" : ""}" type="button" data-action="submit-judge-run" data-run="run1" ${activeRunDisabled ? "disabled" : ""}>${activeRunButtonLabel}</button>` : ""}
                   <button class="micro-button" type="button" data-action="clear-score" data-col="r1">Clear</button>
                 </label>
@@ -9025,7 +9081,8 @@
                     <div class="judge-score-caption">Run 2 starts at 100 right after your Run 1 submit.</div>
                   </div>
                   ${renderScoreDeductionButtons("r2")}
-                <div class="judge-score-help">Your submitted score: ${formatScore(driver.scores[currentRole].submitted.run2)}${run2Flag ? ` | Auto zero: ${run2Flag}` : ""}</div>
+                  <div class="judge-deduction-history" data-col="r2">${renderDeductionHistory(driver, currentRole, "run2")}</div>
+                  <div class="judge-score-help">Your submitted score: ${formatScore(driver.scores[currentRole].submitted.run2)}</div>
                   ${activeRunKey === "run2" ? `<button class="button button-accent judge-run-submit ${run2JustSubmitted ? "just-submitted" : ""}" type="button" data-action="submit-judge-run" data-run="run2" ${activeRunDisabled ? "disabled" : ""}>${activeRunButtonLabel}</button>` : ""}
                   <button class="micro-button" type="button" data-action="clear-score" data-col="r2">Clear</button>
                 </label>
@@ -9197,7 +9254,8 @@
                 </div>
                 <input class="score-input r1 driver-row-input" data-col="r1" type="number" min="0" max="100" step="0.1" value="${myR1}" placeholder="100.0" inputmode="decimal" />
                 ${renderScoreDeductionButtons("r1")}
-                <div class="judge-score-help">You can update this score at any time. Current average: ${formatScore(r1Avg)}${run1Flag ? ` | Auto zero: ${run1Flag}` : ""}</div>
+                <div class="judge-deduction-history" data-col="r1">${renderDeductionHistory(driver, currentRole, "run1")}</div>
+                <div class="judge-score-help">You can update this score at any time. Current average: ${formatScore(r1Avg)}</div>
                 <button class="micro-button" type="button" data-action="clear-score" data-col="r1">Clear</button>
               </label>
               <label class="judge-score-card">
@@ -9207,7 +9265,8 @@
                 </div>
                 <input class="score-input r2 driver-row-input" data-col="r2" type="number" min="0" max="100" step="0.1" value="${myR2}" placeholder="100.0" inputmode="decimal" />
                 ${renderScoreDeductionButtons("r2")}
-                <div class="judge-score-help">You can update this score at any time. Current average: ${formatScore(r2Avg)}${run2Flag ? ` | Auto zero: ${run2Flag}` : ""}</div>
+                <div class="judge-deduction-history" data-col="r2">${renderDeductionHistory(driver, currentRole, "run2")}</div>
+                <div class="judge-score-help">You can update this score at any time. Current average: ${formatScore(r2Avg)}</div>
                 <button class="micro-button" type="button" data-action="clear-score" data-col="r2">Clear</button>
               </label>
               ${showRunoff ? `
@@ -9262,9 +9321,18 @@
           if (e.target.classList.contains("r1")) driver.scores[currentRole].run1 = val;
           if (e.target.classList.contains("r2")) driver.scores[currentRole].run2 = val;
           if (e.target.classList.contains("runoff")) driver.scores[currentRole].runoff = val;
-          if (e.target.classList.contains("r1") && driver.runFlags.run1) driver.runFlags.run1 = null;
-          if (e.target.classList.contains("r2") && driver.runFlags.run2) driver.runFlags.run2 = null;
-          if (e.target.classList.contains("runoff") && driver.runFlags.runoff) driver.runFlags.runoff = null;
+          if (e.target.classList.contains("r1")) {
+            if (driver.runFlags.run1) driver.runFlags.run1 = null;
+            clearJudgeDeductionHistory(driver, currentRole, "run1");
+          }
+          if (e.target.classList.contains("r2")) {
+            if (driver.runFlags.run2) driver.runFlags.run2 = null;
+            clearJudgeDeductionHistory(driver, currentRole, "run2");
+          }
+          if (e.target.classList.contains("runoff")) {
+            if (driver.runFlags.runoff) driver.runFlags.runoff = null;
+            clearJudgeDeductionHistory(driver, currentRole, "runoff");
+          }
       }
       
       if (currentRole === "admin") {
@@ -9303,8 +9371,10 @@
         if (!tr) return;
         const id = tr.dataset.id;
         const readinessCleared = id === qualifyingFlow.currentDriverId && clearQualifyingReady(currentRole);
-        const deduction = Number.parseInt(deductionButton.dataset.deduction, 10);
-        if (!Number.isFinite(deduction)) return;
+        const deduction = deductionButton.dataset.deduction === "crash"
+          ? "crash"
+          : Number.parseInt(deductionButton.dataset.deduction, 10);
+        if (deduction !== "crash" && !Number.isFinite(deduction)) return;
         if (!applyJudgeScoreDeduction(id, deductionButton.dataset.col, deduction, currentRole)) return;
         if (readinessCleared) {
           publishState();
@@ -9354,9 +9424,18 @@
         if (e.target.classList.contains("r1")) driver.scores[currentRole].run1 = val;
         if (e.target.classList.contains("r2")) driver.scores[currentRole].run2 = val;
         if (e.target.classList.contains("runoff")) driver.scores[currentRole].runoff = val;
-        if (e.target.classList.contains("r1") && driver.runFlags.run1) driver.runFlags.run1 = null;
-        if (e.target.classList.contains("r2") && driver.runFlags.run2) driver.runFlags.run2 = null;
-        if (e.target.classList.contains("runoff") && driver.runFlags.runoff) driver.runFlags.runoff = null;
+        if (e.target.classList.contains("r1")) {
+          if (driver.runFlags.run1) driver.runFlags.run1 = null;
+          clearJudgeDeductionHistory(driver, currentRole, "run1");
+        }
+        if (e.target.classList.contains("r2")) {
+          if (driver.runFlags.run2) driver.runFlags.run2 = null;
+          clearJudgeDeductionHistory(driver, currentRole, "run2");
+        }
+        if (e.target.classList.contains("runoff")) {
+          if (driver.runFlags.runoff) driver.runFlags.runoff = null;
+          clearJudgeDeductionHistory(driver, currentRole, "runoff");
+        }
       }
 
       if (currentRole === "admin") {
@@ -9435,8 +9514,10 @@
       const deductionButton = e.target.closest("[data-action='apply-deduction']");
       if (deductionButton) {
         if (!userCanEdit() || currentRole === "admin" || currentRole === "spectator") return;
-        const deduction = Number.parseInt(deductionButton.dataset.deduction, 10);
-        if (!Number.isFinite(deduction)) return;
+        const deduction = deductionButton.dataset.deduction === "crash"
+          ? "crash"
+          : Number.parseInt(deductionButton.dataset.deduction, 10);
+        if (deduction !== "crash" && !Number.isFinite(deduction)) return;
         if (!applyJudgeScoreDeduction(card.dataset.id, deductionButton.dataset.col, deduction, currentRole)) return;
         if (readinessCleared) publishState();
         const driver = appDrivers.find((entry) => entry.id === card.dataset.id);
@@ -9462,6 +9543,7 @@
         const runKey = col === "r1" ? "run1" : col === "r2" ? "run2" : "runoff";
         driver.scores[currentRole][runKey] = null;
         driver.runFlags[runKey] = null;
+        clearJudgeDeductionHistory(driver, currentRole, runKey);
         if (readinessCleared) publishState();
         renderDriversTable();
         return;
