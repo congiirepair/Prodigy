@@ -11445,6 +11445,7 @@
       if (STANDALONE_DEMO_MODE) {
         statusEl.textContent = "Demo Window";
         statusEl.classList.remove("online");
+        bootstrapStandaloneDemoSession();
         return;
       }
       syncNetworkStatusIndicator();
@@ -17772,7 +17773,7 @@
       const leadDriver = leadSide === "left" ? leftDriver : rightDriver;
       const chaseDriver = chaseSide === "left" ? leftDriver : rightDriver;
       const actionClass = isCurrent ? "current" : "preview";
-      const canAdvance = isCurrent && adminCanEdit();
+      const canAdvance = isCurrent && (adminCanEdit() || STANDALONE_DEMO_MODE);
       const actionAttrs = isCurrent ? `data-flow-bracket="${entry.bracketKey}" data-flow-round="${entry.roundIndex}" data-flow-match="${entry.matchIndex}"` : "";
       const selectedSignature = winnerAnimationState?.selected?.signature || "";
       const leadSelected = selectedSignature && selectedSignature === buildSlotSignature(entry.bracketKey, entry.roundIndex, entry.matchIndex, leadSide, leadDriver);
@@ -17973,7 +17974,7 @@
       }
       const selected = participantKey(driver) === participantKey(winner);
       const loser = Boolean(winner) && !selected;
-      const disabledHTML = (!adminCanEdit() || !canChoose) ? "disabled" : "";
+      const disabledHTML = (!(adminCanEdit() || STANDALONE_DEMO_MODE) || !canChoose) ? "disabled" : "";
       const slotSignature = buildSlotSignature(bracketKey, roundIndex, matchIndex, side, driver);
       const isWinnerBurst = winnerAnimationState?.selected?.signature === slotSignature && selected;
       const isIncomingWinner = winnerAnimationState?.target?.signature === slotSignature;
@@ -18014,7 +18015,7 @@
       
       const selected = participantKey(driver) === participantKey(winner);
       const loser = Boolean(winner) && !selected;
-      const disabledHTML = (!adminCanEdit() || !canChoose) ? "disabled" : "";
+      const disabledHTML = (!(adminCanEdit() || STANDALONE_DEMO_MODE) || !canChoose) ? "disabled" : "";
       const teamMarkup = driver.teamName?.trim() ? `<span class="slot-team">${escapeHtml(driver.teamName.trim())}</span>` : "";
       const slotSignature = buildSlotSignature(bracketKey, roundIndex, matchIndex, side, driver);
       const isWinnerBurst = winnerAnimationState?.selected?.signature === slotSignature && selected;
