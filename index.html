@@ -8750,17 +8750,19 @@
             syncStamp: lastLocalPush,
           }, { merge: true });
 
-          transaction.set(getDirectoryDocRef(), {
-            events: getPersistableDirectorySnapshot({
-              [activeEventId]: cloneEventMeta({
-                ...(eventDirectory[activeEventId] || activeEventMeta || updatedMeta),
-                ...updatedMeta,
+          if (!STANDALONE_DEMO_MODE) {
+            transaction.set(getDirectoryDocRef(), {
+              events: getPersistableDirectorySnapshot({
+                [activeEventId]: cloneEventMeta({
+                  ...(eventDirectory[activeEventId] || activeEventMeta || updatedMeta),
+                  ...updatedMeta,
+                }),
               }),
-            }),
-            activeEventId,
-            deletedEventIds: getDeletedEventIdsSnapshot(),
-            syncStamp: lastLocalPush,
-          }, { merge: true });
+              activeEventId,
+              deletedEventIds: getDeletedEventIdsSnapshot(),
+              syncStamp: lastLocalPush,
+            }, { merge: true });
+          }
 
           transactionResult = {
             remoteDrivers: JSON.parse(JSON.stringify(remoteDrivers)),
