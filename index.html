@@ -7779,6 +7779,8 @@
     const SELF_REGISTER_PROFILES_STORAGE_KEY = `rc-drift-self-register-profiles-v${EVENT_STORAGE_VERSION}`;
     const PAGE_SEARCH_PARAMS = typeof window !== "undefined" ? new URLSearchParams(window.location.search || "") : new URLSearchParams();
     const STANDALONE_DEMO_MODE = PAGE_SEARCH_PARAMS.get("demoWindow") === "1";
+    const STANDALONE_DEMO_SESSION_PARAM = PAGE_SEARCH_PARAMS.get("demoSession") || "";
+    const DEMO_PREVIEW_SESSION_ID = "preview-live-demo";
     const STANDALONE_DEMO_ROLE_PARAM = PAGE_SEARCH_PARAMS.get("demoRole");
     const STANDALONE_DEMO_VIEW_PARAM = PAGE_SEARCH_PARAMS.get("demoView");
     const STANDALONE_DEMO_SCENARIO_PARAM = PAGE_SEARCH_PARAMS.get("demoScenario");
@@ -10796,6 +10798,7 @@
     }
 
     function saveEventStateCache() {
+      if (STANDALONE_DEMO_MODE) return;
       if (!activeEventId || !activeEventMeta) return;
       syncQualifyingFlowState();
       localStorage.setItem(getEventStateStorageKey(activeEventId), JSON.stringify({
@@ -10818,6 +10821,7 @@
     }
 
     function saveDirectoryCache() {
+      if (STANDALONE_DEMO_MODE) return;
       localStorage.setItem(EVENT_DIRECTORY_STORAGE_KEY, JSON.stringify(eventDirectory));
       localStorage.setItem(DELETED_EVENT_IDS_STORAGE_KEY, JSON.stringify(getDeletedEventIdsSnapshot()));
       if (activeEventId) {
@@ -11335,7 +11339,7 @@
       clearTimeout(syncTimeout);
       syncTimeout = setTimeout(async () => {
         try {
-          await Promise.all([
+          const syncTasks = [
             setDoc(getEventDocRef(publishEventId), {
               ...publishEventMeta,
               drivers: publishDrivers,
@@ -11345,12 +11349,15 @@
               lowerCount: publishLowerCount,
               syncStamp: publishSyncStamp,
             }),
-            setDoc(getDirectoryDocRef(), {
+          ];
+          if (!STANDALONE_DEMO_MODE) {
+            syncTasks.push(setDoc(getDirectoryDocRef(), {
               ...directoryPayload,
               activeEventId: publishEventId,
               syncStamp: publishSyncStamp,
-            }),
-          ]);
+            }));
+          }
+          await Promise.all(syncTasks);
         } catch (e) {
           console.error("Cloud sync failed:", e);
         }
@@ -11384,7 +11391,7 @@
       });
 
       try {
-        await Promise.all([
+        const syncTasks = [
           setDoc(getEventDocRef(activeEventId), {
             ...activeEventMeta,
             drivers: appDrivers,
@@ -11394,15 +11401,41 @@
             lowerCount: String(getRequestedSdcMainBracketSize(bracketModeSelect.value) || 0),
             syncStamp: lastLocalPush,
           }),
-          setDoc(getDirectoryDocRef(), directoryPayload),
-          setDoc(getActiveEventSelectionDocRef(), {
-            activeEventId,
-            eventMeta: cloneEventMeta(directoryPayload.events[activeEventId] || activeEventMeta),
-            syncStamp: lastLocalPush,
-          }, { merge: true }),
-        ]);
+        ];
+        if (!STANDALONE_DEMO_MODE) {
+          syncTasks.push(
+            setDoc(getDirectoryDocRef(), directoryPayload),
+            setDoc(getActiveEventSelectionDocRef(), {
+              activeEventId,
+              eventMeta: cloneEventMeta(directoryPayload.events[activeEventId] || activeEventMeta),
+              syncStamp: lastLocalPush,
+            }, { merge: true }),
+          );
+        }
+        await Promise.all(syncTasks);
       } catch (e) {
         console.error("Immediate cloud sync failed:", e);
+      }
+    }
+
+    async function bootstrapStandaloneDemoSession() {
+      if (!STANDALONE_DEMO_MODE || !db || !activeEventId) return;
+      const statusEl = document.getElementById('syncStatus');
+      if (statusEl) {
+        statusEl.textContent = "Demo Window";
+        statusEl.classList.remove("online");
+      }
+      subscribeToActiveEvent();
+      try {
+        const eventSnap = await getDoc(getEventDocRef(activeEventId));
+        if (!eventSnap.exists()) {
+          await publishStateImmediately();
+          return;
+        }
+        applyRemoteEventState(eventSnap.data());
+        renderAfterRemoteSync();
+      } catch (error) {
+        console.error("Standalone demo bootstrap failed:", error);
       }
     }
 
@@ -12221,6 +12254,7 @@
         role: "j1",
         view: "qualifying",
         scenario: "judging",
+        sessionId: STANDALONE_DEMO_SESSION_PARAM || DEMO_PREVIEW_SESSION_ID,
       });
     }
 
@@ -12257,18 +12291,38 @@
     }
 
     function normalizeStandaloneDemoScenario(scenario, role = "spectator", viewName = "bracket") {
+      if (scenario === "live") return "live";
       if (scenario === "judging" && normalizeStandaloneDemoRole(role).startsWith("j")) return "judging";
       if (scenario === "overview") return "overview";
       return normalizeStandaloneDemoView(viewName, role) === "qualifying" ? "judging" : "bracket";
     }
 
+    function createStandaloneDemoSessionId() {
+      return `live-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+    }
+
+    function getStandaloneDemoEventId(sessionId = STANDALONE_DEMO_SESSION_PARAM) {
+      return `standalone-demo-${sessionId || "window"}`;
+    }
+
+    function getLiveDemoLaunchOptions(overrides = {}) {
+      return {
+        role: "spectator",
+        view: "qualifying",
+        scenario: "live",
+        sessionId: overrides.sessionId || STANDALONE_DEMO_SESSION_PARAM || createStandaloneDemoSessionId(),
+      };
+    }
+
     function buildStandaloneDemoUrl(options = {}) {
       if (typeof window === "undefined") return "";
       const demoRole = normalizeStandaloneDemoRole(options.role || STANDALONE_DEMO_ROLE_PARAM || "spectator");
-      const demoView = normalizeStandaloneDemoView(options.view || STANDALONE_DEMO_VIEW_PARAM || "bracket", demoRole);
+      const demoView = normalizeStandaloneDemoView(options.view || STANDALONE_DEMO_VIEW_PARAM || "qualifying", demoRole);
       const demoScenario = normalizeStandaloneDemoScenario(options.scenario || STANDALONE_DEMO_SCENARIO_PARAM || null, demoRole, demoView);
+      const demoSessionId = options.sessionId || STANDALONE_DEMO_SESSION_PARAM || createStandaloneDemoSessionId();
       const targetUrl = new URL(buildRoleRouteUrl("spectator", "bracket") || "https://prodigyrccomp.com/");
       targetUrl.searchParams.set("demoWindow", "1");
+      targetUrl.searchParams.set("demoSession", demoSessionId);
       targetUrl.searchParams.set("demoRole", demoRole);
       targetUrl.searchParams.set("demoView", demoView);
       targetUrl.searchParams.set("demoScenario", demoScenario);
@@ -12369,25 +12423,28 @@
 
     function createStandaloneDemoSnapshot(options = {}) {
       const initialRole = normalizeStandaloneDemoRole(options.role || STANDALONE_DEMO_ROLE_PARAM || "spectator");
-      const initialView = normalizeStandaloneDemoView(options.view || STANDALONE_DEMO_VIEW_PARAM || "bracket", initialRole);
+      const initialView = normalizeStandaloneDemoView(options.view || STANDALONE_DEMO_VIEW_PARAM || "qualifying", initialRole);
       const scenario = normalizeStandaloneDemoScenario(options.scenario || STANDALONE_DEMO_SCENARIO_PARAM || null, initialRole, initialView);
       const createdAt = new Date().toISOString();
+      const sessionId = options.sessionId || STANDALONE_DEMO_SESSION_PARAM || createStandaloneDemoSessionId();
       const bracketDrivers = createStandaloneDemoDrivers();
       const bracketRankedDrivers = rankDrivers(bracketDrivers);
       const demoTournament = createTournamentState(bracketRankedDrivers, FORMAT_CLASSIC, 0);
-      const demoDrivers = scenario === "judging" && initialRole.startsWith("j")
+      const liveQualifyingBoard = scenario === "live";
+      const demoDrivers = (scenario === "judging" && initialRole.startsWith("j")) || liveQualifyingBoard
         ? buildStandaloneJudgeDemoDrivers(initialRole)
         : bracketDrivers;
       const rankedDrivers = rankDrivers(demoDrivers);
       const liveQualifying = scenario === "judging" && initialRole.startsWith("j");
+      const judgeCount = liveQualifyingBoard || liveQualifying ? 1 : 3;
 
       return {
         meta: {
-          id: "standalone-demo-window",
-          name: liveQualifying ? "RCDriftSync Judge Sandbox" : "RCDriftSync Bracket Sandbox",
+          id: getStandaloneDemoEventId(sessionId),
+          name: liveQualifyingBoard ? "RCDriftSync Live Demo" : liveQualifying ? "RCDriftSync Judge Sandbox" : "RCDriftSync Bracket Sandbox",
           date: new Date().toISOString().slice(0, 10),
           status: "active",
-          judgeCount: liveQualifying ? 1 : 3,
+          judgeCount,
           createdAt,
           updatedAt: createdAt,
           syncStamp: Date.now(),
@@ -12406,13 +12463,15 @@
             ...buildEmptyEventResults(),
             qualifiedCount: rankedDrivers.length,
             totalDrivers: rankedDrivers.length,
-            planDescription: liveQualifying
+            planDescription: liveQualifyingBoard
+              ? "Dedicated live demo window. Keep this board open, scan the QR on a phone, submit scores there, then switch to bracket mode to advance demo battles."
+              : liveQualifying
               ? "Fresh live judging demo. Start at 100, use deductions, and submit each run to watch the qualifying lane update live."
               : (demoTournament?.plan?.description || "Interactive demo bracket ready."),
           },
         },
         drivers: demoDrivers,
-        qualifyingFlow: liveQualifying
+        qualifyingFlow: liveQualifying || liveQualifyingBoard
           ? {
               currentDriverId: demoDrivers[0]?.id || null,
               readyRoles: {},
@@ -12443,10 +12502,16 @@
 
       const activeView = getActiveViewName();
       const isJudgeDemo = currentRole?.startsWith("j") && activeView === "qualifying";
-        demoSandboxStatus.textContent = isJudgeDemo
-          ? `${getRoleDisplayName(currentRole)} phone demo is live. Submit Run 1 and Run 2 here while the main demo window stays on the live spectator board.`
+      const isLiveDemoBoard = currentRole === "spectator" && activeView === "qualifying";
+      demoSandboxStatus.textContent = isJudgeDemo
+        ? `${getRoleDisplayName(currentRole)} phone demo is live. Submit Run 1 and Run 2 here while the main demo window stays on the live spectator board.`
+        : isLiveDemoBoard
+          ? "This standalone live demo window is the spectator board. Scan the QR on a phone to submit scores here live, or switch to the bracket demo when you're ready."
           : "Interactive bracket sandbox is live. Click any sample winner card or battle flow card to advance the bracket.";
       syncDemoQualifyingQrPanel();
+      if (demoQualifyingQrPanel) {
+        demoQualifyingQrPanel.hidden = !(currentRole === "spectator" && activeView === "qualifying");
+      }
 
       demoSandboxBar.querySelectorAll("[data-demo-launch]").forEach((button) => {
         const buttonRole = normalizeStandaloneDemoRole(button.dataset.demoRole || "spectator");
@@ -12479,9 +12544,13 @@
           role: demoSnapshot.initialRole,
           view: demoSnapshot.initialView,
           scenario: demoSnapshot.scenario,
+          sessionId: options.sessionId || STANDALONE_DEMO_SESSION_PARAM || null,
         }));
       }
       syncStandaloneDemoSandboxUi();
+      if (db && auth?.currentUser) {
+        bootstrapStandaloneDemoSession();
+      }
     }
 
     function runStandaloneDemoMode(options = {}) {
@@ -16183,10 +16252,7 @@
       tab.addEventListener('click', (e) => {
         if (currentRole.startsWith('j')) return; 
         if (e.target.dataset.target === "simulation") {
-          const demoWindow = openStandaloneDemoWindow();
-          if (!demoWindow) {
-            switchView("simulation");
-          }
+          launchStandaloneDemo(getLiveDemoLaunchOptions());
           return;
         }
         switchView(e.target.dataset.target);
@@ -16194,7 +16260,7 @@
     });
 
     openStandaloneDemoWindowBtn?.addEventListener("click", () => {
-      const launchResult = launchStandaloneDemo();
+      const launchResult = launchStandaloneDemo(getLiveDemoLaunchOptions());
       if (!launchResult) {
         window.alert("The demo could not be opened right now. Please try again.");
       }
@@ -16216,10 +16282,18 @@
     document.querySelectorAll("[data-demo-launch]").forEach((button) => {
       button.addEventListener("click", () => {
         if (!STANDALONE_DEMO_MODE) return;
+        const nextRole = button.dataset.demoRole || "spectator";
+        const nextView = button.dataset.demoView || "bracket";
+        if (currentRole === "spectator" && nextRole === "spectator") {
+          switchView(nextView);
+          syncStandaloneDemoSandboxUi();
+          return;
+        }
         runStandaloneDemoMode({
-          role: button.dataset.demoRole || "spectator",
-          view: button.dataset.demoView || "bracket",
+          role: nextRole,
+          view: nextView,
           scenario: button.dataset.demoScenario || null,
+          sessionId: STANDALONE_DEMO_SESSION_PARAM || null,
         });
       });
     });
