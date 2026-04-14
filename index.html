@@ -6974,7 +6974,7 @@
         <div class="hero-copy-block">
         <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png" alt="Prodigy RC Drift Arena" /></div>
           <p class="eyebrow">RCDriftSync</p>
-          <h1 id="landingHeroTitle"><img class="landing-brand-logo" src="./assets/rcdriftsync-concept-wordmark.svg?v=1" alt="RCDriftSync" /></h1>
+          <h1 id="landingHeroTitle"><img class="landing-brand-logo" src="./assets/rcdriftsync-title.png?v=2" alt="RCDriftSync" /></h1>
           <p id="landingHeroCopy" class="hero-copy">Follow the next event, jump into qualifying and competition, and see why Prodigy is built for real live RC drift events.</p>
           <div class="public-event-actions">
             <button class="button button-accent" type="button" data-landing-jump="self-register">Register</button>
@@ -13864,7 +13864,7 @@
       const nextEvent = activeEventMeta || sortEventsForDisplay().find((eventMeta) => getEventStatus(eventMeta) !== EVENT_STATUS_ARCHIVED) || null;
 
       if (landingHeroTitle) {
-        landingHeroTitle.innerHTML = '<img class="landing-brand-logo" src="./assets/rcdriftsync-concept-wordmark.svg?v=1" alt="RCDriftSync" />';
+        landingHeroTitle.innerHTML = '<img class="landing-brand-logo" src="./assets/rcdriftsync-title.png?v=2" alt="RCDriftSync" />';
       }
       if (landingHeroCopy) {
         landingHeroCopy.textContent = nextEvent?.name
