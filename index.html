@@ -5733,6 +5733,60 @@
       box-shadow: 0 10px 24px rgba(17, 17, 17, 0.18);
     }
 
+    .demo-sandbox-stack {
+      display: grid;
+      gap: 12px;
+      margin: 10px 0 18px;
+    }
+
+    .demo-qualifying-qr-panel {
+      display: grid;
+      gap: 12px;
+      justify-items: center;
+      text-align: center;
+      padding: 16px 18px 18px;
+      border: 2px solid var(--line);
+      border-radius: 20px;
+      background:
+        linear-gradient(135deg, rgba(255,255,255,0.96), rgba(243,237,227,0.94)),
+        var(--panel);
+      box-shadow: 0 18px 36px rgba(17, 17, 17, 0.12);
+    }
+
+    .demo-qualifying-qr-panel img {
+      width: min(220px, 100%);
+      aspect-ratio: 1 / 1;
+      object-fit: contain;
+      padding: 10px;
+      background: #fff;
+      border: 2px solid var(--line);
+      border-radius: 20px;
+      box-shadow: 8px 8px 0 rgba(36, 23, 14, 0.14);
+    }
+
+    .demo-qualifying-qr-panel[hidden] {
+      display: none !important;
+    }
+
+    .demo-qualifying-qr-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    body[data-theme="dark"] .demo-qualifying-qr-panel {
+      background:
+        linear-gradient(135deg, rgba(17,17,17,0.96), rgba(27,27,27,0.94)),
+        var(--panel);
+      box-shadow: 0 18px 36px rgba(0, 0, 0, 0.4);
+    }
+
+    body[data-theme="dark"] .demo-qualifying-qr-panel img {
+      background: #fff;
+      box-shadow: 10px 10px 0 rgba(0, 0, 0, 0.28);
+    }
+
     .simulation-scoreboard {
       display: grid;
       gap: 10px;
@@ -7044,17 +7098,31 @@
       <div id="broadcastTickerTrack" class="broadcast-ticker-track"></div>
     </div>
 
-    <div id="demoSandboxBar" class="demo-sandbox-bar hidden">
-      <div class="demo-sandbox-copy">
-        <strong>Interactive Demo Sandbox</strong>
-        <span id="demoSandboxStatus">Try judging sample runs or click through a demo bracket without affecting the live event.</span>
+    <div class="demo-sandbox-stack">
+      <div id="demoSandboxBar" class="demo-sandbox-bar hidden">
+        <div class="demo-sandbox-copy">
+          <strong>Interactive Demo Sandbox</strong>
+          <span id="demoSandboxStatus">Try judging sample runs or click through a demo bracket without affecting the live event.</span>
+        </div>
+        <div class="demo-sandbox-actions">
+          <button class="micro-button" type="button" data-demo-launch data-demo-role="j1" data-demo-view="qualifying" data-demo-scenario="judging">Judge 1 Demo</button>
+          <button class="micro-button" type="button" data-demo-launch data-demo-role="j2" data-demo-view="qualifying" data-demo-scenario="judging">Judge 2 Demo</button>
+          <button class="micro-button" type="button" data-demo-launch data-demo-role="j3" data-demo-view="qualifying" data-demo-scenario="judging">Judge 3 Demo</button>
+          <button class="micro-button" type="button" data-demo-launch data-demo-role="j1" data-demo-view="qualifying" data-demo-scenario="judging">Live Qualifying</button>
+          <button id="toggleDemoQualifyingQrBtn" class="micro-button" type="button">Phone QR</button>
+          <button class="micro-button button-accent" type="button" data-demo-launch data-demo-role="spectator" data-demo-view="bracket" data-demo-scenario="bracket">Interactive Bracket</button>
+          <button class="micro-button" type="button" data-demo-reset>Reset Demo</button>
+        </div>
       </div>
-      <div class="demo-sandbox-actions">
-        <button class="micro-button" type="button" data-demo-launch data-demo-role="j1" data-demo-view="qualifying" data-demo-scenario="judging">Judge 1 Demo</button>
-        <button class="micro-button" type="button" data-demo-launch data-demo-role="j2" data-demo-view="qualifying" data-demo-scenario="judging">Judge 2 Demo</button>
-        <button class="micro-button" type="button" data-demo-launch data-demo-role="j3" data-demo-view="qualifying" data-demo-scenario="judging">Judge 3 Demo</button>
-        <button class="micro-button button-accent" type="button" data-demo-launch data-demo-role="spectator" data-demo-view="bracket" data-demo-scenario="bracket">Interactive Bracket</button>
-        <button class="micro-button" type="button" data-demo-reset>Reset Demo</button>
+      <div id="demoQualifyingQrPanel" class="demo-qualifying-qr-panel" hidden>
+        <strong>Scan To Try Live Qualifying On Phone</strong>
+        <div class="registration-form-note">This opens the empty-score judge demo so someone can enter deductions and watch the live qualifying state build from scratch.</div>
+        <img id="demoQualifyingQrImage" alt="QR code for the live qualifying phone demo" />
+        <a id="demoQualifyingQrLink" class="simulation-qr-link invite-code-value route-link-value" href="#" target="_blank" rel="noopener noreferrer">Loading live qualifying demo link...</a>
+        <div class="demo-qualifying-qr-actions">
+          <button id="copyDemoQualifyingLinkBtn" class="micro-button" type="button">Copy Link</button>
+          <button id="openDemoQualifyingBtn" class="micro-button button-accent" type="button">Open Live Qualifying</button>
+        </div>
       </div>
     </div>
 
@@ -11539,6 +11607,12 @@
     const broadcastTickerTrack = document.getElementById("broadcastTickerTrack");
     const demoSandboxBar = document.getElementById("demoSandboxBar");
     const demoSandboxStatus = document.getElementById("demoSandboxStatus");
+    const demoQualifyingQrPanel = document.getElementById("demoQualifyingQrPanel");
+    const demoQualifyingQrImage = document.getElementById("demoQualifyingQrImage");
+    const demoQualifyingQrLink = document.getElementById("demoQualifyingQrLink");
+    const toggleDemoQualifyingQrBtn = document.getElementById("toggleDemoQualifyingQrBtn");
+    const copyDemoQualifyingLinkBtn = document.getElementById("copyDemoQualifyingLinkBtn");
+    const openDemoQualifyingBtn = document.getElementById("openDemoQualifyingBtn");
     const websiteAdminGate = document.getElementById("websiteAdminGate");
     const websiteAdminWorkspace = document.getElementById("websiteAdminWorkspace");
     const websiteAdminUnlockBtn = document.getElementById("websiteAdminUnlockBtn");
@@ -12156,6 +12230,21 @@
       return `https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encodeURIComponent(qualifyingUrl)}`;
     }
 
+    function syncDemoQualifyingQrPanel() {
+      if (!demoQualifyingQrPanel || !demoQualifyingQrImage || !demoQualifyingQrLink) return;
+      const qualifyingUrl = buildQualifyingDemoUrl();
+      const qrUrl = buildQualifyingDemoQrUrl();
+      demoQualifyingQrLink.href = qualifyingUrl || "#";
+      demoQualifyingQrLink.textContent = qualifyingUrl || "Live qualifying demo link unavailable.";
+      if (qrUrl) {
+        demoQualifyingQrImage.src = qrUrl;
+        demoQualifyingQrImage.hidden = false;
+      } else {
+        demoQualifyingQrImage.removeAttribute("src");
+        demoQualifyingQrImage.hidden = true;
+      }
+    }
+
     function normalizeStandaloneDemoRole(role) {
       return ["spectator", "admin", "j1", "j2", "j3"].includes(role) ? role : "spectator";
     }
@@ -12347,6 +12436,9 @@
       if (!demoSandboxBar || !demoSandboxStatus) return;
       demoSandboxBar.classList.toggle("hidden", !STANDALONE_DEMO_MODE);
       document.body.dataset.demoWindow = STANDALONE_DEMO_MODE ? "true" : "false";
+      if (demoQualifyingQrPanel && !STANDALONE_DEMO_MODE) {
+        demoQualifyingQrPanel.hidden = true;
+      }
       if (!STANDALONE_DEMO_MODE) return;
 
       const activeView = getActiveViewName();
@@ -12354,6 +12446,7 @@
       demoSandboxStatus.textContent = isJudgeDemo
         ? `${getRoleDisplayName(currentRole)} sandbox is live. Use deductions or type scores, then submit Run 1 and Run 2 to advance the sample lineup.`
         : "Interactive bracket sandbox is live. Click any sample winner card or battle flow card to advance the bracket.";
+      syncDemoQualifyingQrPanel();
 
       demoSandboxBar.querySelectorAll("[data-demo-launch]").forEach((button) => {
         const buttonRole = normalizeStandaloneDemoRole(button.dataset.demoRole || "spectator");
@@ -16140,6 +16233,33 @@
           scenario: currentRole?.startsWith("j") ? "judging" : "bracket",
         });
       });
+    });
+
+    toggleDemoQualifyingQrBtn?.addEventListener("click", () => {
+      if (!STANDALONE_DEMO_MODE || !demoQualifyingQrPanel) return;
+      syncDemoQualifyingQrPanel();
+      demoQualifyingQrPanel.hidden = !demoQualifyingQrPanel.hidden;
+    });
+
+    copyDemoQualifyingLinkBtn?.addEventListener("click", async () => {
+      const qualifyingUrl = buildQualifyingDemoUrl();
+      const copied = await copyTextToClipboard(qualifyingUrl);
+      if (!copied) {
+        window.prompt("Copy this live qualifying demo link:", qualifyingUrl);
+        return;
+      }
+      window.alert("Live qualifying demo link copied.");
+    });
+
+    openDemoQualifyingBtn?.addEventListener("click", () => {
+      const launchResult = launchStandaloneDemo({
+        role: "j1",
+        view: "qualifying",
+        scenario: "judging",
+      });
+      if (!launchResult) {
+        window.alert("The live qualifying demo could not be opened right now. Please try again.");
+      }
     });
 
     document.querySelectorAll('[data-simulation-jump]').forEach((button) => {
