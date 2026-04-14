@@ -1604,8 +1604,26 @@
       object-fit: contain;
     }
 
+    .landing-brand-wordmark {
+      display: block;
+      width: min(760px, 100%);
+      max-width: 100%;
+      font-family: "Orbitron", "Eurostile", "Arial Black", sans-serif;
+      font-size: clamp(2.6rem, 7vw, 5.8rem);
+      font-weight: 900;
+      letter-spacing: 0.04em;
+      line-height: 0.94;
+      text-transform: uppercase;
+      color: #1b2127;
+      white-space: nowrap;
+    }
+
     body[data-theme="dark"] .landing-brand-logo {
       filter: none;
+    }
+
+    body[data-theme="dark"] .landing-brand-wordmark {
+      color: #f7f7f7;
     }
 
     body[data-theme="dark"] .hero,
@@ -6974,7 +6992,7 @@
         <div class="hero-copy-block">
         <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png" alt="Prodigy RC Drift Arena" /></div>
           <p class="eyebrow">RCDriftSync</p>
-          <h1 id="landingHeroTitle"><img class="landing-brand-logo" src="./assets/rcdriftsync-title.png?v=2" alt="RCDriftSync" /></h1>
+          <h1 id="landingHeroTitle"><span class="landing-brand-wordmark" aria-label="RCDriftSync">RCDriftSync</span></h1>
           <p id="landingHeroCopy" class="hero-copy">Follow the next event, jump into qualifying and competition, and see why Prodigy is built for real live RC drift events.</p>
           <div class="public-event-actions">
             <button class="button button-accent" type="button" data-landing-jump="self-register">Register</button>
@@ -13864,7 +13882,7 @@
       const nextEvent = activeEventMeta || sortEventsForDisplay().find((eventMeta) => getEventStatus(eventMeta) !== EVENT_STATUS_ARCHIVED) || null;
 
       if (landingHeroTitle) {
-        landingHeroTitle.innerHTML = '<img class="landing-brand-logo" src="./assets/rcdriftsync-title.png?v=2" alt="RCDriftSync" />';
+        landingHeroTitle.innerHTML = '<span class="landing-brand-wordmark" aria-label="RCDriftSync">RCDriftSync</span>';
       }
       if (landingHeroCopy) {
         landingHeroCopy.textContent = nextEvent?.name
