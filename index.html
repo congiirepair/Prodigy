@@ -12566,30 +12566,17 @@
       syncStandaloneDemoSandboxUi();
     }
 
-    function shouldLaunchStandaloneDemoInSameTab() {
-      if (typeof window === "undefined") return false;
-      const mobileViewport = window.matchMedia?.("(max-width: 900px)")?.matches;
-      const coarsePointer = window.matchMedia?.("(pointer: coarse)")?.matches;
-      return Boolean(mobileViewport || coarsePointer);
-    }
-
     function openStandaloneDemoWindow(options = {}) {
       const targetUrl = buildStandaloneDemoUrl(options);
       if (!targetUrl) return null;
-      return window.open(targetUrl, "prodigy-live-demo-window", "noopener,noreferrer,width=1680,height=960");
+      return window.open(targetUrl, "prodigy-live-demo-window", "width=1680,height=960");
     }
 
     function launchStandaloneDemo(options = {}) {
-      const targetUrl = buildStandaloneDemoUrl(options);
-      if (!targetUrl) return null;
-      if (shouldLaunchStandaloneDemoInSameTab()) {
-        window.location.assign(targetUrl);
-        return "same-tab";
-      }
       const demoWindow = openStandaloneDemoWindow(options);
       if (demoWindow) return demoWindow;
-      window.location.assign(targetUrl);
-      return "same-tab";
+      window.alert("Please allow pop-ups for prodigyrccomp.com so Live Demo can open in a separate window.");
+      return null;
     }
 
     function applyRouteFromLocation() {
