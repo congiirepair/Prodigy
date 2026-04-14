@@ -12149,7 +12149,7 @@
       if (typeof window === "undefined") return;
       const hash = String(window.location.hash || "").toLowerCase();
       const search = new URLSearchParams(window.location.search || "");
-      if (hash === "#website-admin" || search.get("admin") === "1") {
+      if (hash === "#website-admin" || hash === "#/website-admin" || search.get("admin") === "1") {
         setTimeout(() => openWebsiteAdminAccess(), 0);
       }
     }
