@@ -5724,6 +5724,44 @@
       flex-wrap: wrap;
       justify-content: flex-end;
       gap: 10px;
+      align-items: center;
+    }
+
+    .demo-judge-picker {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      min-height: 46px;
+      border: 2px solid var(--line);
+      border-radius: 14px;
+      background: rgba(255,255,255,0.78);
+      font-size: 0.82rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-soft);
+    }
+
+    .demo-judge-picker select {
+      min-width: 120px;
+      border: 0;
+      outline: none;
+      background: transparent;
+      color: var(--text);
+      font: inherit;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+
+    .demo-reset-button {
+      opacity: 0.82;
+    }
+
+    .demo-reset-button:hover,
+    .demo-reset-button:focus-visible {
+      opacity: 1;
     }
 
     .demo-sandbox-actions .micro-button.is-active {
@@ -5780,6 +5818,16 @@
         linear-gradient(135deg, rgba(17,17,17,0.96), rgba(27,27,27,0.94)),
         var(--panel);
       box-shadow: 0 18px 36px rgba(0, 0, 0, 0.4);
+    }
+
+    body[data-theme="dark"] .demo-judge-picker {
+      background: rgba(22,22,22,0.9);
+      color: rgba(255,255,255,0.7);
+      border-color: rgba(255,255,255,0.14);
+    }
+
+    body[data-theme="dark"] .demo-judge-picker select {
+      color: #ffffff;
     }
 
     body[data-theme="dark"] .demo-qualifying-qr-panel img {
@@ -7105,13 +7153,17 @@
             <span id="demoSandboxStatus">Keep this window on the live board, then open a judge phone demo on a second device to watch the standings update in real time.</span>
           </div>
           <div class="demo-sandbox-actions">
-            <button class="micro-button" type="button" data-demo-launch data-demo-role="j1" data-demo-view="qualifying" data-demo-scenario="judging">Judge 1 Demo</button>
-            <button class="micro-button" type="button" data-demo-launch data-demo-role="j2" data-demo-view="qualifying" data-demo-scenario="judging">Judge 2 Demo</button>
-            <button class="micro-button" type="button" data-demo-launch data-demo-role="j3" data-demo-view="qualifying" data-demo-scenario="judging">Judge 3 Demo</button>
-            <button class="micro-button" type="button" data-demo-launch data-demo-role="j1" data-demo-view="qualifying" data-demo-scenario="judging">Open Judge Phone Demo</button>
-            <button id="toggleDemoQualifyingQrBtn" class="micro-button" type="button">Show Phone QR</button>
+            <label class="demo-judge-picker" for="demoJudgeRoleSelect">
+              <span>Judge</span>
+              <select id="demoJudgeRoleSelect">
+                <option value="j1">Judge 1</option>
+                <option value="j2">Judge 2</option>
+                <option value="j3">Judge 3</option>
+              </select>
+            </label>
+            <button id="openDemoJudgeLaunchBtn" class="micro-button" type="button">Judge Phone Demo</button>
             <button class="micro-button button-accent" type="button" data-demo-launch data-demo-role="spectator" data-demo-view="bracket" data-demo-scenario="bracket">Interactive Bracket</button>
-            <button class="micro-button" type="button" data-demo-reset>Reset Demo</button>
+            <button class="micro-button demo-reset-button" type="button" data-demo-reset>Reset Demo</button>
           </div>
         </div>
         <div id="demoQualifyingQrPanel" class="demo-qualifying-qr-panel" hidden>
@@ -11650,7 +11702,8 @@
     const demoQualifyingQrPanel = document.getElementById("demoQualifyingQrPanel");
     const demoQualifyingQrImage = document.getElementById("demoQualifyingQrImage");
     const demoQualifyingQrLink = document.getElementById("demoQualifyingQrLink");
-    const toggleDemoQualifyingQrBtn = document.getElementById("toggleDemoQualifyingQrBtn");
+    const demoJudgeRoleSelect = document.getElementById("demoJudgeRoleSelect");
+    const openDemoJudgeLaunchBtn = document.getElementById("openDemoJudgeLaunchBtn");
     const copyDemoQualifyingLinkBtn = document.getElementById("copyDemoQualifyingLinkBtn");
     const openDemoQualifyingBtn = document.getElementById("openDemoQualifyingBtn");
     const websiteAdminGate = document.getElementById("websiteAdminGate");
@@ -12256,17 +12309,21 @@
       return `https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encodeURIComponent(selfRegisterUrl)}`;
     }
 
-    function buildQualifyingDemoUrl() {
+    function getSelectedDemoJudgeRole() {
+      return normalizeStandaloneDemoRole(demoJudgeRoleSelect?.value || "j1");
+    }
+
+    function buildQualifyingDemoUrl(role = getSelectedDemoJudgeRole()) {
       return buildStandaloneDemoUrl({
-        role: "j1",
+        role,
         view: "qualifying",
         scenario: "judging",
         sessionId: STANDALONE_DEMO_SESSION_PARAM || DEMO_PREVIEW_SESSION_ID,
       });
     }
 
-    function buildQualifyingDemoQrUrl() {
-      const qualifyingUrl = buildQualifyingDemoUrl();
+    function buildQualifyingDemoQrUrl(role = getSelectedDemoJudgeRole()) {
+      const qualifyingUrl = buildQualifyingDemoUrl(role);
       if (!qualifyingUrl) return "";
       return `https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encodeURIComponent(qualifyingUrl)}`;
     }
@@ -12276,7 +12333,7 @@
       const qualifyingUrl = buildQualifyingDemoUrl();
       const qrUrl = buildQualifyingDemoQrUrl();
       demoQualifyingQrLink.href = qualifyingUrl || "#";
-        demoQualifyingQrLink.textContent = qualifyingUrl || "Judge phone demo link unavailable.";
+      demoQualifyingQrLink.textContent = qualifyingUrl || "Judge phone demo link unavailable.";
       if (qrUrl) {
         demoQualifyingQrImage.src = qrUrl;
         demoQualifyingQrImage.hidden = false;
@@ -12515,6 +12572,9 @@
         : isLiveDemoBoard
           ? "This standalone live demo window is the spectator board. Scan the QR on a phone to submit scores here live, or switch to the bracket demo when you're ready."
           : "Interactive bracket sandbox is live. Click any sample winner card or battle flow card to advance the bracket.";
+      if (demoJudgeRoleSelect && currentRole?.startsWith("j")) {
+        demoJudgeRoleSelect.value = currentRole;
+      }
       syncDemoQualifyingQrPanel();
       if (demoQualifyingQrPanel) {
         demoQualifyingQrPanel.hidden = !(currentRole === "spectator" && activeView === "qualifying");
@@ -16303,10 +16363,19 @@
       });
     });
 
-    toggleDemoQualifyingQrBtn?.addEventListener("click", () => {
-      if (!STANDALONE_DEMO_MODE || !demoQualifyingQrPanel) return;
+    demoJudgeRoleSelect?.addEventListener("change", () => {
+      if (!STANDALONE_DEMO_MODE) return;
       syncDemoQualifyingQrPanel();
-      demoQualifyingQrPanel.hidden = !demoQualifyingQrPanel.hidden;
+    });
+
+    openDemoJudgeLaunchBtn?.addEventListener("click", () => {
+      if (!STANDALONE_DEMO_MODE) return;
+      runStandaloneDemoMode({
+        role: getSelectedDemoJudgeRole(),
+        view: "qualifying",
+        scenario: "judging",
+        sessionId: STANDALONE_DEMO_SESSION_PARAM || null,
+      });
     });
 
     copyDemoQualifyingLinkBtn?.addEventListener("click", async () => {
@@ -16321,14 +16390,15 @@
 
     openDemoQualifyingBtn?.addEventListener("click", () => {
       const launchResult = launchStandaloneDemo({
-        role: "j1",
+        role: getSelectedDemoJudgeRole(),
         view: "qualifying",
         scenario: "judging",
+        sessionId: STANDALONE_DEMO_SESSION_PARAM || null,
       });
       if (!launchResult) {
-          window.alert("The judge phone demo could not be opened right now. Please try again.");
-        }
-      });
+        window.alert("The judge phone demo could not be opened right now. Please try again.");
+      }
+    });
 
     document.querySelectorAll('[data-simulation-jump]').forEach((button) => {
       button.addEventListener('click', () => {
