@@ -7100,30 +7100,30 @@
 
     <div class="demo-sandbox-stack">
       <div id="demoSandboxBar" class="demo-sandbox-bar hidden">
-        <div class="demo-sandbox-copy">
-          <strong>Interactive Demo Sandbox</strong>
-          <span id="demoSandboxStatus">Try judging sample runs or click through a demo bracket without affecting the live event.</span>
+          <div class="demo-sandbox-copy">
+            <strong>Interactive Demo Sandbox</strong>
+            <span id="demoSandboxStatus">Keep this window on the live board, then open a judge phone demo on a second device to watch the standings update in real time.</span>
+          </div>
+          <div class="demo-sandbox-actions">
+            <button class="micro-button" type="button" data-demo-launch data-demo-role="j1" data-demo-view="qualifying" data-demo-scenario="judging">Judge 1 Demo</button>
+            <button class="micro-button" type="button" data-demo-launch data-demo-role="j2" data-demo-view="qualifying" data-demo-scenario="judging">Judge 2 Demo</button>
+            <button class="micro-button" type="button" data-demo-launch data-demo-role="j3" data-demo-view="qualifying" data-demo-scenario="judging">Judge 3 Demo</button>
+            <button class="micro-button" type="button" data-demo-launch data-demo-role="j1" data-demo-view="qualifying" data-demo-scenario="judging">Open Judge Phone Demo</button>
+            <button id="toggleDemoQualifyingQrBtn" class="micro-button" type="button">Show Phone QR</button>
+            <button class="micro-button button-accent" type="button" data-demo-launch data-demo-role="spectator" data-demo-view="bracket" data-demo-scenario="bracket">Interactive Bracket</button>
+            <button class="micro-button" type="button" data-demo-reset>Reset Demo</button>
+          </div>
         </div>
-        <div class="demo-sandbox-actions">
-          <button class="micro-button" type="button" data-demo-launch data-demo-role="j1" data-demo-view="qualifying" data-demo-scenario="judging">Judge 1 Demo</button>
-          <button class="micro-button" type="button" data-demo-launch data-demo-role="j2" data-demo-view="qualifying" data-demo-scenario="judging">Judge 2 Demo</button>
-          <button class="micro-button" type="button" data-demo-launch data-demo-role="j3" data-demo-view="qualifying" data-demo-scenario="judging">Judge 3 Demo</button>
-          <button class="micro-button" type="button" data-demo-launch data-demo-role="j1" data-demo-view="qualifying" data-demo-scenario="judging">Live Qualifying</button>
-          <button id="toggleDemoQualifyingQrBtn" class="micro-button" type="button">Phone QR</button>
-          <button class="micro-button button-accent" type="button" data-demo-launch data-demo-role="spectator" data-demo-view="bracket" data-demo-scenario="bracket">Interactive Bracket</button>
-          <button class="micro-button" type="button" data-demo-reset>Reset Demo</button>
+        <div id="demoQualifyingQrPanel" class="demo-qualifying-qr-panel" hidden>
+          <strong>Scan To Open The Judge Phone Demo</strong>
+          <div class="registration-form-note">Open this on a phone or second device. The judge submits scores there while this main demo window stays on the live results board.</div>
+          <img id="demoQualifyingQrImage" alt="QR code for the live qualifying phone demo" />
+          <a id="demoQualifyingQrLink" class="simulation-qr-link invite-code-value route-link-value" href="#" target="_blank" rel="noopener noreferrer">Loading live qualifying demo link...</a>
+          <div class="demo-qualifying-qr-actions">
+            <button id="copyDemoQualifyingLinkBtn" class="micro-button" type="button">Copy Link</button>
+            <button id="openDemoQualifyingBtn" class="micro-button button-accent" type="button">Open Judge Phone Demo</button>
+          </div>
         </div>
-      </div>
-      <div id="demoQualifyingQrPanel" class="demo-qualifying-qr-panel" hidden>
-        <strong>Scan To Try Live Qualifying On Phone</strong>
-        <div class="registration-form-note">This opens the empty-score judge demo so someone can enter deductions and watch the live qualifying state build from scratch.</div>
-        <img id="demoQualifyingQrImage" alt="QR code for the live qualifying phone demo" />
-        <a id="demoQualifyingQrLink" class="simulation-qr-link invite-code-value route-link-value" href="#" target="_blank" rel="noopener noreferrer">Loading live qualifying demo link...</a>
-        <div class="demo-qualifying-qr-actions">
-          <button id="copyDemoQualifyingLinkBtn" class="micro-button" type="button">Copy Link</button>
-          <button id="openDemoQualifyingBtn" class="micro-button button-accent" type="button">Open Live Qualifying</button>
-        </div>
-      </div>
     </div>
 
     <div id="view-simulation" class="view-section">
@@ -7166,12 +7166,12 @@
             </article>
             <article class="simulation-action-card">
               <h3>Try Live Qualifying</h3>
-              <p>Scan this QR code on your phone to open the live judging demo with empty scores, then submit runs and watch the qualifying state respond in real time.</p>
+              <p>Keep this page open as the live board. Scan the QR code on a phone or second device, enter judge scores there, and watch this page update live.</p>
               <div class="simulation-qr-preview">
                 <img src="${buildQualifyingDemoQrUrl()}" alt="QR code for the live qualifying phone demo" />
                 <a class="simulation-qr-link invite-code-value route-link-value" href="${buildQualifyingDemoUrl()}" target="_blank" rel="noopener noreferrer">${escapeHtml(buildQualifyingDemoUrl())}</a>
               </div>
-              <button class="button button-secondary" type="button" data-open-demo-role="j1" data-open-demo-view="qualifying" data-open-demo-scenario="judging">Open Live Qualifying</button>
+              <button class="button button-secondary" type="button" data-open-demo-role="j1" data-open-demo-view="qualifying" data-open-demo-scenario="judging">Open Judge Phone Demo</button>
             </article>
             <article class="simulation-action-card">
               <h3>Try Interactive Bracket</h3>
@@ -12235,7 +12235,7 @@
       const qualifyingUrl = buildQualifyingDemoUrl();
       const qrUrl = buildQualifyingDemoQrUrl();
       demoQualifyingQrLink.href = qualifyingUrl || "#";
-      demoQualifyingQrLink.textContent = qualifyingUrl || "Live qualifying demo link unavailable.";
+        demoQualifyingQrLink.textContent = qualifyingUrl || "Judge phone demo link unavailable.";
       if (qrUrl) {
         demoQualifyingQrImage.src = qrUrl;
         demoQualifyingQrImage.hidden = false;
@@ -12443,9 +12443,9 @@
 
       const activeView = getActiveViewName();
       const isJudgeDemo = currentRole?.startsWith("j") && activeView === "qualifying";
-      demoSandboxStatus.textContent = isJudgeDemo
-        ? `${getRoleDisplayName(currentRole)} sandbox is live. Use deductions or type scores, then submit Run 1 and Run 2 to advance the sample lineup.`
-        : "Interactive bracket sandbox is live. Click any sample winner card or battle flow card to advance the bracket.";
+        demoSandboxStatus.textContent = isJudgeDemo
+          ? `${getRoleDisplayName(currentRole)} phone demo is live. Submit Run 1 and Run 2 here while the main demo window stays on the live spectator board.`
+          : "Interactive bracket sandbox is live. Click any sample winner card or battle flow card to advance the bracket.";
       syncDemoQualifyingQrPanel();
 
       demoSandboxBar.querySelectorAll("[data-demo-launch]").forEach((button) => {
@@ -16245,10 +16245,10 @@
       const qualifyingUrl = buildQualifyingDemoUrl();
       const copied = await copyTextToClipboard(qualifyingUrl);
       if (!copied) {
-        window.prompt("Copy this live qualifying demo link:", qualifyingUrl);
-        return;
-      }
-      window.alert("Live qualifying demo link copied.");
+          window.prompt("Copy this judge phone demo link:", qualifyingUrl);
+          return;
+        }
+        window.alert("Judge phone demo link copied.");
     });
 
     openDemoQualifyingBtn?.addEventListener("click", () => {
@@ -16258,9 +16258,9 @@
         scenario: "judging",
       });
       if (!launchResult) {
-        window.alert("The live qualifying demo could not be opened right now. Please try again.");
-      }
-    });
+          window.alert("The judge phone demo could not be opened right now. Please try again.");
+        }
+      });
 
     document.querySelectorAll('[data-simulation-jump]').forEach((button) => {
       button.addEventListener('click', () => {
