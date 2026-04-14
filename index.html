@@ -11137,8 +11137,12 @@
       return doc(db, 'artifacts', appId, 'public', 'data', 'meta', 'eventDirectory');
     }
 
+    function getEventCollectionKey() {
+      return STANDALONE_DEMO_MODE ? 'demoEvents' : 'events';
+    }
+
     function getEventDocRef(eventId) {
-      return doc(db, 'artifacts', appId, 'public', 'data', 'events', eventId);
+      return doc(db, 'artifacts', appId, 'public', 'data', getEventCollectionKey(), eventId);
     }
 
     function getActiveEventSelectionDocRef() {
