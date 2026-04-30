@@ -21971,6 +21971,7 @@
     function shouldUseJudgeBracketView(role = currentRole, flow = qualifyingFlow, drivers = appDrivers, state = tournamentState, eventMeta = activeEventMeta) {
       if (!role?.startsWith("j")) return false;
       if (isJudgeAccessLocked(eventMeta)) return false;
+      if (isTwinTripleMode(eventMeta)) return false;
       if (!state?.mainBracket?.rounds?.length) return false;
       if (isTeamTandemMode(eventMeta)) return true;
       if (getQualifyingFlowPhase(flow, drivers) === "complete") return true;
