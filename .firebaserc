@@ -1,0 +1,6 @@
+{
+  "projects": {
+    "default": "prodigy-rc-competitions",
+    "staging": "prodigy-rc-competitions-staging"
+  }
+}

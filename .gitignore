@@ -6,8 +6,9 @@ node_modules/
 dist/
 build/
 .wrangler/
+.firebase/
+firebase-debug.log
 
 .env
 .env.*
 !.env.example
-

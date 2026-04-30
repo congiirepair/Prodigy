@@ -1,0 +1,15 @@
+{
+  "name": "prodigy-event-control",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "serve": "firebase emulators:start --only hosting,auth,firestore",
+    "serve:hosting": "firebase emulators:start --only hosting",
+    "test:url": "node scripts/test-mode-url.mjs",
+    "test:url:qualifying": "node scripts/test-mode-url.mjs qualifying",
+    "test:url:bracket": "node scripts/test-mode-url.mjs bracket",
+    "test:url:twin": "node scripts/test-mode-url.mjs twin",
+    "simulate:twin": "node scripts/twin-triple-simulator.mjs"
+  }
+}
