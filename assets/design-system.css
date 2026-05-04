@@ -1876,3 +1876,71 @@ body[data-role="j3"] .qualifying-side-column {
     min-height: 108px !important;
   }
 }
+
+/* Phase 7: final visual consistency and polish pass */
+.race-last strong {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  margin-top: 3px;
+}
+
+.race-admin-card strong,
+.race-admin-card small {
+  display: block;
+}
+
+.race-admin-card strong + small {
+  margin-top: 3px;
+}
+
+body:not([data-theme="dark"]) .registration-entry-panel > .panel-header .section-kicker,
+body:not([data-theme="dark"]) .registration-entry-panel > .panel-header h2,
+body:not([data-theme="dark"]) .registration-entry-panel > .registration-intro,
+body:not([data-theme="dark"]) .registration-entry-panel .registration-draft-form .modal-field > span,
+body:not([data-theme="dark"]) .registration-entry-panel .registration-meta {
+  color: #f8f8f8;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.48);
+}
+
+body:not([data-theme="dark"]) .registration-entry-panel .registration-draft-form .modal-field input,
+body:not([data-theme="dark"]) .registration-entry-panel .registration-draft-form .modal-field select,
+body:not([data-theme="dark"]) .registration-entry-panel .registration-draft-form .modal-field textarea {
+  color: #0b0c0d;
+  background: rgba(255, 255, 255, 0.96);
+  border-color: rgba(0, 0, 0, 0.38);
+}
+
+body:not([data-theme="dark"]) .registration-entry-panel .registration-draft-form .modal-field input::placeholder,
+body:not([data-theme="dark"]) .registration-entry-panel .registration-draft-form .modal-field textarea::placeholder {
+  color: rgba(11, 12, 13, 0.58);
+}
+
+body[data-theme="dark"] .self-register-status.is-locked,
+body[data-theme="dark"] .self-register-status.is-error,
+body[data-theme="dark"] .error-state,
+body[data-theme="dark"] .error-msg {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.105), rgba(255, 255, 255, 0.035)) !important;
+  border-color: rgba(255, 255, 255, 0.22) !important;
+  color: #ffffff !important;
+}
+
+body[data-theme="dark"] .self-register-status.is-locked strong,
+body[data-theme="dark"] .self-register-status.is-error strong {
+  color: #ffffff !important;
+}
+
+@media (max-width: 700px) {
+  body[data-test-mode="true"]::after {
+    content: "TEST";
+    top: max(6px, env(safe-area-inset-top));
+    right: max(6px, env(safe-area-inset-right));
+    bottom: auto;
+    padding: 4px 7px;
+    border-radius: 6px;
+    font-size: 0.56rem;
+    letter-spacing: 0.08em;
+    opacity: 0.76;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.24);
+  }
+}
