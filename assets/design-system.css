@@ -1200,6 +1200,60 @@ body:not([data-theme="dark"]) .error-msg {
   }
 }
 
+/* Final live battle name fit: this file loads after the redesign stylesheet. */
+.race-battle-stage {
+  grid-template-columns: minmax(0, 1fr) clamp(48px, 5vw, 76px) minmax(0, 1fr);
+  gap: clamp(8px, 1.6vw, 22px);
+  min-width: 0;
+}
+
+.race-driver-card,
+.race-driver-card.is-right,
+.race-driver-copy {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.race-driver-card strong {
+  display: block;
+  max-width: 100%;
+  font-size: clamp(1.05rem, 1.45vw, 1.9rem);
+  line-height: 0.98;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  text-wrap: balance;
+}
+
+.race-driver-card span,
+.race-driver-card small {
+  max-width: 100%;
+}
+
+.race-driver-card.is-right .race-driver-copy {
+  justify-items: end;
+  padding-left: 20px;
+}
+
+.race-driver-card.is-right strong,
+.race-driver-card.is-right span,
+.race-driver-card.is-right small {
+  text-align: right;
+}
+
+@media (min-width: 1700px) {
+  .race-driver-card strong {
+    font-size: clamp(1.25rem, 1.55vw, 2.35rem);
+  }
+}
+
+@media (max-width: 760px) {
+  .race-driver-card strong {
+    font-size: clamp(1.25rem, 7vw, 2rem);
+  }
+}
+
 /* Phase 4 admin event control center */
 .admin-control-center {
   width: min(1760px, calc(100% - clamp(16px, 4vw, 48px)));
