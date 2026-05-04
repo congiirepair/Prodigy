@@ -17907,8 +17907,13 @@
 
           const remoteDrivers = Array.isArray(remotePayload.drivers) && remotePayload.drivers.length
             ? sanitizeLoadedDrivers(remotePayload.drivers)
-            : createDriverSet();
-          const remoteState = remotePayload.bracket ? upgradeStoredTournamentState(remotePayload.bracket) : null;
+            : TEST_MODE_ENABLED && Array.isArray(drivers) && drivers.length
+              ? sanitizeLoadedDrivers(drivers)
+              : createDriverSet();
+          const localSeededStateFallback = TEST_MODE_ENABLED && tournamentState?.mainBracket?.rounds?.length
+            ? upgradeStoredTournamentState(JSON.parse(JSON.stringify(tournamentState)))
+            : null;
+          const remoteState = remotePayload.bracket ? upgradeStoredTournamentState(remotePayload.bracket) : localSeededStateFallback;
           if (!remoteState?.mainBracket?.rounds?.length) return;
           normalizeBracketState(remoteState);
 
@@ -37577,6 +37582,14 @@
       }
       const voteButton = e.target.closest("[data-action='judge-competition-vote']");
       if (!voteButton) return;
+      if (!voteButton.disabled) {
+        voteButton.closest(".competition-vote-grid")?.querySelectorAll("[data-action='judge-competition-vote']").forEach((button) => {
+          button.classList.remove("selected", "button-accent");
+          button.classList.add("button-secondary");
+        });
+        voteButton.classList.remove("button-secondary");
+        voteButton.classList.add("button-accent", "selected");
+      }
       await submitCompetitionJudgeVote(voteButton.dataset.side, currentRole);
     });
 
