@@ -14439,6 +14439,8 @@
       </div>
       <pre id="testDebugPanel" class="empty-state hidden registration-admin-only" style="white-space: pre-wrap; overflow:auto; max-height:260px;"></pre>
 
+      <section class="command-center admin-control-center admin-only" data-admin-command-center data-admin-context="registration" aria-label="Event admin command center"></section>
+
       <main class="registration-layout">
         <section class="panel registration-entry-panel">
           <div class="panel-header">
@@ -14896,6 +14898,8 @@
 
       <section id="qualifyingLivePanel" class="qualifying-live-shell"></section>
 
+      <section class="command-center admin-control-center admin-only" data-admin-command-center data-admin-context="qualifying" aria-label="Qualifying admin command center"></section>
+
       <main class="qualifying-layout">
         <h1 class="sr-only">Judge Input</h1>
         <section class="panel">
@@ -15037,6 +15041,8 @@
         </div>
       </section>
 
+      <section class="command-center admin-control-center admin-only website-admin-control-center" data-admin-command-center data-admin-context="website-admin" aria-label="Website admin command center"></section>
+
       <main id="websiteAdminWorkspace" class="admin-workspace-layout">
         <section class="stack">
           <section class="panel">
@@ -15148,6 +15154,7 @@
           <button id="inlineResetBracketBtn" class="button button-accent admin-action" type="button">Reset Winners</button>
           <button id="inlineBackToQualifyingBtn" class="button button-secondary" type="button">Back To Qualifying</button>
         </div>
+        <section class="command-center admin-control-center admin-only" data-admin-command-center data-admin-context="bracket" aria-label="Bracket admin command center"></section>
         <div id="summaryStrip" class="summary-strip"></div>
         <main id="raceControlDashboardBracket" class="race-control-dashboard race-control-dashboard-inline spectator-only" aria-label="Live event command center"></main>
         <section id="winnerRevealOverlay" class="winner-reveal-overlay hidden" aria-live="polite"></section>
@@ -23035,6 +23042,7 @@
     const spectatorSimulationSummary = document.getElementById("spectatorSimulationSummary");
     const spectatorSimulationEventTitle = document.getElementById("spectatorSimulationEventTitle");
     const eventCommandCenter = document.getElementById("eventCommandCenter");
+    const adminCommandCenterSurfaces = Array.from(document.querySelectorAll("[data-admin-command-center]"));
     const commandCenterPhase = document.getElementById("commandCenterPhase");
     const commandCenterGrid = document.getElementById("commandCenterGrid");
     const commandCenterValidation = document.getElementById("commandCenterValidation");
@@ -27112,10 +27120,13 @@
     }
 
     function renderCommandCenter() {
-      if (!eventCommandCenter || !commandCenterGrid || !commandCenterValidation) return;
+      const hasLegacyCommandCenter = Boolean(eventCommandCenter && commandCenterGrid && commandCenterValidation);
+      const adminSurfaces = adminCommandCenterSurfaces || [];
+      if (!hasLegacyCommandCenter && !adminSurfaces.length) return;
       if (!activeEventMeta) {
-        commandCenterGrid.innerHTML = "";
-        commandCenterValidation.innerHTML = "";
+        if (commandCenterGrid) commandCenterGrid.innerHTML = "";
+        if (commandCenterValidation) commandCenterValidation.innerHTML = "";
+        adminSurfaces.forEach((surface) => { surface.innerHTML = ""; });
         return;
       }
       const lifecycle = getEventLifecycleMeta();
@@ -27133,6 +27144,7 @@
       const nextDriver = currentIndex > -1 ? queue[currentIndex + 1] || null : null;
       const competitionFlow = getCompetitionFlowEntriesForState(tournamentState);
       const currentBattle = competitionFlow.currentEntry || null;
+      const nextBattle = competitionFlow.nextEntry || null;
       const activeJudgeRoles = getActiveJudgeRoles(activeEventMeta);
       const judgesReady = activeJudgeRoles.filter((role) => qualifyingFlow?.readyRoles?.[role]).length;
       const results = activeEventMeta?.results || {};
@@ -27154,12 +27166,92 @@
         { label: teamTandemMode ? (teamEntries.length >= 2 ? "Teams Ready" : "Need Teams") : twinTripleMode ? (getRegisteredDrivers(appDrivers).length >= 2 ? "Teams Ready" : "Need Teams") : (registeredDrivers.length >= 2 ? "Drivers Ready" : "Need Drivers"), tone: (teamTandemMode ? teamEntries.length >= 2 : getRegisteredDrivers(appDrivers).length >= 2) ? "ready" : "warning" },
         { label: bracketPublished || twinLive ? "Competition Live" : validation.buildReady ? "Build Ready" : "Setup Pending", tone: bracketPublished || twinLive || validation.buildReady ? "ready" : "warning" },
       ];
+      const judgeClaims = getJudgeRoleClaims(activeEventMeta);
+      const claimedJudgeCount = activeJudgeRoles.filter((role) => judgeClaims?.[role]?.status === "claimed").length;
+      const judgeControl = getCompetitionJudgeControl();
+      const decisionResolution = judgeControl ? getCompetitionDecisionResolution(judgeControl, activeEventMeta) : null;
+      const submittedDecisionCount = activeJudgeRoles.filter((role) => {
+        if (!decisionResolution) return false;
+        if (decisionResolution.mode === "scorecard") {
+          const side = decisionResolution.currentSide || "done";
+          return side === "done" || hasCompetitionScoreValue(judgeControl?.scorecards?.[role]?.[side]);
+        }
+        return ["left", "right", "omt"].includes(judgeControl?.votes?.[role]);
+      }).length;
+      const currentBattleTitle = currentBattle
+        ? buildPublicEventBattleTitle(currentBattle)
+        : currentDriver?.name || "Waiting";
+      const nextBattleTitle = nextBattle
+        ? buildPublicEventBattleTitle(nextBattle)
+        : nextDriver?.name || "No battle queued";
+      const syncTone = isOfflineMode() ? "warning" : "ready";
+      const syncLabel = isOfflineMode() ? "Offline Mode" : "Live Sync";
+      const competitionModeLabel = twinTripleMode
+        ? getTwinCompEliminationLabel()
+        : teamTandemMode ? "Team Tandem" : "Solo Drivers";
+      let recommendedAction = {
+        label: "Review Event Setup",
+        detail: "Confirm roster, judges, check-in, and format before the first run.",
+        action: "registration",
+        actionLabel: "Open Setup",
+      };
+      if (validation.issues.length) {
+        recommendedAction = {
+          label: "Fix Setup Issue",
+          detail: validation.issues[0],
+          action: "registration",
+          actionLabel: "Review Setup",
+        };
+      } else if (checkInCounts.needsReview) {
+        recommendedAction = {
+          label: "Review Check-Ins",
+          detail: `${checkInCounts.needsReview} check-in entr${checkInCounts.needsReview === 1 ? "y needs" : "ies need"} admin review.`,
+          action: "registration",
+          actionLabel: "Open Check-In",
+        };
+      } else if (bracketPublished && judgeControl?.status === "admin_decision") {
+        recommendedAction = {
+          label: "Contest Decision Pending",
+          detail: "Resolve the contest call before advancing the event.",
+          action: "bracket",
+          actionLabel: "Open Bracket",
+        };
+      } else if (bracketPublished && currentBattle) {
+        recommendedAction = {
+          label: "Monitor Current Battle",
+          detail: `${currentBattleTitle || "Current battle"} is live. Watch judge submissions and contest timer.`,
+          action: "bracket",
+          actionLabel: "Control Battle",
+        };
+      } else if (twinTripleMode && twinState?.status === "complete") {
+        recommendedAction = {
+          label: "Complete Event",
+          detail: "Twin Comp winner is locked. Save this event to results when presentation is complete.",
+          action: "finalize",
+          actionLabel: "Mark Complete",
+        };
+      } else if (!bracketPublished && validation.buildReady) {
+        recommendedAction = {
+          label: teamTandemMode ? "Launch Team Bracket" : "Build Bracket",
+          detail: validation.plan?.description || "Qualifying and roster are ready for competition.",
+          action: "bracket",
+          actionLabel: teamTandemMode ? "Launch Bracket" : "Build Bracket",
+        };
+      } else if (getQualifyingFlowPhase(qualifyingFlow, appDrivers) === "live") {
+        recommendedAction = {
+          label: "Continue Qualifying",
+          detail: currentDriver?.name ? `${currentDriver.name} is up now. ${nextDriver?.name ? `${nextDriver.name} is on deck.` : "No on-deck driver yet."}` : "Judges are scoring the qualifying order.",
+          action: "qualifying",
+          actionLabel: "Open Qualifying",
+        };
+      }
 
       if (commandCenterPhase) {
         commandCenterPhase.textContent = lifecycle.label;
         commandCenterPhase.className = `status-pill ${lifecycle.tone}`;
       }
 
+      if (commandCenterGrid) {
       commandCenterGrid.innerHTML = `
         <article class="command-center-card">
           <span>Current Phase</span>
@@ -27205,14 +27297,97 @@
           <small>Fast event-day scan for staff: event identity, judges, check-in, roster, and competition readiness.</small>
         </article>
       `;
+      }
 
       const noteMarkup = [
         ...validation.issues.map((item) => `<div class="command-center-note issue">${escapeHtml(item)}</div>`),
         ...validation.warnings.map((item) => `<div class="command-center-note warning">${escapeHtml(item)}</div>`),
       ];
+      if (commandCenterValidation) {
       commandCenterValidation.innerHTML = noteMarkup.length
         ? noteMarkup.join("")
         : `<div class="command-center-note">Command center is clear. ${teamTandemMode ? (teamEntries.length ? `${teamEntries.length} team${teamEntries.length === 1 ? "" : "s"} are ready for the randomized bracket.` : "Register teams to begin.") : twinTripleMode ? (getRegisteredDrivers(appDrivers).length ? `${getRegisteredDrivers(appDrivers).length} team${getRegisteredDrivers(appDrivers).length === 1 ? "" : "s"} ready for ${getTwinCompEliminationAdjective()}.` : "Add teams to begin.") : (rankedDrivers.length ? `${rankedDrivers.length} scored driver${rankedDrivers.length === 1 ? "" : "s"} are tracked for this event.` : "Add drivers or scores to begin.")}</div>`;
+      }
+
+      const controlCenterMarkup = `
+        <div class="admin-control-center-shell">
+          <header class="admin-control-center-header">
+            <div>
+              <p class="section-kicker">Event Control Center</p>
+              <h2>${escapeHtml(activeEventMeta.name || "Live Event")}</h2>
+              <small>${escapeHtml(competitionModeLabel)} | ${escapeHtml(lifecycle.label)} | ${escapeHtml(lifecycle.detail)}</small>
+            </div>
+            <div class="admin-control-center-status">
+              ${renderStatusChips([
+                { label: syncLabel, tone: syncTone },
+                { label: `${claimedJudgeCount}/${activeJudgeRoles.length || 0} Connected`, tone: activeJudgeRoles.length && claimedJudgeCount === activeJudgeRoles.length ? "ready" : "warning" },
+                { label: `${submittedDecisionCount}/${activeJudgeRoles.length || 0} Submitted`, tone: bracketPublished && activeJudgeRoles.length && submittedDecisionCount === activeJudgeRoles.length ? "ready" : bracketPublished ? "warning" : "muted" },
+                { label: venueConfig.qrCheckInEnabled ? "QR Check-In On" : "QR Check-In Off", tone: venueConfig.qrCheckInEnabled ? "ready" : "muted" },
+              ])}
+            </div>
+          </header>
+          <div class="admin-control-center-focus">
+            <article class="admin-control-focus-card is-primary">
+              <span>Recommended Next Action</span>
+              <strong>${escapeHtml(recommendedAction.label)}</strong>
+              <small>${escapeHtml(recommendedAction.detail)}</small>
+              <button class="micro-button button-accent" type="button" data-admin-command-action="${escapeAttributeValue(recommendedAction.action)}">${escapeHtml(recommendedAction.actionLabel)}</button>
+            </article>
+            <article class="admin-control-focus-card">
+              <span>Current Battle</span>
+              <strong>${escapeHtml(currentBattleTitle || "Waiting")}</strong>
+              <small>${escapeHtml(currentBattle?.meta || currentBattle?.label || currentDriver?.teamName || "No active battle is locked yet.")}</small>
+            </article>
+            <article class="admin-control-focus-card">
+              <span>Up Next</span>
+              <strong>${escapeHtml(nextBattleTitle || "No battle queued")}</strong>
+              <small>${escapeHtml(nextBattle?.meta || nextBattle?.label || nextDriver?.teamName || "Queue updates when qualifying or bracket advances.")}</small>
+            </article>
+            <article class="admin-control-focus-card">
+              <span>Check-In Desk</span>
+              <strong>${checkInCounts.arrived}/${Math.max(checkInCounts.preregistered + checkInCounts.arrived + checkInCounts.needsReview, registeredDrivers.length)}</strong>
+              <small>${checkInCounts.needsReview ? `${checkInCounts.needsReview} need review before roster approval.` : "No check-in issues flagged."}</small>
+            </article>
+          </div>
+          <div class="admin-control-center-grid">
+            <article class="command-center-card">
+              <span>Judges</span>
+              <strong>${claimedJudgeCount}/${activeJudgeRoles.length || 0} Connected</strong>
+              ${renderJudgeProgressChips(activeEventMeta, { mode: bracketPublished ? "competition" : "qualifying" })}
+              <small>${bracketPublished ? "Decision submission status reflects the current battle control." : "Qualifying ready states clear as the run advances."}</small>
+            </article>
+            <article class="command-center-card">
+              <span>Live Sync</span>
+              <strong>${escapeHtml(syncLabel)}</strong>
+              ${renderStatusChips(healthItems)}
+              <small>${escapeHtml(isOfflineMode() ? "This device is using protected local mode. Reconnect before event-critical changes." : "Firebase/live event sync appears available from this device.")}</small>
+            </article>
+            <article class="command-center-card">
+              <span>Setup Safety</span>
+              <strong>${setupChecklistItems.every((item) => item.tone === "ready" || item.tone === "muted") ? "Ready" : "Review"}</strong>
+              ${renderStatusChips(setupChecklistItems)}
+              <small>Controls stay visible, while risky actions still require existing confirmations.</small>
+            </article>
+            <article class="command-center-card">
+              <span>Quick Actions</span>
+              <div class="admin-control-quick-actions">
+                <button class="micro-button" type="button" data-admin-command-action="registration">Registration</button>
+                <button class="micro-button" type="button" data-admin-command-action="qualifying">Qualifying</button>
+                <button class="micro-button" type="button" data-admin-command-action="bracket">Bracket</button>
+                <button class="micro-button" type="button" data-admin-command-action="website-admin">Website Admin</button>
+              </div>
+              <small>Jump to the live control surface without digging through navigation.</small>
+            </article>
+          </div>
+          <div class="admin-control-center-validation">
+            ${noteMarkup.length ? noteMarkup.join("") : `<div class="command-center-note">Control center clear. Keep judging devices connected and continue the live event flow.</div>`}
+          </div>
+        </div>
+      `;
+
+      adminSurfaces.forEach((surface) => {
+        surface.innerHTML = controlCenterMarkup;
+      });
 
       if (commandCenterQualifyingBtn) commandCenterQualifyingBtn.disabled = currentRole !== "admin";
       if (commandCenterBracketBtn) {
@@ -32999,6 +33174,38 @@
           if (!copied) window.prompt("Copy this public event link:", buildPublicEventUrl("home"));
           else window.alert("Public event link copied.");
         });
+        return;
+      }
+      const adminCommandButton = event.target.closest("[data-admin-command-action]");
+      if (adminCommandButton) {
+        const action = adminCommandButton.dataset.adminCommandAction;
+        if (action === "finalize") {
+          finalizeCurrentEventResults();
+          return;
+        }
+        if (action === "bracket") {
+          if (isTwinTripleMode(activeEventMeta)) {
+            syncTwinCompTeamsFromRoster();
+            publishState();
+            switchView("bracket");
+            return;
+          }
+          if (!tournamentState?.mainBracket?.rounds?.length) {
+            openCompetitionBracket();
+            return;
+          }
+          if (!isTeamTandemMode(activeEventMeta)) {
+            completeQualifyingFlowForCompetition();
+            publishState();
+          }
+          switchView("bracket");
+          return;
+        }
+        if (action === "website-admin") {
+          switchView("website-admin");
+          return;
+        }
+        switchView(action || "registration");
         return;
       }
       const landingJumpButton = event.target.closest('[data-landing-jump]');

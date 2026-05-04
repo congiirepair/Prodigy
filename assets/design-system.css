@@ -1199,3 +1199,249 @@ body:not([data-theme="dark"]) .error-msg {
     justify-content: flex-start;
   }
 }
+
+/* Phase 4 admin event control center */
+.admin-control-center {
+  width: min(1760px, calc(100% - clamp(16px, 4vw, 48px)));
+  margin: clamp(12px, 2vw, 22px) auto;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 34%),
+    linear-gradient(180deg, rgba(10, 11, 14, 0.92), rgba(3, 4, 6, 0.94));
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.045),
+    0 24px 70px rgba(0, 0, 0, 0.36);
+  overflow: hidden;
+}
+
+.website-admin-control-center {
+  margin-top: clamp(12px, 2vw, 22px);
+}
+
+.admin-control-center:empty {
+  display: none;
+}
+
+.admin-control-center-shell {
+  position: relative;
+  display: grid;
+  gap: 12px;
+  padding: clamp(12px, 1.6vw, 20px);
+}
+
+.admin-control-center-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(105deg, transparent 0 17%, rgba(255, 255, 255, 0.1) 17.2% 17.45%, transparent 17.7% 76%, rgba(255, 255, 255, 0.055) 76.2% 76.45%, transparent 76.7%),
+    radial-gradient(circle at 12% 0%, rgba(255, 255, 255, 0.11), transparent 22rem);
+  opacity: 0.72;
+}
+
+.admin-control-center-shell > * {
+  position: relative;
+  z-index: 1;
+}
+
+.admin-control-center-header {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(320px, auto);
+  gap: 16px;
+  align-items: start;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.admin-control-center-header h2 {
+  margin: 2px 0 4px;
+  color: #ffffff;
+  font-family: var(--ds-font-display);
+  font-size: clamp(1.45rem, 2.35vw, 3rem);
+  line-height: 0.95;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.admin-control-center-header small {
+  display: block;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 0.78rem;
+  font-weight: 850;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.admin-control-center-status .driver-status-row {
+  justify-content: flex-end;
+}
+
+.admin-control-center-focus {
+  display: grid;
+  grid-template-columns: minmax(260px, 1.2fr) repeat(3, minmax(190px, 1fr));
+  gap: 10px;
+}
+
+.admin-control-focus-card {
+  min-height: 132px;
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  padding: 13px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 6px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.018)),
+    rgba(0, 0, 0, 0.36);
+}
+
+.admin-control-focus-card.is-primary {
+  border-color: rgba(255, 255, 255, 0.28);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.035)),
+    rgba(0, 0, 0, 0.46);
+  box-shadow: inset 4px 0 0 #ffffff, 0 0 34px rgba(255, 255, 255, 0.08);
+}
+
+.admin-control-focus-card span,
+.admin-control-center .command-center-card span {
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 0.66rem;
+  font-weight: 950;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.admin-control-focus-card strong {
+  color: #ffffff;
+  font-family: var(--ds-font-display);
+  font-size: clamp(1.05rem, 1.45vw, 1.8rem);
+  line-height: 0.98;
+  text-transform: uppercase;
+}
+
+.admin-control-focus-card small {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.admin-control-focus-card .micro-button {
+  width: fit-content;
+  min-width: 150px;
+  margin-top: auto;
+}
+
+.admin-control-center-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.admin-control-center .command-center-card {
+  min-height: 148px;
+  border-radius: 6px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.018)),
+    rgba(2, 3, 5, 0.52);
+}
+
+.admin-control-center .command-center-card strong {
+  color: #ffffff;
+  font-family: var(--ds-font-display);
+  font-size: clamp(1rem, 1.4vw, 1.55rem);
+  line-height: 1;
+}
+
+.admin-control-center .command-center-card small {
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.admin-control-quick-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.admin-control-quick-actions .micro-button {
+  min-width: 0;
+}
+
+.admin-control-center-validation {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-control-center .command-center-note {
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.045);
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.admin-control-center .command-center-note.issue {
+  border-color: rgba(255, 255, 255, 0.42);
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+.admin-control-center .driver-status-row {
+  gap: 6px;
+}
+
+.admin-control-center .driver-status-chip {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.74);
+}
+
+.admin-control-center .driver-status-chip.ready,
+.admin-control-center .driver-status-chip.live,
+.admin-control-center .driver-status-chip.champion {
+  border-color: rgba(255, 255, 255, 0.44);
+  background: #ffffff;
+  color: #050608;
+}
+
+.admin-control-center .driver-status-chip.warning,
+.admin-control-center .driver-status-chip.error {
+  border-color: rgba(255, 255, 255, 0.34);
+  background: rgba(255, 255, 255, 0.13);
+  color: #ffffff;
+}
+
+@media (max-width: 1180px) {
+  .admin-control-center-header,
+  .admin-control-center-focus,
+  .admin-control-center-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .admin-control-focus-card.is-primary {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 720px) {
+  .admin-control-center {
+    width: min(100% - 20px, 680px);
+    margin-block: 10px;
+  }
+
+  .admin-control-center-header,
+  .admin-control-center-focus,
+  .admin-control-center-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-control-center-status .driver-status-row {
+    justify-content: flex-start;
+  }
+
+  .admin-control-focus-card {
+    min-height: 0;
+  }
+}
