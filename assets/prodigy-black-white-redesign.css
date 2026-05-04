@@ -2,7 +2,7 @@
   Prodigy RC Comp Race Control Redesign
   ------------------------------------------------------------
   Isolated visual system override for the redesign branch. This now
-  follows visual-redesign-preview.html's cyan/lime race-control concept.
+  follows visual-redesign-preview.html's black-and-white race-control concept.
   Rollback: remove this stylesheet link from index.html or restore
   the timestamped backup folder listed in docs/BLACK_WHITE_REDESIGN_ROLLBACK.md.
 */
@@ -898,7 +898,7 @@ body[data-test-mode="true"][data-role="spectator"]:has(#view-live.is-active)::af
     "footer footer footer footer footer";
   gap: 8px;
   padding: 8px;
-  color: #f6f7f8;
+  color: #f7f7f7;
 }
 
 body[data-role="spectator"] #view-bracket .race-control-dashboard,
@@ -960,9 +960,9 @@ body[data-role="spectator"] #view-live .race-control-dashboard {
   display: grid;
   place-items: center;
   border-radius: 4px;
-  background: linear-gradient(145deg, #ffffff, #aebdc2 42%, #26f0ff 43%, #071014 72%);
-  color: #071014;
-  box-shadow: 0 0 0 1px rgba(255,255,255,0.18), 0 12px 28px rgba(38,240,255,0.22);
+  background: linear-gradient(145deg, #ffffff, #d4d4d4 42%, #ffffff 43%, #050505 72%);
+  color: #050505;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.18), 0 12px 28px rgba(255,255,255,0.22);
   font-family: var(--font-graffiti);
 }
 
@@ -975,7 +975,7 @@ body[data-role="spectator"] #view-live .race-control-dashboard {
   border: 1px solid transparent;
   border-radius: 4px;
   background: transparent;
-  color: #d8dce5;
+  color: #d8d8d8;
   font-size: 0.72rem;
   font-weight: 900;
   letter-spacing: 0.08em;
@@ -996,7 +996,7 @@ body[data-role="spectator"] #view-live .race-control-dashboard {
   display: grid;
   gap: 8px;
   padding: 10px;
-  border-color: rgba(38,240,255,0.22);
+  border-color: rgba(255,255,255,0.22);
 }
 
 .race-topbar {
@@ -1024,7 +1024,7 @@ body[data-role="spectator"] #view-live .race-control-dashboard {
 .race-panel > span,
 .race-admin-card span,
 .race-mobile-card > span {
-  color: #a6abb5;
+  color: #a8a8a8;
   font-size: 0.68rem;
   font-weight: 900;
   letter-spacing: 0.1em;
@@ -1039,7 +1039,7 @@ body[data-role="spectator"] #view-live .race-control-dashboard {
 }
 
 .race-sponsor-row strong {
-  color: #9cff4a;
+  color: #ffffff;
 }
 
 .race-mini-btn,
@@ -1054,7 +1054,7 @@ body[data-role="spectator"] #view-live .race-control-dashboard {
   border: 1px solid rgba(255,255,255,0.18);
   border-radius: 4px;
   background: rgba(255,255,255,0.06);
-  color: #f6f7f8;
+  color: #f7f7f7;
   padding: 0 12px;
   font-size: 0.68rem;
   font-weight: 950;
@@ -1070,8 +1070,8 @@ body[data-role="spectator"] #view-live .race-control-dashboard {
 .race-standings-panel button:hover,
 .race-phone button:hover {
   transform: translateY(-1px);
-  border-color: rgba(38,240,255,0.46);
-  box-shadow: 0 0 20px rgba(38,240,255,0.13);
+  border-color: rgba(255,255,255,0.46);
+  box-shadow: 0 0 20px rgba(255,255,255,0.13);
 }
 
 .race-battle-panel {
@@ -1082,8 +1082,8 @@ body[data-role="spectator"] #view-live .race-control-dashboard {
   border: 1px solid rgba(255,255,255,0.18);
   border-radius: 6px;
   background:
-    linear-gradient(115deg, transparent 0 42%, rgba(38,240,255,0.16) 50%, transparent 58% 100%),
-    radial-gradient(circle at 70% 30%, rgba(156,255,74,0.08), transparent 20rem),
+    linear-gradient(115deg, transparent 0 42%, rgba(255,255,255,0.16) 50%, transparent 58% 100%),
+    radial-gradient(circle at 70% 30%, rgba(255,255,255,0.08), transparent 20rem),
     rgba(5, 6, 8, 0.88);
 }
 
@@ -1092,7 +1092,7 @@ body[data-role="spectator"] #view-live .race-control-dashboard {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(90deg, rgba(38,240,255,0.85) 0 5px, transparent 5px),
+    linear-gradient(90deg, rgba(255,255,255,0.85) 0 5px, transparent 5px),
     repeating-linear-gradient(0deg, rgba(255,255,255,0.03) 0 1px, transparent 1px 5px);
   opacity: 0.6;
   pointer-events: none;
@@ -1148,7 +1148,7 @@ body[data-role="spectator"] #view-live .race-control-dashboard {
 
 .race-driver-card span,
 .race-driver-card small {
-  color: #d8dce5;
+  color: #d8d8d8;
   font-size: 0.72rem;
   font-weight: 900;
   letter-spacing: 0.08em;
@@ -1191,7 +1191,7 @@ body[data-role="spectator"] #view-live .race-control-dashboard {
   place-items: center;
   border: 1px solid rgba(255,255,255,0.14);
   border-radius: 4px;
-  color: #d8dce5;
+  color: #d8d8d8;
   font-size: 0.64rem;
   font-weight: 950;
   letter-spacing: 0.06em;
@@ -1199,9 +1199,9 @@ body[data-role="spectator"] #view-live .race-control-dashboard {
 }
 
 .race-judge-strip span.is-ready {
-  color: #eaffda;
-  border-color: rgba(156,255,74,0.36);
-  background: rgba(156,255,74,0.08);
+  color: #ffffff;
+  border-color: rgba(255,255,255,0.36);
+  background: rgba(255,255,255,0.08);
 }
 
 .race-info-row {
@@ -1232,7 +1232,7 @@ body[data-role="spectator"] #view-live .race-control-dashboard {
 }
 
 .race-queue-item span {
-  color: #a6abb5;
+  color: #a8a8a8;
   font-size: 0.66rem;
   font-weight: 950;
   text-transform: uppercase;
@@ -1254,7 +1254,7 @@ body[data-role="spectator"] #view-live .race-control-dashboard {
 .race-last small {
   display: block;
   margin-top: 4px;
-  color: #a6abb5;
+  color: #a8a8a8;
   font-size: 0.72rem;
   font-weight: 800;
 }
@@ -1284,7 +1284,7 @@ body[data-role="spectator"] #view-live .race-control-dashboard {
 }
 
 .race-stat-grid small {
-  color: #a6abb5;
+  color: #a8a8a8;
   font-size: 0.62rem;
   font-weight: 900;
   letter-spacing: 0.08em;
@@ -1350,7 +1350,7 @@ body[data-role="spectator"] #view-live .race-control-dashboard {
 }
 
 .race-admin-card small {
-  color: #d8dce5;
+  color: #d8d8d8;
   font-size: 0.72rem;
   font-weight: 800;
 }
@@ -1383,7 +1383,7 @@ body[data-role="spectator"] #view-live .race-control-dashboard {
 }
 
 .race-phone small {
-  color: #d8dce5;
+  color: #d8d8d8;
   font-size: 0.7rem;
   font-weight: 800;
   text-align: center;
@@ -1420,7 +1420,7 @@ body[data-role="spectator"] #view-live .race-control-dashboard {
   min-height: 30px;
   display: grid;
   place-items: center;
-  color: #a6abb5;
+  color: #a8a8a8;
   font-size: 0.58rem;
   font-weight: 950;
   letter-spacing: 0.08em;
@@ -1446,7 +1446,7 @@ body[data-role="spectator"] #view-live .race-control-dashboard {
 }
 
 .race-mini-column small {
-  color: #a6abb5;
+  color: #a8a8a8;
   font-size: 0.58rem;
   font-weight: 950;
   letter-spacing: 0.08em;
@@ -1486,7 +1486,7 @@ body[data-role="spectator"] #view-live .race-control-dashboard {
 }
 
 .race-mini-match.is-winner {
-  box-shadow: inset 4px 0 0 #9cff4a;
+  box-shadow: inset 4px 0 0 #ffffff;
 }
 
 .race-mini-final {
@@ -1503,7 +1503,7 @@ body[data-role="spectator"] #view-live .race-control-dashboard {
 }
 
 .race-mini-final span {
-  color: #a6abb5;
+  color: #a8a8a8;
   font-size: 0.62rem;
   font-weight: 800;
 }
@@ -1525,7 +1525,7 @@ body[data-role="spectator"] #view-live .race-control-dashboard {
 
 .race-standing span,
 .race-standing small {
-  color: #a6abb5;
+  color: #a8a8a8;
   font-size: 0.68rem;
   font-weight: 950;
 }
@@ -1572,7 +1572,7 @@ body[data-role="spectator"] #view-live .race-control-dashboard {
   content: "";
   position: absolute;
   inset: -80%;
-  background: conic-gradient(from 0deg, transparent, rgba(255,255,255,0.9), #26f0ff, #9cff4a, transparent 36%);
+  background: conic-gradient(from 0deg, transparent, rgba(255,255,255,0.9), #ffffff, #ffffff, transparent 36%);
   animation: winnerBorderRotate 4s linear infinite;
 }
 
@@ -1592,7 +1592,7 @@ body[data-role="spectator"] #view-live .race-control-dashboard {
 
 .race-winner-box span,
 .race-winner-meta span {
-  color: #a6abb5;
+  color: #a8a8a8;
   font-size: 0.72rem;
   font-weight: 950;
   letter-spacing: 0.12em;
@@ -1627,7 +1627,7 @@ body[data-role="spectator"] #view-live .race-control-dashboard {
 }
 
 .race-winner-meta small {
-  color: #a6abb5;
+  color: #a8a8a8;
   font-weight: 800;
 }
 
@@ -1655,7 +1655,7 @@ body[data-role="spectator"] #view-live .race-control-dashboard {
 
 .race-empty {
   padding: 18px;
-  color: #a6abb5;
+  color: #a8a8a8;
   border: 1px dashed rgba(255,255,255,0.16);
   border-radius: 6px;
   font-weight: 800;
@@ -1792,38 +1792,38 @@ body[data-role="spectator"] #view-live .race-control-dashboard {
   --panel-soft: rgba(255, 255, 255, 0.055);
   --line: rgba(255, 255, 255, 0.12);
   --line-strong: rgba(255, 255, 255, 0.22);
-  --text: #f6f7f8;
-  --text-soft: #a6abb5;
-  --accent: #26f0ff;
-  --accent-dark: #087d8b;
-  --accent-cyan: #26f0ff;
-  --accent-green: #9cff4a;
-  --accent-green-dark: #5fa900;
-  --accent-warm: #f7d66a;
-  --panel-highlight: #26f0ff;
-  --button-accent: #26f0ff;
-  --button-accent-dark: #087d8b;
-  --button-accent-text: #031114;
-  --button-accent-text-strong: #031114;
-  --accent-rgb: 38, 240, 255;
-  --button-accent-rgb: 38, 240, 255;
-  --button-accent-dark-rgb: 8, 125, 139;
-  --accent-cyan-rgb: 38, 240, 255;
-  --accent-green-rgb: 156, 255, 74;
-  --panel-highlight-rgb: 38, 240, 255;
+  --text: #f7f7f7;
+  --text-soft: #a8a8a8;
+  --accent: #ffffff;
+  --accent-dark: #5c5c5c;
+  --accent-cyan: #ffffff;
+  --accent-green: #ffffff;
+  --accent-green-dark: #7a7a7a;
+  --accent-warm: #ffffff;
+  --panel-highlight: #ffffff;
+  --button-accent: #ffffff;
+  --button-accent-dark: #5c5c5c;
+  --button-accent-text: #050505;
+  --button-accent-text-strong: #050505;
+  --accent-rgb: 255, 255, 255;
+  --button-accent-rgb: 255, 255, 255;
+  --button-accent-dark-rgb: 92, 92, 92;
+  --accent-cyan-rgb: 255, 255, 255;
+  --accent-green-rgb: 255, 255, 255;
+  --panel-highlight-rgb: 255, 255, 255;
   --radius-panel: 10px;
   --radius-card: 6px;
   --radius-button: 999px;
   --panel-shadow: 0 28px 80px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.14);
   --card-shadow: 0 18px 46px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.11);
-  --button-shadow: 0 18px 42px rgba(38, 240, 255, 0.24);
-  --accent-glow: 0 0 0 1px rgba(38, 240, 255, 0.28), 0 0 28px rgba(38, 240, 255, 0.18), 0 0 58px rgba(156, 255, 74, 0.08);
-  --button-glow: 0 0 0 1px rgba(38, 240, 255, 0.46), 0 18px 42px rgba(38, 240, 255, 0.24);
-  --accent-green-glow: 0 0 0 1px rgba(156, 255, 74, 0.34), 0 0 28px rgba(156, 255, 74, 0.16);
-  --bracket-advance-glow: inset 4px 0 0 #9cff4a, 0 0 0 1px rgba(156, 255, 74, 0.24), 0 18px 40px rgba(0, 0, 0, 0.38);
-  --panel-highlight-band: linear-gradient(90deg, transparent, #9cff4a, transparent);
-  --panel-highlight-shadow: 0 0 18px rgba(156, 255, 74, 0.14);
-  --landing-wordmark-color: #f6f7f8;
+  --button-shadow: 0 18px 42px rgba(255, 255, 255, 0.24);
+  --accent-glow: 0 0 0 1px rgba(255, 255, 255, 0.28), 0 0 28px rgba(255, 255, 255, 0.18), 0 0 58px rgba(255, 255, 255, 0.08);
+  --button-glow: 0 0 0 1px rgba(255, 255, 255, 0.46), 0 18px 42px rgba(255, 255, 255, 0.24);
+  --accent-green-glow: 0 0 0 1px rgba(255, 255, 255, 0.34), 0 0 28px rgba(255, 255, 255, 0.16);
+  --bracket-advance-glow: inset 4px 0 0 #ffffff, 0 0 0 1px rgba(255, 255, 255, 0.24), 0 18px 40px rgba(0, 0, 0, 0.38);
+  --panel-highlight-band: linear-gradient(90deg, transparent, #ffffff, transparent);
+  --panel-highlight-shadow: 0 0 18px rgba(255, 255, 255, 0.14);
+  --landing-wordmark-color: #f7f7f7;
 }
 
 body:not([data-theme="dark"]),
@@ -1831,9 +1831,9 @@ body[data-theme="dark"],
 body {
   color: var(--text);
   background:
-    radial-gradient(circle at 12% 8%, rgba(38, 240, 255, 0.18), transparent 27rem),
-    radial-gradient(circle at 78% 22%, rgba(156, 255, 74, 0.12), transparent 26rem),
-    linear-gradient(115deg, rgba(38, 240, 255, 0.09) 0 1px, transparent 1px 74px),
+    radial-gradient(circle at 12% 8%, rgba(255, 255, 255, 0.18), transparent 27rem),
+    radial-gradient(circle at 78% 22%, rgba(255, 255, 255, 0.12), transparent 26rem),
+    linear-gradient(115deg, rgba(255, 255, 255, 0.09) 0 1px, transparent 1px 74px),
     repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.022) 0 1px, transparent 1px 14px),
     linear-gradient(180deg, #030304 0%, #090a0d 34%, #050506 100%) !important;
   background-attachment: fixed !important;
@@ -1869,13 +1869,13 @@ body::before {
 .page-shell::before {
   left: -18vw;
   top: 12vh;
-  background: rgba(38, 240, 255, 0.18);
+  background: rgba(255, 255, 255, 0.18);
 }
 
 .page-shell::after {
   right: -22vw;
   bottom: 8vh;
-  background: rgba(156, 255, 74, 0.1);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .topbar,
@@ -1891,14 +1891,14 @@ body::before {
 .topbar::after,
 .streamer-topbar::after {
   inset-inline: 0;
-  background: linear-gradient(90deg, transparent, rgba(38, 240, 255, 0.5), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
 }
 
 .topbar-brand-mark,
 .streamer-topbar-mark {
   border-radius: 4px;
-  background: linear-gradient(145deg, #ffffff, #aebdc2 42%, #26f0ff 43%, #071014 72%);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18), 0 12px 28px rgba(38, 240, 255, 0.22);
+  background: linear-gradient(145deg, #ffffff, #d4d4d4 42%, #ffffff 43%, #050505 72%);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18), 0 12px 28px rgba(255, 255, 255, 0.22);
 }
 
 .topbar-brand-copy strong,
@@ -1925,9 +1925,9 @@ body::before {
 .status-pill.active,
 .judge-lane-status-pill.is-live,
 .qualifying-ready-pill.is-ready {
-  border-color: rgba(156, 255, 74, 0.42);
-  color: #eaffda;
-  background: rgba(156, 255, 74, 0.1);
+  border-color: rgba(255, 255, 255, 0.42);
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
   box-shadow: var(--accent-green-glow);
 }
 
@@ -1946,7 +1946,7 @@ body:not([data-theme="dark"]) .main-bracket-panel,
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 6px;
   background:
-    linear-gradient(90deg, rgba(38, 240, 255, 0.85) 0 4px, transparent 4px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.85) 0 4px, transparent 4px),
     linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.035)),
     rgba(18, 24, 27, 0.78);
   box-shadow: var(--panel-shadow);
@@ -1968,8 +1968,8 @@ body:not([data-theme="dark"]) .main-bracket-panel,
 #view-results > .hero::before,
 #view-website-admin > .hero::before {
   background:
-    linear-gradient(115deg, transparent 0 42%, rgba(38, 240, 255, 0.16) 50%, transparent 58% 100%),
-    radial-gradient(circle at 78% 18%, rgba(156, 255, 74, 0.13), transparent 28%);
+    linear-gradient(115deg, transparent 0 42%, rgba(255, 255, 255, 0.16) 50%, transparent 58% 100%),
+    radial-gradient(circle at 78% 18%, rgba(255, 255, 255, 0.13), transparent 28%);
   opacity: 0.95;
 }
 
@@ -1996,7 +1996,7 @@ h2,
   color: var(--text);
   letter-spacing: -0.025em;
   text-transform: uppercase;
-  text-shadow: 0 0 28px rgba(38, 240, 255, 0.08);
+  text-shadow: 0 0 28px rgba(255, 255, 255, 0.08);
 }
 
 .hero h1 {
@@ -2046,7 +2046,7 @@ h2,
 .score-subtext,
 .modal-note,
 .modal-copy {
-  color: #d8dce5;
+  color: #d8d8d8;
 }
 
 .button,
@@ -2082,10 +2082,10 @@ h2,
 body[data-theme="dark"] .main-topbar .mode-tab.is-active,
 body[data-theme="dark"] .micro-button.button-accent,
 body[data-theme="dark"] .button-accent {
-  border-color: rgba(38, 240, 255, 0.5);
-  background: linear-gradient(135deg, #26f0ff, #087d8b);
-  color: #031114 !important;
-  box-shadow: 0 18px 42px rgba(38, 240, 255, 0.24);
+  border-color: rgba(255, 255, 255, 0.5);
+  background: linear-gradient(135deg, #ffffff, #5c5c5c);
+  color: #050505 !important;
+  box-shadow: 0 18px 42px rgba(255, 255, 255, 0.24);
 }
 
 .button-secondary,
@@ -2144,9 +2144,9 @@ body[data-theme="dark"] .micro-button:not(.button-accent) {
 .battle-flow-option.current,
 .queue-item.active,
 .spectator-spotlight-card {
-  border-color: rgba(38, 240, 255, 0.38);
-  background: linear-gradient(135deg, rgba(38, 240, 255, 0.15), rgba(255, 255, 255, 0.045));
-  box-shadow: inset 4px 0 0 #26f0ff;
+  border-color: rgba(255, 255, 255, 0.38);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.045));
+  box-shadow: inset 4px 0 0 #ffffff;
 }
 
 .table-wrap,
@@ -2158,24 +2158,24 @@ body:not([data-theme="dark"]) thead {
 }
 
 tbody tr:hover {
-  background: rgba(38, 240, 255, 0.08);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 tr.is-current-driver,
 .mobile-driver-card.is-current-driver,
 body[data-theme="dark"] tr.is-current-driver,
 body[data-theme="dark"] .mobile-driver-card.is-current-driver {
-  background: rgba(38, 240, 255, 0.1);
-  box-shadow: inset 4px 0 0 #26f0ff;
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 4px 0 0 #ffffff;
 }
 
 .qualifying-live-card,
 body[data-theme="dark"] .qualifying-live-card,
 body:not([data-theme="dark"]) .qualifying-live-card {
-  border-color: rgba(38, 240, 255, 0.45);
+  border-color: rgba(255, 255, 255, 0.45);
   background:
-    linear-gradient(90deg, rgba(38, 240, 255, 0.95) 0 5px, transparent 5px),
-    radial-gradient(circle at 82% 20%, rgba(156, 255, 74, 0.12), transparent 24rem),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.95) 0 5px, transparent 5px),
+    radial-gradient(circle at 82% 20%, rgba(255, 255, 255, 0.12), transparent 24rem),
     rgba(7, 8, 11, 0.78);
   box-shadow: var(--shadow, 0 28px 80px rgba(0, 0, 0, 0.45));
 }
@@ -2183,16 +2183,16 @@ body:not([data-theme="dark"]) .qualifying-live-card {
 .qualifying-live-driver,
 body[data-theme="dark"] .qualifying-live-driver {
   color: #ffffff;
-  text-shadow: 0 0 24px rgba(38, 240, 255, 0.16);
+  text-shadow: 0 0 24px rgba(255, 255, 255, 0.16);
 }
 
 .qualifying-live-progress,
 .state,
 .judge-pill,
 .queue-tag {
-  border: 1px solid rgba(156, 255, 74, 0.34);
-  background: rgba(156, 255, 74, 0.1);
-  color: #eaffda;
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
   border-radius: 999px;
 }
 
@@ -2240,10 +2240,10 @@ body[data-theme="dark"] .driver-button {
 .driver-button.selected,
 body .slot-button.selected,
 body .driver-button.selected {
-  border-color: rgba(156, 255, 74, 0.5);
-  background: linear-gradient(135deg, rgba(38, 240, 255, 0.15), rgba(255, 255, 255, 0.045));
+  border-color: rgba(255, 255, 255, 0.5);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.045));
   color: var(--text);
-  box-shadow: inset 4px 0 0 #9cff4a;
+  box-shadow: inset 4px 0 0 #ffffff;
 }
 
 .slot-button.selected .slot-name,
@@ -2267,14 +2267,14 @@ body[data-theme="dark"] .third-place-card {
 }
 
 .final-battle-head {
-  background: linear-gradient(135deg, #26f0ff, #087d8b);
-  color: #031114;
+  background: linear-gradient(135deg, #ffffff, #5c5c5c);
+  color: #050505;
 }
 
 .champion-banner,
 .podium-card {
   border-radius: 6px;
-  border: 1px solid rgba(38, 240, 255, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.35);
   background: rgba(7, 8, 11, 0.78);
   box-shadow: var(--accent-glow);
 }
@@ -2282,21 +2282,21 @@ body[data-theme="dark"] .third-place-card {
 .competition-contest-card,
 .competition-omt-card,
 .competition-decision-panel.is-contest-overlay {
-  border-color: rgba(38, 240, 255, 0.42);
+  border-color: rgba(255, 255, 255, 0.42);
   background:
-    radial-gradient(circle at top, rgba(38, 240, 255, 0.16), transparent 42%),
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.16), transparent 42%),
     rgba(7, 8, 11, 0.9);
 }
 
 .competition-omt-card strong {
-  color: #9cff4a;
-  text-shadow: 0 0 34px rgba(156, 255, 74, 0.3);
+  color: #ffffff;
+  text-shadow: 0 0 34px rgba(255, 255, 255, 0.3);
 }
 
 .winner-reveal-overlay {
   background:
-    radial-gradient(circle at center, rgba(38, 240, 255, 0.18), transparent 36rem),
-    radial-gradient(circle at 70% 60%, rgba(156, 255, 74, 0.11), transparent 26rem),
+    radial-gradient(circle at center, rgba(255, 255, 255, 0.18), transparent 36rem),
+    radial-gradient(circle at 70% 60%, rgba(255, 255, 255, 0.11), transparent 26rem),
     rgba(0, 0, 0, 0.78);
 }
 
@@ -2307,12 +2307,12 @@ body[data-theme="dark"] .third-place-card {
 .winner-focus-box,
 body[data-theme="dark"] .winner-focus-box {
   border-radius: 10px;
-  color: #f6f7f8;
-  box-shadow: 0 0 42px rgba(38, 240, 255, 0.16), 0 30px 90px rgba(0, 0, 0, 0.6);
+  color: #f7f7f7;
+  box-shadow: 0 0 42px rgba(255, 255, 255, 0.16), 0 30px 90px rgba(0, 0, 0, 0.6);
 }
 
 .winner-focus-box::before {
-  background: conic-gradient(from 0deg, transparent 0deg, rgba(255, 255, 255, 0.9) 42deg, #26f0ff 72deg, #9cff4a 94deg, transparent 128deg, transparent 360deg);
+  background: conic-gradient(from 0deg, transparent 0deg, rgba(255, 255, 255, 0.9) 42deg, #ffffff 72deg, #ffffff 94deg, transparent 128deg, transparent 360deg);
   animation-duration: 3.8s;
 }
 
@@ -2321,7 +2321,7 @@ body[data-theme="dark"] .winner-focus-box::after {
   border-radius: 6px;
   background:
     radial-gradient(circle at 50% 12%, rgba(255, 255, 255, 0.18), transparent 24rem),
-    radial-gradient(circle at 50% 100%, rgba(38, 240, 255, 0.18), transparent 24rem),
+    radial-gradient(circle at 50% 100%, rgba(255, 255, 255, 0.18), transparent 24rem),
     rgba(5, 6, 8, 0.96);
 }
 
@@ -2331,7 +2331,7 @@ body[data-theme="dark"] .winner-focus-name {
   font-size: clamp(4rem, 12vw, 9.4rem);
   letter-spacing: -0.055em;
   line-height: 0.84;
-  text-shadow: 0 0 34px rgba(255, 255, 255, 0.25), 0 0 72px rgba(38, 240, 255, 0.18);
+  text-shadow: 0 0 34px rgba(255, 255, 255, 0.25), 0 0 72px rgba(255, 255, 255, 0.18);
 }
 
 .winner-status-box {
@@ -2360,10 +2360,10 @@ body:not([data-theme="dark"]) .podium-reveal-button {
 }
 
 .podium-reveal-button.is-revealed {
-  border-color: rgba(156, 255, 74, 0.45);
-  background: linear-gradient(135deg, rgba(38, 240, 255, 0.15), rgba(255, 255, 255, 0.045));
+  border-color: rgba(255, 255, 255, 0.45);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.045));
   color: var(--text);
-  box-shadow: inset 4px 0 0 #9cff4a;
+  box-shadow: inset 4px 0 0 #ffffff;
 }
 
 .native-broadcast-layout,
@@ -2372,8 +2372,8 @@ body:not([data-theme="dark"]) .podium-reveal-button {
   border-radius: 6px;
   filter: none;
   background:
-    radial-gradient(circle at 14% 12%, rgba(38, 240, 255, 0.14), transparent 22rem),
-    radial-gradient(circle at 82% 20%, rgba(156, 255, 74, 0.08), transparent 22rem),
+    radial-gradient(circle at 14% 12%, rgba(255, 255, 255, 0.14), transparent 22rem),
+    radial-gradient(circle at 82% 20%, rgba(255, 255, 255, 0.08), transparent 22rem),
     rgba(5, 6, 8, 0.92);
 }
 
