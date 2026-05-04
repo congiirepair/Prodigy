@@ -33,6 +33,33 @@ export function createRaceControlDashboardRenderer(deps) {
     return `Seed ${seed || "-"} | ${team}`;
   }
 
+  function getDriverInitials(driver, fallback = "RC") {
+    const name = formatDriverName(driver, fallback);
+    return name
+      .split(/\s+/)
+      .map((part) => part.trim()[0])
+      .filter(Boolean)
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || fallback;
+  }
+
+  function renderDriverIdentityCard(driver, sideLabel, fallbackName, options = {}) {
+    const alignClass = options.align === "right" ? "is-right" : "";
+    return `
+      <article class="race-driver-card ${alignClass}">
+        <div class="race-driver-portrait" aria-hidden="true">
+          <span>${escapeHtml(getDriverInitials(driver, sideLabel.slice(0, 2)))}</span>
+        </div>
+        <div class="race-driver-copy">
+          <span>${escapeHtml(formatDriverMeta(driver))}</span>
+          <strong>${escapeHtml(formatDriverName(driver, fallbackName))}</strong>
+          <small>${escapeHtml(sideLabel)}</small>
+        </div>
+      </article>
+    `;
+  }
+
   function getBattleEntries(state) {
     const tournamentState = state.tournamentState;
     if (!tournamentState?.mainBracket?.rounds?.length && !tournamentState?.lowerBracket?.rounds?.length) return [];
@@ -53,7 +80,7 @@ export function createRaceControlDashboardRenderer(deps) {
   }
 
   function renderQueue(entries, fallbackDriver) {
-    const queueEntries = entries.slice(0, 4);
+    const queueEntries = entries.slice(0, 5);
     if (!queueEntries.length && fallbackDriver?.name) {
       return `
         <article class="race-queue-item is-live">
@@ -70,7 +97,7 @@ export function createRaceControlDashboardRenderer(deps) {
       <article class="race-queue-item ${index === 0 ? "is-live" : ""}">
         <span>${index === 0 ? "Now" : index === 1 ? "Next" : `Q${index + 1}`}</span>
         <strong>${escapeHtml(buildPublicEventBattleTitle(entry) || "Waiting")}</strong>
-        <small>${escapeHtml(entry.label || entry.roundLabel || "Live bracket")}</small>
+          <small>${escapeHtml(entry.meta || entry.label || entry.roundLabel || "Live bracket")}</small>
       </article>
     `).join("");
   }
@@ -104,6 +131,20 @@ export function createRaceControlDashboardRenderer(deps) {
         </div>
       </div>
     `;
+  }
+
+  function renderJudgeStatusPanels(activeJudgeRoles, claims) {
+    const roles = activeJudgeRoles.length ? activeJudgeRoles : ["j1", "j2", "j3"];
+    return roles.slice(0, 3).map((role, index) => {
+      const claimed = claims?.[role]?.status === "claimed";
+      return `
+        <article class="race-judge-status ${claimed ? "is-ready" : ""}">
+          <span>Judge ${index + 1}</span>
+          <strong>${claimed ? "Ready" : "Open"}</strong>
+          <small>${claimed ? "Connected" : "Awaiting Claim"}</small>
+        </article>
+      `;
+    }).join("");
   }
 
   function render() {
@@ -149,27 +190,26 @@ export function createRaceControlDashboardRenderer(deps) {
         <h1 class="sr-only">${escapeHtml(eventName)} Live Event Command Center</h1>
         <header class="race-topbar">
           <div><strong>Live Event</strong><span>${escapeHtml(eventName)} | ${escapeHtml(formatLabel)}</span></div>
-          <div class="race-sponsor-row"><span>Judges</span><strong>${readyJudges}/${activeJudgeRoles.length || 3}</strong><span>${escapeHtml(statusLabel)}</span></div>
+          <nav class="race-top-links" aria-label="Command center sections">
+            <span>Strategy</span>
+            <span>Qualifying</span>
+            <span>Overview</span>
+            <span>Advance</span>
+            <span>Setup</span>
+          </nav>
+          <div class="race-sponsor-row"><span class="race-live-dot" aria-hidden="true"></span><span>Judges</span><strong>${readyJudges}/${activeJudgeRoles.length || 3}</strong><span>${escapeHtml(statusLabel)}</span></div>
           <button type="button" class="race-mini-btn" data-action="copy-public-event-link">Copy Public Link</button>
         </header>
 
         <section class="race-battle-panel">
           <div class="race-panel-head"><span>Now Battling</span><button type="button" class="race-mini-btn" data-landing-jump="bracket">Full Screen</button></div>
           <div class="race-battle-stage">
-            <article class="race-driver-card">
-              <span>${escapeHtml(formatDriverMeta(activeLeft))}</span>
-              <strong>${escapeHtml(formatDriverName(activeLeft, "Lead Driver"))}</strong>
-              <small>Lead Driver</small>
-            </article>
+            ${renderDriverIdentityCard(activeLeft, "Lead Driver", "Lead Driver")}
             <div class="race-vs">VS</div>
-            <article class="race-driver-card is-right">
-              <span>${escapeHtml(formatDriverMeta(activeRight))}</span>
-              <strong>${escapeHtml(formatDriverName(activeRight, "Chase Driver"))}</strong>
-              <small>Chase Driver</small>
-            </article>
+            ${renderDriverIdentityCard(activeRight, "Chase Driver", "Chase Driver", { align: "right" })}
           </div>
           <div class="race-judge-strip">
-            ${activeJudgeRoles.length ? activeJudgeRoles.map((role, index) => `<span class="${claims?.[role]?.status === "claimed" ? "is-ready" : ""}">Judge ${index + 1} ${claims?.[role]?.status === "claimed" ? "Ready" : "Open"}</span>`).join("") : `<span>Judge 1 Open</span><span>Judge 2 Open</span><span>Judge 3 Open</span>`}
+            ${renderJudgeStatusPanels(activeJudgeRoles, claims)}
           </div>
         </section>
 
