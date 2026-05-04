@@ -810,10 +810,14 @@
     body.bracket-fullscreen #view-bracket.is-active {
       display: flex;
       flex-direction: column;
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
       width: 100vw;
       height: 100vh;
       padding: 0;
       min-height: 0;
+      overflow: hidden;
     }
     body.bracket-fullscreen .bracket-workspace {
       display: flex;
@@ -833,14 +837,19 @@
     body.bracket-fullscreen .competition-subtabs,
     body.bracket-fullscreen #summaryStrip,
     body.bracket-fullscreen #battleFlowPanel,
+    body.bracket-fullscreen .race-control-dashboard-inline,
     body.bracket-fullscreen #championBanner,
     body.bracket-fullscreen #emptyBracketState {
-      flex: 0 0 auto;
+      display: none !important;
     }
     body.bracket-fullscreen .main-bracket-panel {
       margin-top: 0;
-      padding: 14px 20px 20px;
+      padding: clamp(12px, 1.5vw, 22px);
       min-height: 0;
+      height: 100%;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.05), rgba(0,0,0,0.04)),
+        rgba(10, 13, 14, 0.82);
     }
     body.bracket-fullscreen .competition-bracket-page.is-active {
       display: grid;
@@ -850,7 +859,8 @@
       overflow: hidden;
     }
     body.bracket-fullscreen .main-bracket-header {
-      margin-bottom: 8px;
+      margin-bottom: clamp(6px, 1vh, 12px);
+      flex: 0 0 auto;
     }
     body.bracket-fullscreen .main-bracket-board {
       height: 100%;
@@ -860,6 +870,7 @@
       align-items: flex-start;
       padding-inline: 0;
       padding-bottom: 0;
+      flex: 1 1 auto;
     }
     body.bracket-fullscreen .main-bracket-board.is-fitted {
       justify-content: center;
@@ -1635,6 +1646,31 @@
 
     body.bracket-fullscreen .bracket-inline-actions {
       display: none;
+    }
+
+    .bracket-presentation-fullscreen-btn {
+      display: none !important;
+      position: fixed;
+      right: clamp(16px, 2vw, 32px);
+      bottom: clamp(16px, 2vw, 32px);
+      z-index: 2147483000;
+      min-height: 42px;
+      padding: 10px 16px;
+      border-radius: 4px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border: 1px solid rgba(255, 255, 255, 0.78);
+      color: #ffffff;
+      background: rgba(0, 0, 0, 0.86);
+      box-shadow: 0 18px 34px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(0, 0, 0, 0.8);
+    }
+
+    #view-bracket.is-active .bracket-presentation-fullscreen-btn,
+    body[data-role="spectator"] #view-bracket.is-active .bracket-presentation-fullscreen-btn,
+    body.bracket-fullscreen #view-bracket.is-active .bracket-presentation-fullscreen-btn {
+      display: inline-flex !important;
+      align-items: center;
+      justify-content: center;
     }
 
     .mobile-bracket-back {
@@ -8171,7 +8207,7 @@
         margin-bottom: 6px;
       }
       #inlineFullscreenBracketBtn {
-        display: none !important;
+        display: inline-flex !important;
       }
       .competition-subtabs {
         display: grid;
@@ -15145,6 +15181,7 @@
       <!-- Scrolling Bracket Area -->
       <main class="bracket-workspace">
         <h1 class="sr-only">Competition Bracket</h1>
+        <button id="presentationFullscreenBracketBtn" class="button button-secondary bracket-presentation-fullscreen-btn" type="button" aria-label="Open bracket fullscreen">Full Screen</button>
         <div class="mobile-bracket-back">
           <button id="mobileBackToQualifyingBtn" class="button button-secondary" type="button">Back To Qualifying</button>
         </div>
@@ -23146,6 +23183,7 @@
     const fullscreenBracketBtn = document.getElementById("fullscreenBracketBtn");
     const reorderBracketBtn = document.getElementById("reorderBracketBtn");
     const inlineFullscreenBracketBtn = document.getElementById("inlineFullscreenBracketBtn");
+    const presentationFullscreenBracketBtn = document.getElementById("presentationFullscreenBracketBtn");
     const inlineReorderBracketBtn = document.getElementById("inlineReorderBracketBtn");
     const inlineResetBracketBtn = document.getElementById("inlineResetBracketBtn");
     const inlineBackToQualifyingBtn = document.getElementById("inlineBackToQualifyingBtn");
@@ -33214,6 +33252,12 @@
         return;
       }
       const landingJumpButton = event.target.closest('[data-landing-jump]');
+      const commandActionButton = event.target.closest('[data-command-action]');
+      if (commandActionButton?.dataset.commandAction === "bracket-fullscreen") {
+        switchView("bracket");
+        toggleBracketFullscreen();
+        return;
+      }
       if (!landingJumpButton) return;
       switchView(landingJumpButton.dataset.landingJump);
     });
@@ -33271,24 +33315,33 @@
     document.getElementById("mobileBackToQualifyingBtn")?.addEventListener("click", () => switchView(getBracketReturnView()));
 
     async function toggleBracketFullscreen() {
-      if (window.innerWidth <= 720) return;
       const bracketView = document.getElementById("view-bracket");
       if (!bracketView) return;
+      const isNativeFullscreen = document.fullscreenElement === bracketView;
+      const isFallbackFullscreen = document.body.dataset.bracketFullscreenFallback === "true";
 
       try {
-        if (document.fullscreenElement === bracketView) {
+        if (isNativeFullscreen) {
           await document.exitFullscreen();
-        } else {
+        } else if (isFallbackFullscreen) {
+          delete document.body.dataset.bracketFullscreenFallback;
+          syncBracketFullscreenState();
+        } else if (typeof bracketView.requestFullscreen === "function") {
           await bracketView.requestFullscreen();
+        } else {
+          document.body.dataset.bracketFullscreenFallback = "true";
+          syncBracketFullscreenState();
         }
       } catch (error) {
+        document.body.dataset.bracketFullscreenFallback = "true";
+        syncBracketFullscreenState();
         console.warn("Fullscreen toggle failed", error);
       }
     }
 
     function syncBracketFullscreenState() {
       const bracketView = document.getElementById("view-bracket");
-      const isFullscreen = document.fullscreenElement === bracketView;
+      const isFullscreen = document.fullscreenElement === bracketView || document.body.dataset.bracketFullscreenFallback === "true";
       document.body.classList.toggle("bracket-fullscreen", isFullscreen);
       syncBracketFullscreenSizing();
     if (fullscreenBracketBtn) {
@@ -33299,6 +33352,10 @@
       if (inlineFullscreenBracketBtn) {
         inlineFullscreenBracketBtn.textContent = isFullscreen ? "Exit Fullscreen" : "Fullscreen";
       }
+      if (presentationFullscreenBracketBtn) {
+        presentationFullscreenBracketBtn.textContent = isFullscreen ? "Exit Fullscreen" : "Full Screen";
+        presentationFullscreenBracketBtn.setAttribute("aria-label", isFullscreen ? "Exit bracket fullscreen" : "Open bracket fullscreen");
+      }
       if (document.getElementById("view-bracket")?.classList.contains("is-active") && tournamentState?.mainBracket) {
         renderBracket();
       } else {
@@ -33308,6 +33365,7 @@
 
     fullscreenBracketBtn?.addEventListener("click", toggleBracketFullscreen);
     inlineFullscreenBracketBtn?.addEventListener("click", toggleBracketFullscreen);
+    presentationFullscreenBracketBtn?.addEventListener("click", toggleBracketFullscreen);
     reorderBracketBtn?.addEventListener("click", handleBracketReorderButton);
     inlineReorderBracketBtn?.addEventListener("click", handleBracketReorderButton);
     document.addEventListener("fullscreenchange", syncBracketFullscreenState);

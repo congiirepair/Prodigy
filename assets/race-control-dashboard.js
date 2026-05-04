@@ -222,7 +222,7 @@ export function createRaceControlDashboardRenderer(deps) {
         </header>
 
         <section class="race-battle-panel" data-battle-signature="${escapeAttributeValue(battleSignature)}">
-          <div class="race-panel-head"><span>Now Battling</span><button type="button" class="race-mini-btn" data-landing-jump="bracket">Full Screen</button></div>
+          <div class="race-panel-head"><span>Now Battling</span><button type="button" class="race-mini-btn" data-command-action="bracket-fullscreen">Full Screen</button></div>
           <div class="race-broadcast-banner" aria-label="Current live battle status">
             <span class="race-live-dot" aria-hidden="true"></span>
             <strong>${escapeHtml(statusLabel)}</strong>
@@ -267,7 +267,7 @@ export function createRaceControlDashboardRenderer(deps) {
       </section>
 
       <section class="race-bracket-preview">
-        <div class="race-section-title">Bracket Presentation</div>
+        <div class="race-section-title race-section-title-row"><span>Bracket Presentation</span><button type="button" class="race-mini-btn" data-command-action="bracket-fullscreen">Full Screen</button></div>
         ${renderBracketPreview(rankedDrivers, entries)}
       </section>
 

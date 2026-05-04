@@ -1122,10 +1122,11 @@ body[data-role="spectator"] #view-live .race-control-dashboard {
 .race-battle-stage {
   min-height: 138px;
   display: grid;
-  grid-template-columns: minmax(190px, 1fr) auto minmax(190px, 1fr);
-  gap: clamp(16px, 3vw, 38px);
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: clamp(10px, 2.3vw, 30px);
   align-items: center;
   padding: 16px 4px 10px;
+  min-width: 0;
 }
 
 .race-driver-card {
@@ -1134,6 +1135,8 @@ body[data-role="spectator"] #view-live .race-control-dashboard {
   align-content: center;
   gap: 8px;
   padding: 18px;
+  min-width: 0;
+  overflow: hidden;
   border: 1px solid rgba(255,255,255,0.22);
   background:
     linear-gradient(125deg, rgba(255,255,255,0.08), rgba(255,255,255,0.025)),
@@ -1148,28 +1151,45 @@ body[data-role="spectator"] #view-live .race-control-dashboard {
 
 .race-driver-card span,
 .race-driver-card small {
+  display: block;
+  max-width: 100%;
+  min-width: 0;
   color: #d8d8d8;
   font-size: 0.72rem;
   font-weight: 900;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .race-driver-card strong {
+  display: block;
+  max-width: 100%;
+  min-width: 0;
   font-family: var(--font-graffiti);
-  font-size: clamp(1.45rem, 2.8vw, 2.65rem);
-  line-height: 0.92;
+  font-size: clamp(1.08rem, 1.95vw, 1.92rem);
+  line-height: 0.98;
   text-transform: uppercase;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+  white-space: normal;
+}
+
+.race-driver-copy {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .race-vs {
   display: grid;
   place-items: center;
-  width: 72px;
-  height: 72px;
+  width: clamp(46px, 5vw, 72px);
+  height: clamp(46px, 5vw, 72px);
   color: #ffffff;
   font-family: var(--font-graffiti);
-  font-size: 2rem;
+  font-size: clamp(1.25rem, 2.1vw, 2rem);
   text-shadow: 0 0 22px rgba(255,255,255,0.35);
 }
 
@@ -1414,6 +1434,17 @@ body[data-role="spectator"] #view-live .race-control-dashboard {
   border: 1px solid rgba(255,255,255,0.12);
   border-radius: 4px;
   overflow: hidden;
+}
+
+.race-section-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.race-section-title-row .race-mini-btn {
+  flex: 0 0 auto;
 }
 
 .race-bracket-tabs span {

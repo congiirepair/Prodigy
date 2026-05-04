@@ -2,6 +2,61 @@ import { test, expect } from "@playwright/test";
 import { capture, gotoSeeded } from "./helpers/qaApp.js";
 
 test.describe("fullscreen podium reveal", () => {
+  test("command-center fullscreen button opens the bracket presentation", async ({ page }) => {
+    await gotoSeeded(page, "bracket", "#/spectator/live");
+    const fullscreenButton = page.locator("#raceControlDashboard .race-battle-panel .race-mini-btn", { hasText: "Full Screen" });
+    await expect(fullscreenButton).toBeVisible({ timeout: 30_000 });
+
+    await fullscreenButton.click();
+    await expect(page.locator("#view-bracket.is-active")).toBeVisible({ timeout: 30_000 });
+    await expect
+      .poll(() => page.evaluate(() => document.fullscreenElement?.id || (document.body.classList.contains("bracket-fullscreen") ? "fallback" : "")))
+      .toMatch(/^(view-bracket|fallback)$/);
+
+    const presentationState = await page.evaluate(() => {
+      const activePage = document.querySelector(".competition-bracket-page.is-active");
+      const board = activePage?.querySelector(".main-bracket-board");
+      const current = activePage?.querySelector(".bracket-flow-slot.left");
+      const next = activePage?.querySelector(".bracket-flow-slot.right");
+      const dashboard = document.querySelector("#raceControlDashboardBracket");
+      const rectOf = (element) => {
+        const rect = element?.getBoundingClientRect();
+        return {
+          width: rect?.width || 0,
+          height: rect?.height || 0,
+        };
+      };
+      return {
+        activePageVisible: Boolean(activePage && rectOf(activePage).width > 0 && rectOf(activePage).height > 0),
+        boardVisible: Boolean(board && rectOf(board).width > 0 && rectOf(board).height > 0),
+        currentVisible: Boolean(current && rectOf(current).width > 0 && rectOf(current).height > 0),
+        nextVisible: Boolean(next && rectOf(next).width > 0 && rectOf(next).height > 0),
+        inlineDashboardHidden: Boolean(dashboard && getComputedStyle(dashboard).display === "none"),
+      };
+    });
+    expect(presentationState).toMatchObject({
+      activePageVisible: true,
+      boardVisible: true,
+      currentVisible: true,
+      nextVisible: true,
+      inlineDashboardHidden: true,
+    });
+  });
+
+  test("spectator bracket presentation has its own fullscreen button", async ({ page }) => {
+    await gotoSeeded(page, "bracket", "#/spectator/live");
+    await page.locator("#raceControlDashboard .race-nav-item[data-landing-jump='bracket']").click();
+    await expect(page.locator("#view-bracket.is-active")).toBeVisible({ timeout: 30_000 });
+    const presentationButton = page.locator("#presentationFullscreenBracketBtn");
+    await expect(presentationButton).toBeVisible({ timeout: 30_000 });
+
+    await presentationButton.click();
+    await expect
+      .poll(() => page.evaluate(() => document.fullscreenElement?.id || (document.body.classList.contains("bracket-fullscreen") ? "fallback" : "")))
+      .toMatch(/^(view-bracket|fallback)$/);
+    await expect(presentationButton).toHaveText(/Exit Fullscreen/i);
+  });
+
   test("hosts the trophy reveal modal inside the fullscreen bracket", async ({ page }) => {
     await gotoSeeded(page, "bracket", "#/event-admin/bracket");
 
