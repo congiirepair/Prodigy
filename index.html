@@ -14341,6 +14341,7 @@
 
     <div id="view-streamer-library" class="view-section">
       <main class="streamer-library-shell">
+        <h1 class="sr-only">Package Library</h1>
         <section class="panel">
           <div class="streamer-section-head">
             <div>
@@ -14367,6 +14368,7 @@
 
     <div id="view-streamer-demo" class="view-section">
       <main class="streamer-demo-shell">
+        <h1 class="sr-only">Demo Mode Preview</h1>
         <section class="panel">
           <div class="streamer-section-head">
             <div>
@@ -27859,7 +27861,7 @@
           </div>
           <div class="race-mini-column">
             <small>Right Side</small>
-            ${secondColumn.map((driver) => `<div class="race-mini-match"><strong>${escapeHtml(driver.name || "TBD")}</strong><span>${driver.seed || "-"}</span></div>`).join("")}
+            ${secondColumn.map((driver) => `<div class="race-mini-match"><span>${driver.seed || "-"}</span><strong>${escapeHtml(driver.name || "TBD")}</strong></div>`).join("")}
           </div>
         </div>
       `;
@@ -27902,6 +27904,7 @@
         </aside>
 
         <section class="race-main">
+          <h1 class="sr-only">${escapeHtml(eventName)} Live Event Command Center</h1>
           <header class="race-topbar">
             <div><strong>Live Event</strong><span>${escapeHtml(eventName)} | ${escapeHtml(formatLabel)}</span></div>
             <div class="race-sponsor-row"><span>Judges</span><strong>${readyJudges}/${activeJudgeRoles.length || 3}</strong><span>${escapeHtml(statusLabel)}</span></div>
