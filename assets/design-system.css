@@ -771,3 +771,431 @@ body:not([data-theme="dark"]) .error-msg {
     display: none;
   }
 }
+
+/* Phase 3 spectator broadcast upgrades */
+@keyframes racePanelEnter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes raceBroadcastSweep {
+  from {
+    transform: translateX(-120%);
+  }
+  to {
+    transform: translateX(120%);
+  }
+}
+
+@keyframes raceBattleIntro {
+  0% {
+    opacity: 0.72;
+    filter: brightness(0.86);
+    transform: scale(0.992);
+  }
+  100% {
+    opacity: 1;
+    filter: brightness(1);
+    transform: scale(1);
+  }
+}
+
+@keyframes raceDriverLeftIn {
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes raceDriverRightIn {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes raceVsPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.84) rotate(-4deg);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.06) rotate(0deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+@keyframes raceWinnerGlow {
+  0%,
+  100% {
+    box-shadow: inset 4px 0 0 #fff, 0 0 0 rgba(255, 255, 255, 0);
+  }
+  50% {
+    box-shadow: inset 4px 0 0 #fff, 0 0 22px rgba(255, 255, 255, 0.22);
+  }
+}
+
+@keyframes raceContestPop {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.race-control-dashboard > * {
+  animation: racePanelEnter 520ms var(--ds-ease-standard) both;
+}
+
+.race-control-dashboard > :nth-child(2) {
+  animation-delay: 50ms;
+}
+
+.race-control-dashboard > :nth-child(3) {
+  animation-delay: 90ms;
+}
+
+.race-control-dashboard > :nth-child(4),
+.race-control-dashboard > :nth-child(5),
+.race-control-dashboard > :nth-child(6) {
+  animation-delay: 130ms;
+}
+
+.race-battle-panel {
+  animation: raceBattleIntro 680ms var(--ds-ease-standard) both;
+}
+
+.race-battle-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(100deg, transparent 0%, rgba(255, 255, 255, 0.13) 45%, transparent 62%);
+  opacity: 0.55;
+  transform: translateX(-120%);
+  animation: raceBroadcastSweep 4.6s var(--ds-ease-standard) infinite;
+}
+
+.race-battle-panel > * {
+  position: relative;
+  z-index: 1;
+}
+
+.race-broadcast-banner {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  max-width: 100%;
+  margin: 4px auto 10px;
+  padding: 7px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.42);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.045);
+}
+
+.race-broadcast-banner strong,
+.race-broadcast-banner small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.race-broadcast-banner strong {
+  color: #ffffff;
+  font-size: 0.66rem;
+  font-weight: 950;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.race-broadcast-banner small {
+  color: rgba(255, 255, 255, 0.66);
+  font-size: 0.68rem;
+  font-weight: 850;
+}
+
+.race-driver-card {
+  animation: raceDriverLeftIn 640ms var(--ds-ease-standard) both;
+}
+
+.race-driver-card.is-right {
+  animation-name: raceDriverRightIn;
+}
+
+.race-driver-card strong {
+  max-width: 100%;
+  font-size: clamp(1.75rem, 2.25vw, 3.35rem);
+  line-height: 0.92;
+  letter-spacing: 0.015em;
+  text-shadow: 0 0 28px rgba(255, 255, 255, 0.18);
+  white-space: normal;
+  overflow-wrap: normal;
+}
+
+.race-driver-copy small {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.race-driver-copy small em {
+  padding: 2px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.72);
+  font-style: normal;
+}
+
+.race-driver-card.is-right .race-driver-copy small {
+  justify-content: flex-end;
+}
+
+.race-vs {
+  position: relative;
+  width: 86px;
+  height: 86px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, 0.18), transparent 62%),
+    rgba(0, 0, 0, 0.52);
+  box-shadow:
+    inset 0 0 0 7px rgba(255, 255, 255, 0.035),
+    0 0 42px rgba(255, 255, 255, 0.16);
+  animation: raceVsPop 720ms var(--ds-ease-bounce) 140ms both;
+}
+
+.race-vs span {
+  position: relative;
+  z-index: 1;
+}
+
+.race-vs::before,
+.race-vs::after {
+  content: "";
+  position: absolute;
+  width: 1px;
+  height: 112px;
+  background: linear-gradient(transparent, rgba(255, 255, 255, 0.72), transparent);
+  transform: rotate(24deg);
+}
+
+.race-vs::after {
+  transform: rotate(-24deg);
+  opacity: 0.42;
+}
+
+.race-queue-item {
+  animation: racePanelEnter 420ms var(--ds-ease-standard) both;
+  animation-delay: calc(var(--queue-index, 0) * 42ms);
+}
+
+.race-queue-item.is-live {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 4px;
+  padding-inline: 8px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.035));
+}
+
+.race-queue-item.is-live::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-left: 3px solid #ffffff;
+  pointer-events: none;
+}
+
+.race-last {
+  position: relative;
+  overflow: hidden;
+}
+
+.race-last::after {
+  content: "";
+  position: absolute;
+  inset: auto 10px 8px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.72), transparent);
+  opacity: 0.55;
+}
+
+.race-mini-match {
+  animation: racePanelEnter 360ms var(--ds-ease-standard) both;
+  animation-delay: calc(var(--match-index, 0) * 18ms);
+}
+
+.race-mini-match.is-winner {
+  animation: racePanelEnter 360ms var(--ds-ease-standard) both, raceWinnerGlow 2.8s var(--ds-ease-standard) infinite;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.045));
+}
+
+.race-standing {
+  animation: racePanelEnter 360ms var(--ds-ease-standard) both;
+  animation-delay: calc(var(--standing-index, 0) * 34ms);
+}
+
+.race-standing.is-leader {
+  border-radius: 4px;
+  padding-inline: 6px;
+  background: rgba(255, 255, 255, 0.095);
+  box-shadow: inset 3px 0 0 #ffffff;
+}
+
+.race-winner-box {
+  animation: raceBattleIntro 700ms var(--ds-ease-standard) both;
+}
+
+.race-winner-box strong {
+  text-shadow: 0 0 36px rgba(255, 255, 255, 0.24);
+}
+
+.battle-flow-card.current,
+.battle-flow-option.current,
+.slot-button.winner-just-selected,
+.driver-button.winner-just-selected,
+.read-only-score.score-just-updated,
+.best-score.score-just-updated,
+.mobile-score-card.score-just-updated,
+.qualifying-live-stats.score-just-updated,
+.standings-score.score-just-updated {
+  animation: raceWinnerGlow 2.2s var(--ds-ease-standard) 1;
+}
+
+.winner-reveal-strip {
+  border-color: rgba(255, 255, 255, 0.58) !important;
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.18), transparent 32%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.16), rgba(13, 16, 20, 0.98)) !important;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.16), 0 12px 24px rgba(0, 0, 0, 0.2) !important;
+}
+
+.winner-reveal-strip::before {
+  background: linear-gradient(110deg, transparent 0%, rgba(255, 255, 255, 0.28) 44%, transparent 62%) !important;
+}
+
+.winner-focus-box {
+  color: #050608 !important;
+  animation: raceContestPop 640ms var(--ds-ease-standard) both;
+}
+
+.winner-focus-box::before {
+  background: conic-gradient(from 0deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.96), rgba(180, 180, 180, 0.86), rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.08)) !important;
+}
+
+.winner-focus-box::after {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(216, 218, 220, 0.96)),
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.24), transparent 58%) !important;
+}
+
+.winner-status-box,
+.competition-decision-panel:not(.hidden),
+.competition-omt-card {
+  animation: raceContestPop 420ms var(--ds-ease-standard) both;
+}
+
+.competition-decision-panel,
+.competition-omt-card {
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  box-shadow: 0 22px 62px rgba(0, 0, 0, 0.36), 0 0 34px rgba(255, 255, 255, 0.08) !important;
+}
+
+@media (min-width: 1700px) {
+  .race-broadcast-banner {
+    margin-bottom: 14px;
+  }
+
+  .race-driver-card strong {
+    font-size: clamp(2rem, 2.35vw, 3.7rem);
+  }
+
+  .race-driver-portrait {
+    width: 88px;
+  }
+
+  .race-vs {
+    width: 98px;
+    height: 98px;
+    font-size: 2.4rem;
+  }
+}
+
+@media (max-width: 760px) {
+  .race-control-dashboard > * {
+    animation-duration: 360ms;
+  }
+
+  .race-info-row {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .race-panel {
+    min-height: auto;
+  }
+
+  .race-battle-panel::before {
+    animation-duration: 7s;
+    opacity: 0.36;
+  }
+
+  .race-broadcast-banner {
+    grid-template-columns: auto minmax(0, 1fr);
+    width: 100%;
+    border-radius: 6px;
+  }
+
+  .race-broadcast-banner small {
+    grid-column: 1 / -1;
+    white-space: normal;
+  }
+
+  .race-vs {
+    width: 64px;
+    height: 64px;
+    margin-inline: auto;
+  }
+
+  .race-vs::before,
+  .race-vs::after {
+    height: 82px;
+  }
+
+  .race-driver-card strong {
+    font-size: clamp(1.55rem, 8.4vw, 2.35rem);
+    line-height: 0.95;
+  }
+
+  .race-driver-copy small,
+  .race-driver-card.is-right .race-driver-copy small {
+    justify-content: flex-start;
+  }
+}

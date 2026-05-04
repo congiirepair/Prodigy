@@ -46,6 +46,8 @@ export function createRaceControlDashboardRenderer(deps) {
 
   function renderDriverIdentityCard(driver, sideLabel, fallbackName, options = {}) {
     const alignClass = options.align === "right" ? "is-right" : "";
+    const positionLabel = options.positionLabel || sideLabel;
+    const scoreLabel = driver?.bestScore != null ? `Best ${formatScore(driver.bestScore)}` : "Score pending";
     return `
       <article class="race-driver-card ${alignClass}">
         <div class="race-driver-portrait" aria-hidden="true">
@@ -54,10 +56,24 @@ export function createRaceControlDashboardRenderer(deps) {
         <div class="race-driver-copy">
           <span>${escapeHtml(formatDriverMeta(driver))}</span>
           <strong>${escapeHtml(formatDriverName(driver, fallbackName))}</strong>
-          <small>${escapeHtml(sideLabel)}</small>
+          <small>${escapeHtml(positionLabel)} <em>${escapeHtml(scoreLabel)}</em></small>
         </div>
       </article>
     `;
+  }
+
+  function getBattleSignature(entry, left, right) {
+    return [
+      entry?.bracketKey,
+      entry?.roundIndex,
+      entry?.matchIndex,
+      left?.id || left?.name,
+      right?.id || right?.name,
+    ].filter(Boolean).join("|") || "qualifying-live";
+  }
+
+  function getBattleMeta(entry, fallbackStatus) {
+    return entry?.meta || entry?.label || entry?.roundLabel || fallbackStatus || "Live event";
   }
 
   function getBattleEntries(state) {
@@ -94,7 +110,7 @@ export function createRaceControlDashboardRenderer(deps) {
       return `<article class="race-queue-item"><span>Queue</span><strong>Waiting For Event</strong><small>Start qualifying or publish a bracket.</small></article>`;
     }
     return queueEntries.map((entry, index) => `
-      <article class="race-queue-item ${index === 0 ? "is-live" : ""}">
+      <article class="race-queue-item ${index === 0 ? "is-live" : ""}" style="--queue-index:${index}">
         <span>${index === 0 ? "Now" : index === 1 ? "Next" : `Q${index + 1}`}</span>
         <strong>${escapeHtml(buildPublicEventBattleTitle(entry) || "Waiting")}</strong>
           <small>${escapeHtml(entry.meta || entry.label || entry.roundLabel || "Live bracket")}</small>
@@ -113,21 +129,21 @@ export function createRaceControlDashboardRenderer(deps) {
       <div class="race-mini-bracket">
         <div class="race-mini-column">
           <small>Top 16</small>
-          ${firstColumn.map((driver) => `<div class="race-mini-match"><span>${driver.seed || "-"}</span><strong>${escapeHtml(driver.name || "TBD")}</strong></div>`).join("")}
+          ${firstColumn.map((driver, index) => `<div class="race-mini-match" style="--match-index:${index}"><span>${driver.seed || "-"}</span><strong>${escapeHtml(driver.name || "TBD")}</strong></div>`).join("")}
         </div>
         <div class="race-mini-column">
           <small>Quarter Finals</small>
-          ${winners.slice(0, 4).map((driver, index) => `<div class="race-mini-match ${driver?.name ? "is-winner" : ""}"><span>${driver?.seed || index + 1}</span><strong>${escapeHtml(driver?.name || "TBD")}</strong></div>`).join("")}
+          ${winners.slice(0, 4).map((driver, index) => `<div class="race-mini-match ${driver?.name ? "is-winner" : ""}" style="--match-index:${index + 8}"><span>${driver?.seed || index + 1}</span><strong>${escapeHtml(driver?.name || "TBD")}</strong></div>`).join("")}
         </div>
         <div class="race-mini-column">
           <small>Semi Finals</small>
-          ${winners.slice(4, 6).map((driver, index) => `<div class="race-mini-match ${driver?.name ? "is-winner" : ""}"><span>${driver?.seed || index + 1}</span><strong>${escapeHtml(driver?.name || "TBD")}</strong></div>`).join("")}
+          ${winners.slice(4, 6).map((driver, index) => `<div class="race-mini-match ${driver?.name ? "is-winner" : ""}" style="--match-index:${index + 12}"><span>${driver?.seed || index + 1}</span><strong>${escapeHtml(driver?.name || "TBD")}</strong></div>`).join("")}
           <div class="race-mini-final"><strong>Final Battle</strong><span>Winner reveal protected</span></div>
           <div class="race-mini-final"><strong>3rd Place Battle</strong><span>Trophy reveal protected</span></div>
         </div>
         <div class="race-mini-column">
           <small>Right Side</small>
-          ${secondColumn.map((driver) => `<div class="race-mini-match"><span>${driver.seed || "-"}</span><strong>${escapeHtml(driver.name || "TBD")}</strong></div>`).join("")}
+          ${secondColumn.map((driver, index) => `<div class="race-mini-match" style="--match-index:${index + 14}"><span>${driver.seed || "-"}</span><strong>${escapeHtml(driver.name || "TBD")}</strong></div>`).join("")}
         </div>
       </div>
     `;
@@ -171,6 +187,10 @@ export function createRaceControlDashboardRenderer(deps) {
     const eventName = state.activeEventMeta?.name || "Live Event";
     const formatLabel = getCompetitionModeLabel(state.activeEventMeta);
     const statusLabel = state.tournamentState?.mainBracket?.rounds?.length ? "Bracket Live" : getQualifyingFlowPhase(state.qualifyingFlow, state.appDrivers) === "live" ? "Qualifying Live" : "Ready";
+    const activeMeta = getBattleMeta(activeEntry, statusLabel);
+    const battleSignature = getBattleSignature(activeEntry, activeLeft, activeRight);
+    const leftSeed = activeLeft?.seed || formatDriverRegistrationNumber(activeLeft) || "-";
+    const rightSeed = activeRight?.seed || formatDriverRegistrationNumber(activeRight) || "-";
 
     const markup = `
       <aside class="race-sidebar" aria-label="Live dashboard navigation">
@@ -201,12 +221,17 @@ export function createRaceControlDashboardRenderer(deps) {
           <button type="button" class="race-mini-btn" data-action="copy-public-event-link">Copy Public Link</button>
         </header>
 
-        <section class="race-battle-panel">
+        <section class="race-battle-panel" data-battle-signature="${escapeAttributeValue(battleSignature)}">
           <div class="race-panel-head"><span>Now Battling</span><button type="button" class="race-mini-btn" data-landing-jump="bracket">Full Screen</button></div>
+          <div class="race-broadcast-banner" aria-label="Current live battle status">
+            <span class="race-live-dot" aria-hidden="true"></span>
+            <strong>${escapeHtml(statusLabel)}</strong>
+            <small>${escapeHtml(activeMeta)}</small>
+          </div>
           <div class="race-battle-stage">
-            ${renderDriverIdentityCard(activeLeft, "Lead Driver", "Lead Driver")}
-            <div class="race-vs">VS</div>
-            ${renderDriverIdentityCard(activeRight, "Chase Driver", "Chase Driver", { align: "right" })}
+            ${renderDriverIdentityCard(activeLeft, "Lead Driver", "Lead Driver", { positionLabel: `Lead | Seed ${leftSeed}` })}
+            <div class="race-vs"><span>VS</span></div>
+            ${renderDriverIdentityCard(activeRight, "Chase Driver", "Chase Driver", { align: "right", positionLabel: `Chase | Seed ${rightSeed}` })}
           </div>
           <div class="race-judge-strip">
             ${renderJudgeStatusPanels(activeJudgeRoles, claims)}
@@ -248,7 +273,7 @@ export function createRaceControlDashboardRenderer(deps) {
 
       <section class="race-standings-panel">
         <div class="race-section-title">Qualifying Standings</div>
-        ${rankedDrivers.slice(0, 8).map((driver) => `<div class="race-standing"><span>${driver.seed || "-"}</span><strong>${escapeHtml(driver.name || "Driver")}</strong><small>${formatScore(driver.bestScore)}</small></div>`).join("") || `<div class="race-empty">Standings will appear after scores are entered.</div>`}
+        ${rankedDrivers.slice(0, 8).map((driver, index) => `<div class="race-standing ${index === 0 ? "is-leader" : ""}" style="--standing-index:${index}"><span>${driver.seed || "-"}</span><strong>${escapeHtml(driver.name || "Driver")}</strong><small>${formatScore(driver.bestScore)}</small></div>`).join("") || `<div class="race-empty">Standings will appear after scores are entered.</div>`}
         <button type="button" data-landing-jump="qualifying">View Full Results</button>
       </section>
 
