@@ -25,7 +25,7 @@ function scoreRound(teams, roundNumber) {
 
 function pointCandidates(scores) {
   const sorted = [...scores].sort((left, right) => left.score - right.score);
-  const pointCount = Math.max(0, Math.min(3, sorted.length - 1));
+  const pointCount = Math.max(0, Math.min(Math.floor(sorted.length / 2), sorted.length - 1));
   return sorted.slice(0, pointCount).map((score) => score.teamId);
 }
 

@@ -1,4 +1,4 @@
-const scenario = ["qualifying", "bracket", "twin"].includes(process.argv[2])
+const scenario = ["qualifying", "bracket", "twin", "twin-double"].includes(process.argv[2])
   ? process.argv[2]
   : "qualifying";
 

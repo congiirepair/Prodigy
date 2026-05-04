@@ -1,0 +1,22 @@
+<svg width="1920" height="1080" viewBox="0 0 1920 1080" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="170" y1="160" x2="1800" y2="980" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#07111D" />
+      <stop offset="0.6" stop-color="#0B1A2C" />
+      <stop offset="1" stop-color="#132B44" />
+    </linearGradient>
+    <linearGradient id="line" x1="220" y1="744" x2="940" y2="744" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7EE7FF" />
+      <stop offset="1" stop-color="#F4FBFF" />
+    </linearGradient>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#bg)"/>
+  <text x="220" y="250" fill="#88A6C2" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700" letter-spacing="4">PRODIGY RC COMP</text>
+  <text x="220" y="420" fill="#FFFFFF" font-family="Arial, Helvetica, sans-serif" font-size="122" font-weight="800">EVENT</text>
+  <text x="220" y="536" fill="#FFFFFF" font-family="Arial, Helvetica, sans-serif" font-size="122" font-weight="800">COMPLETE</text>
+  <text x="220" y="622" fill="#C9D9EA" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="500">Thanks for watching today’s Prodigy RC Comp coverage.</text>
+  <rect x="220" y="716" width="720" height="10" rx="5" fill="url(#line)"/>
+  <text x="220" y="808" fill="#FFFFFF" font-family="Arial, Helvetica, sans-serif" font-size="52" font-weight="700">CHAMPION / PODIUM / SPONSORS</text>
+  <text x="220" y="864" fill="#A8C0D7" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="500">Swap this text with the final class winner, podium placements, or venue thank-you message.</text>
+  <text x="220" y="992" fill="#89A4BE" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="600">Use as a final scene while wrapping the stream, thanking sponsors, or reading results.</text>
+</svg>

@@ -4,12 +4,32 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "serve": "firebase emulators:start --only hosting,auth,firestore",
-    "serve:hosting": "firebase emulators:start --only hosting",
+    "serve": "firebase emulators:start --only hosting,auth,firestore --project prodigy-rc-competitions",
+    "serve:hosting": "firebase emulators:start --only hosting --project prodigy-rc-competitions",
     "test:url": "node scripts/test-mode-url.mjs",
     "test:url:qualifying": "node scripts/test-mode-url.mjs qualifying",
     "test:url:bracket": "node scripts/test-mode-url.mjs bracket",
     "test:url:twin": "node scripts/test-mode-url.mjs twin",
+    "test:url:twin-double": "node scripts/test-mode-url.mjs twin-double",
+    "seed:test": "node scripts/qa-seed.mjs qualifying bracket twin twin-double",
+    "reset:test": "node scripts/qa-seed.mjs qualifying bracket twin twin-double",
+    "test": "npm run test:e2e",
+    "test:unit": "node smoke-check.mjs && npm run simulate:twin",
+    "test:e2e": "playwright test --project=desktop-chromium",
+    "test:mobile": "playwright test --project=iphone-judge-webkit --project=android-judge-chromium",
+    "test:judge-mobile": "playwright test tests/e2e/judge-mobile.spec.js --project=iphone-judge-webkit --project=android-judge-chromium",
+    "test:visual": "playwright test tests/e2e/visual.spec.js",
+    "test:a11y": "playwright test tests/e2e/a11y.spec.js --project=desktop-chromium --project=iphone-judge-webkit --project=android-judge-chromium",
+    "test:lighthouse": "lhci autorun --config=.lighthouserc.cjs",
+    "qa:all": "npm run test:unit && npm run test:e2e && npm run test:judge-mobile && npm run test:a11y && npm run test:visual",
+    "deploy:functions": "firebase deploy --only functions:parseVoiceDeductions",
     "simulate:twin": "node scripts/twin-triple-simulator.mjs"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.11.3",
+    "@lhci/cli": "^0.15.1",
+    "@playwright/test": "^1.59.1",
+    "lighthouse": "^13.2.0",
+    "start-server-and-test": "^3.0.2"
   }
 }

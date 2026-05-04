@@ -71,6 +71,10 @@ window.RC_DRIFT_CLIENT_CONFIG = {
       }
     ]
   },
+  voiceAi: {
+    enabled: true,
+    endpoint: "/api/parse-voice-deductions"
+  },
   landing: {
     whySectionKicker: "Why Prodigy",
     heroCopy: "Follow {eventName} live with qualifying, competition brackets, and results from one Prodigy event hub.",

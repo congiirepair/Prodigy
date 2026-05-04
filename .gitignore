@@ -8,6 +8,18 @@ build/
 .wrangler/
 .firebase/
 firebase-debug.log
+*.log
+
+# Generated QA/browser artifacts
+.qa-streamer/
+qa-artifacts/
+
+# Local safety snapshots and root-level visual scratch files
+*.backup.*
+*.revert-safety.*
+/*.png
+/*.jpg
+/*.jpeg
 
 .env
 .env.*

@@ -1,6 +1,6 @@
 # Prodigy Test / Demo Mode
 
-Use Test Mode when you need to QA judging, qualifying, brackets, Twin Comp triple elimination, spectator sync, or streamer layouts without touching live production event data.
+Use Test Mode when you need to QA judging, qualifying, brackets, Twin Comp double/triple elimination, spectator sync, or streamer layouts without touching live production event data.
 
 ## Launch Test Mode
 
@@ -17,6 +17,8 @@ To leave Test Mode on a device:
 ```text
 https://prodigy-rc-competitions.web.app?testMode=0
 ```
+
+Event admins can also click `Exit Test Mode` in the Test Mode panel.
 
 ## Data Isolation
 
@@ -41,6 +43,7 @@ All event directory, active-event selection, event documents, result archives, a
    - `Qualifying test`
    - `Bracket battle test`
    - `Twin comp triple elimination`
+   - `Twin comp double elimination`
 3. Click `Start Demo Event`.
 
 If you click `Start Demo Event` before Test Mode is active, the app turns on `testMode=1`, reloads once, then seeds the selected scenario.
@@ -68,7 +71,7 @@ The demo scenarios include:
 
 - 16-driver qualifying event with live judge scoring
 - 16-driver bracket event with qualifying complete and partial bracket progress
-- 8-team Twin Comp triple-elimination event with a live round and existing elimination points
+- 8-team Twin Comp triple- or double-elimination event with a live round and existing elimination points
 - a completed reference event in the test archive
 
 These are intended for rapid repeat QA, not production event records.

@@ -2,6 +2,13 @@
   "firestore": {
     "rules": "firestore.rules"
   },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "runtime": "nodejs22"
+    }
+  ],
   "hosting": {
     "public": ".",
     "ignore": [
@@ -10,7 +17,12 @@
       "DEPLOY_SUBDOMAINS.md",
       "FIREBASE_SETUP.md",
       "LOCAL_TESTING.md",
+      "AGENTS.md",
+      "QA_REPORT.md",
+      "visual-redesign-preview.html",
+      ".lighthouserc.cjs",
       "docs/**",
+      "qa-artifacts/**",
       "**/*.mjs",
       "package.json",
       "package-lock.json",
@@ -18,8 +30,15 @@
       "scripts/**",
       "tests/**",
       ".emulator-data/**",
+      ".qa-streamer/**",
       "index-Chuck.html",
       "**/*-Chuck.*",
+      "*.backup.*",
+      "*.revert-safety.*",
+      "*.log",
+      "/*.png",
+      "/*.jpg",
+      "/*.jpeg",
       "**/.*",
       "**/node_modules/**"
     ],
@@ -110,6 +129,13 @@
       }
     ],
     "rewrites": [
+      {
+        "source": "/api/parse-voice-deductions",
+        "function": {
+          "functionId": "parseVoiceDeductions",
+          "region": "us-central1"
+        }
+      },
       {
         "source": "**",
         "destination": "/index.html"
