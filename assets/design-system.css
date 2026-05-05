@@ -1202,9 +1202,11 @@ body:not([data-theme="dark"]) .error-msg {
 
 /* Final live battle name fit: this file loads after the redesign stylesheet. */
 .race-battle-stage {
-  grid-template-columns: minmax(0, 1fr) clamp(48px, 5vw, 76px) minmax(0, 1fr);
-  gap: clamp(8px, 1.6vw, 22px);
+  grid-template-columns: minmax(0, 1fr) clamp(44px, 4.2vw, 68px) minmax(0, 1fr);
+  gap: clamp(6px, 1.1vw, 16px);
   min-width: 0;
+  width: 100%;
+  overflow: hidden;
 }
 
 .race-driver-card,
@@ -1215,11 +1217,20 @@ body:not([data-theme="dark"]) .error-msg {
   overflow: hidden;
 }
 
+.race-driver-card {
+  padding: clamp(12px, 1.4vw, 16px);
+  clip-path: none;
+}
+
+.race-driver-card.is-right {
+  clip-path: none;
+}
+
 .race-driver-card strong {
   display: block;
   max-width: 100%;
-  font-size: clamp(1.05rem, 1.45vw, 1.9rem);
-  line-height: 0.98;
+  font-size: clamp(0.95rem, 1.18vw, 1.55rem);
+  line-height: 1;
   white-space: normal;
   overflow-wrap: anywhere;
   word-break: normal;
@@ -1233,7 +1244,7 @@ body:not([data-theme="dark"]) .error-msg {
 
 .race-driver-card.is-right .race-driver-copy {
   justify-items: end;
-  padding-left: 20px;
+  padding-left: clamp(8px, 1vw, 14px);
 }
 
 .race-driver-card.is-right strong,
@@ -1244,7 +1255,7 @@ body:not([data-theme="dark"]) .error-msg {
 
 @media (min-width: 1700px) {
   .race-driver-card strong {
-    font-size: clamp(1.25rem, 1.55vw, 2.35rem);
+    font-size: clamp(1.05rem, 1.22vw, 1.85rem);
   }
 }
 
