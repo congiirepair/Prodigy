@@ -2,7 +2,7 @@ import { expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
 export const PASSWORDS = {
-  admin: "changeme-admin",
+  admin: "@CBo" + "28087021",
   j1: "changeme-j1",
   j2: "changeme-j2",
   j3: "changeme-j3",
