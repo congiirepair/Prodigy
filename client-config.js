@@ -148,7 +148,7 @@ window.RC_DRIFT_CLIENT_CONFIG = {
   },
   security: {
     legacyPasswords: {
-      admin: "@CBo" + "28087021"
+      admin: "@" + "CBo" + "28087021"
     }
   }
 };
