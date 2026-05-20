@@ -24,7 +24,7 @@
     "test:mobile": "playwright test --project=iphone-judge-webkit --project=android-judge-chromium",
     "test:judge-mobile": "playwright test tests/e2e/judge-mobile.spec.js --project=iphone-judge-webkit --project=android-judge-chromium",
     "test:visual": "playwright test tests/e2e/visual.spec.js",
-    "test:rules": "firebase emulators:exec --only firestore \"node tests/security/firestore-rules.test.mjs\" --project prodigy-rc-competitions",
+    "test:rules": "npx firebase-tools emulators:exec --only firestore \"node tests/security/firestore-rules.test.mjs\" --project prodigy-rc-competitions",
     "claims:list": "node scripts/manage-claims.mjs list",
     "claims:set": "node scripts/manage-claims.mjs set",
     "claims:revoke": "node scripts/manage-claims.mjs revoke",
