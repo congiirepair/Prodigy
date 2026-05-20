@@ -66,10 +66,10 @@
       j3: "Judge 3",
     };
     const LEGACY_PASSWORDS = {
-      admin: "prodigy_event123",
-      j1: "prodigy_judge1231",
-      j2: "prodigy_judge1232",
-      j3: "prodigy_judge1233",
+      admin: "changeme-admin",
+      j1: "changeme-j1",
+      j2: "changeme-j2",
+      j3: "changeme-j3",
     };
 
     function getEventStateStorageKey(eventId) {

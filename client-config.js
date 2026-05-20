@@ -147,11 +147,6 @@ window.RC_DRIFT_CLIENT_CONFIG = {
     ]
   },
   security: {
-    legacyPasswords: {
-      admin: "@CBo28087021",
-      j1: "prodigy_judge1231",
-      j2: "prodigy_judge1232",
-      j3: "prodigy_judge1233"
-    }
+    legacyPasswords: {}
   }
 };

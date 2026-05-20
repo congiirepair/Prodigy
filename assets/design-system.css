@@ -1921,7 +1921,7 @@ body[data-role="j3"] .qualifying-side-column {
 
 @media (max-width: 430px) {
   .judge-lane-toolbar {
-    position: sticky;
+    position: static;
     top: 4px;
     padding: 12px !important;
   }

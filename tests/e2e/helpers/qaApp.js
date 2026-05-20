@@ -2,10 +2,10 @@ import { expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
 export const PASSWORDS = {
-  admin: "@CBo28087021",
-  j1: "prodigy_judge1231",
-  j2: "prodigy_judge1232",
-  j3: "prodigy_judge1233",
+  admin: "changeme-admin",
+  j1: "changeme-j1",
+  j2: "changeme-j2",
+  j3: "changeme-j3",
 };
 
 export const scenarios = ["qualifying", "bracket", "twin", "twin-double"];

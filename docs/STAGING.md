@@ -83,7 +83,7 @@ Test Mode data:
 artifacts/{appId}/public/testData
 ```
 
-Firestore rules allow authenticated app users to read/write both `data` and `testData`; all other scopes remain denied.
+Firestore rules now enforce least-privilege writes in `public/data`. Test Mode writes are isolated under `public/testData`, and signed-in test writes are allowed only when the app ID is clearly test-like. Do not use a production app ID containing `test`.
 
 ## Twin Comp Simulation
 
