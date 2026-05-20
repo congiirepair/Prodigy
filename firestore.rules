@@ -39,7 +39,7 @@ service cloud.firestore {
 
     function isJudgeSlot(eventId, judgeSlot) {
       return judgeSlot in ['j1', 'j2', 'j3']
-        && (hasEventRole(eventId, judgeSlot) || hasEventRole(eventId, 'judge'));
+        && hasEventRole(eventId, judgeSlot);
     }
 
     function isStreamOperator(eventId) {
@@ -154,7 +154,7 @@ service cloud.firestore {
         && request.resource.data.paidAt == null
         && request.resource.data.needsReviewAt == null
         && request.resource.data.rejectedAt == null
-        && request.resource.data.approvedAt == null
+        && (!request.resource.data.keys().hasAny(['approvedAt']) || request.resource.data.approvedAt == null)
         && !request.resource.data.keys().hasAny(['approvedDriverIds']);
     }
 
@@ -169,7 +169,14 @@ service cloud.firestore {
         && request.resource.data.paidAt == resource.data.paidAt
         && request.resource.data.needsReviewAt == resource.data.needsReviewAt
         && request.resource.data.rejectedAt == resource.data.rejectedAt
-        && request.resource.data.approvedAt == resource.data.approvedAt
+        && (
+          (!request.resource.data.keys().hasAny(['approvedAt']) && !resource.data.keys().hasAny(['approvedAt']))
+          || (
+            request.resource.data.keys().hasAny(['approvedAt'])
+            && resource.data.keys().hasAny(['approvedAt'])
+            && request.resource.data.approvedAt == resource.data.approvedAt
+          )
+        )
         && !request.resource.data.keys().hasAny(['approvedDriverIds']);
     }
 
