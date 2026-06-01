@@ -5400,6 +5400,8 @@ let lastAutoEventSwitchDateKey = "";
 let tech1SpecialEventState = loadTech1LocalState();
 let tech1BracketDisplayPageIndex = 0;
 let tech1BracketPageTransition = null;
+let tech1StaffRegistrationSearchQuery = "";
+let tech1StaffRegistrationSortMode = "signup-asc";
 
 function queueTech1BracketPageTransition(fromIndex = 0, toIndex = 0) {
   if (toIndex === fromIndex) return;
@@ -13348,6 +13350,8 @@ function buildTech1ControlViewModel() {
     eligibleCheckedInCount: privateRegistrations.filter((entry) => entry.checkedIn).length,
     defaultBracketSource: TECH1DRIFT_ANNIVERSARY_CONFIG.defaultBracketSource,
     bracketPageIndex: tech1BracketDisplayPageIndex,
+    staffSearchQuery: tech1StaffRegistrationSearchQuery,
+    staffSortMode: tech1StaffRegistrationSortMode,
     projection: getSingleEliminationBracketProjection(privateRegistrations, { source }),
     syncError: tech1SpecialEventState.syncError || "",
   };
@@ -21162,11 +21166,19 @@ document.addEventListener("input", (event) => {
   if (event.target.closest("#tech1DeskPaidTickets") || event.target.closest("#tech1DeskCompeting") || event.target.closest("#tech1DeskTech1Driver")) {
     updateTech1DeskTicketPreview(event.target.closest("#tech1DeskRegistrationForm") || document);
   }
+  if (event.target.closest("#tech1StaffSearchInput")) {
+    tech1StaffRegistrationSearchQuery = String(event.target.value || "");
+    renderTech1EventControlWorkflow();
+  }
 });
 
 document.addEventListener("change", (event) => {
   if (event.target.closest("#tech1DeskCompeting") || event.target.closest("#tech1DeskTech1Driver")) {
     updateTech1DeskTicketPreview(event.target.closest("#tech1DeskRegistrationForm") || document);
+  }
+  if (event.target.closest("#tech1StaffSortSelect")) {
+    tech1StaffRegistrationSortMode = String(event.target.value || "signup-asc");
+    renderTech1EventControlWorkflow();
   }
 });
 

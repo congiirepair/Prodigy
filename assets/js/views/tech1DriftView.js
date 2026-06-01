@@ -493,8 +493,50 @@ function renderTech1DeskRegistrationForm(model = {}, bracketLocked = false) {
 }
 
 function renderStaffRegistrationRows(registrations = [], options = {}) {
-  const rows = sortTech1RegistrationsForDisplay(registrations);
-  if (!rows.length) return `<div class="empty-state">No private registrations have synced for staff yet.</div>`;
+  const searchQuery = String(options.searchQuery || "").trim().toLowerCase();
+  const sortMode = String(options.sortMode || "signup-asc");
+  const sortedRows = sortTech1RegistrationsForDisplay(registrations);
+  const filteredRows = searchQuery
+    ? sortedRows.filter((entry) => [
+      entry.name,
+      entry.teamName,
+      entry.chassis,
+      entry.instagram,
+      entry.paymentMethod,
+      entry.driverNumber,
+    ].map((value) => String(value || "").toLowerCase()).join(" ").includes(searchQuery))
+    : sortedRows;
+  const rows = [...filteredRows];
+  const textCompare = (left, right) => String(left || "").localeCompare(String(right || ""), undefined, { sensitivity: "base" });
+  switch (sortMode) {
+    case "signup-desc":
+      rows.sort((left, right) => Number(right.signUpPosition || 0) - Number(left.signUpPosition || 0));
+      break;
+    case "name-asc":
+      rows.sort((left, right) => textCompare(left?.name, right?.name));
+      break;
+    case "name-desc":
+      rows.sort((left, right) => textCompare(right?.name, left?.name));
+      break;
+    case "team-asc":
+      rows.sort((left, right) => textCompare(left?.teamName, right?.teamName) || textCompare(left?.name, right?.name));
+      break;
+    case "team-desc":
+      rows.sort((left, right) => textCompare(right?.teamName, left?.teamName) || textCompare(right?.name, left?.name));
+      break;
+    case "paid-desc":
+      rows.sort((left, right) => Number(right.paidTickets || 0) - Number(left.paidTickets || 0));
+      break;
+    case "paid-asc":
+      rows.sort((left, right) => Number(left.paidTickets || 0) - Number(right.paidTickets || 0));
+      break;
+    case "signup-asc":
+    default:
+      rows.sort((left, right) => Number(left.signUpPosition || 0) - Number(right.signUpPosition || 0));
+      break;
+  }
+  if (!sortedRows.length) return `<div class="empty-state">No private registrations have synced for staff yet.</div>`;
+  if (!rows.length) return `<div class="empty-state">No drivers match this search filter.</div>`;
   const duplicateHints = buildDuplicateHints(rows);
   const bracketLocked = Boolean(options.bracketLocked);
   const bracketExistsAlready = Boolean(options.bracketExists);
@@ -606,6 +648,8 @@ function renderStaffPanel(model = {}) {
   const source = bracket?.source || model.defaultBracketSource || "bracketEligible";
   const projection = model.projection || getSingleEliminationBracketProjection(model.privateRegistrations, { source });
   const totals = summarizeTech1Registrations(model.privateRegistrations);
+  const staffSearchQuery = String(model.staffSearchQuery || "");
+  const staffSortMode = String(model.staffSortMode || "signup-asc");
   const driverCount = Number(bracket?.driverCount ?? projection.eligibleCount ?? 0);
   const bracketSize = Number(bracket?.bracketSize ?? projection.bracketSize ?? 0);
   const byeCount = Number(bracket?.byes?.length ?? projection.byeCount ?? 0);
@@ -646,7 +690,32 @@ function renderStaffPanel(model = {}) {
         <button class="micro-button button-danger" type="button" data-tech1-action="reset-winners">Reset Winners</button>
         <button class="micro-button" type="button" data-tech1-action="export-pdf">Export Raffle PDF</button>
       </div>
-      <div id="tech1StaffRegistrations">${renderStaffRegistrationRows(model.privateRegistrations, { bracketLocked: bracketPoolLocked, bracketExists: bracketAlreadyGenerated })}</div>
+      <div class="registration-roster-head" style="margin-top: 14px;">
+        <div>
+          <p class="section-kicker">Driver Queue</p>
+          <h2>Staff Registrations</h2>
+        </div>
+        <div class="registration-roster-tools">
+          <label class="search-field registration-roster-search" for="tech1StaffSearchInput">
+            <span>Search Drivers</span>
+            <input id="tech1StaffSearchInput" type="search" value="${escapeAttributeValue(staffSearchQuery)}" placeholder="Name, team, chassis, @handle, payment" autocomplete="off" />
+          </label>
+          <label class="search-field registration-roster-sort" for="tech1StaffSortSelect">
+            <span>Sort By</span>
+            <select id="tech1StaffSortSelect">
+              <option value="signup-asc" ${staffSortMode === "signup-asc" ? "selected" : ""}>Registration Order (Oldest First)</option>
+              <option value="signup-desc" ${staffSortMode === "signup-desc" ? "selected" : ""}>Registration Order (Newest First)</option>
+              <option value="name-asc" ${staffSortMode === "name-asc" ? "selected" : ""}>Name (A-Z)</option>
+              <option value="name-desc" ${staffSortMode === "name-desc" ? "selected" : ""}>Name (Z-A)</option>
+              <option value="team-asc" ${staffSortMode === "team-asc" ? "selected" : ""}>Team (A-Z)</option>
+              <option value="team-desc" ${staffSortMode === "team-desc" ? "selected" : ""}>Team (Z-A)</option>
+              <option value="paid-desc" ${staffSortMode === "paid-desc" ? "selected" : ""}>Extra Tickets (High-Low)</option>
+              <option value="paid-asc" ${staffSortMode === "paid-asc" ? "selected" : ""}>Extra Tickets (Low-High)</option>
+            </select>
+          </label>
+        </div>
+      </div>
+      <div id="tech1StaffRegistrations">${renderStaffRegistrationRows(model.privateRegistrations, { bracketLocked: bracketPoolLocked, bracketExists: bracketAlreadyGenerated, searchQuery: staffSearchQuery, sortMode: staffSortMode })}</div>
     </section>
   `;
 }
