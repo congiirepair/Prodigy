@@ -8287,6 +8287,7 @@ const globalRoleSelect = document.getElementById("globalRoleSelect");
 const registrationHeroEventName = document.getElementById("registrationHeroEventName");
 const registrationHeroEventDate = document.getElementById("registrationHeroEventDate");
 const registrationDriverCount = document.getElementById("registrationDriverCount");
+const registrationSortSelect = document.getElementById("registrationSortSelect");
 const registrationAdminAlerts = document.getElementById("registrationAdminAlerts");
 const registrationDraftRegLabel = document.getElementById("registrationDraftRegLabel");
 const registrationEntryIntro = document.getElementById("registrationEntryIntro");
@@ -16269,10 +16270,97 @@ function syncBroadcastTicker() {
   broadcastTicker.classList.remove("hidden");
 }
 
+function getRosterSearchQuery() {
+  return String(searchInput?.value || "").trim().toLowerCase();
+}
+
+function getRegistrationSortMode() {
+  return String(registrationSortSelect?.value || "signup-asc");
+}
+
+function buildDriverSearchText(driver) {
+  if (!driver) return "";
+  return [
+    driver.name,
+    driver.teamName,
+    driver.chassis,
+    driver.driverNumber,
+    driver.instagram,
+    formatDriverRegistrationNumber(driver, ""),
+  ]
+    .map((value) => String(value || "").toLowerCase())
+    .join(" ");
+}
+
+function matchesDriverSearchQuery(driver, query = "") {
+  if (!query) return true;
+  return buildDriverSearchText(driver).includes(query);
+}
+
+function sortRegistrationDrivers(drivers = [], mode = "signup-asc") {
+  const sorted = [...drivers];
+  const compareText = (left, right) => String(left || "").localeCompare(String(right || ""), undefined, { sensitivity: "base" });
+  switch (mode) {
+    case "signup-desc":
+      sorted.sort((left, right) => (right.signUpPosition || 0) - (left.signUpPosition || 0));
+      break;
+    case "name-asc":
+      sorted.sort((left, right) => compareText(formatDriverDisplayName(left, ""), formatDriverDisplayName(right, "")));
+      break;
+    case "name-desc":
+      sorted.sort((left, right) => compareText(formatDriverDisplayName(right, ""), formatDriverDisplayName(left, "")));
+      break;
+    case "team-asc":
+      sorted.sort((left, right) => compareText(left?.teamName || "", right?.teamName || "") || compareText(formatDriverDisplayName(left, ""), formatDriverDisplayName(right, "")));
+      break;
+    case "team-desc":
+      sorted.sort((left, right) => compareText(right?.teamName || "", left?.teamName || "") || compareText(formatDriverDisplayName(right, ""), formatDriverDisplayName(left, "")));
+      break;
+    case "signup-asc":
+    default:
+      sorted.sort((left, right) => (left.signUpPosition || 0) - (right.signUpPosition || 0));
+      break;
+  }
+  return sorted;
+}
+
+function sortRegistrationTeams(teamEntries = [], mode = "signup-asc") {
+  const sorted = [...teamEntries];
+  const compareText = (left, right) => String(left || "").localeCompare(String(right || ""), undefined, { sensitivity: "base" });
+  switch (mode) {
+    case "signup-desc":
+      sorted.sort((left, right) => (right.signUpPosition || 0) - (left.signUpPosition || 0));
+      break;
+    case "name-asc":
+    case "team-asc":
+      sorted.sort((left, right) => compareText(left?.teamName || "", right?.teamName || ""));
+      break;
+    case "name-desc":
+    case "team-desc":
+      sorted.sort((left, right) => compareText(right?.teamName || "", left?.teamName || ""));
+      break;
+    case "signup-asc":
+    default:
+      sorted.sort((left, right) => (left.signUpPosition || 0) - (right.signUpPosition || 0));
+      break;
+  }
+  return sorted;
+}
+
 function renderRegistrationForms() {
   if (!registrationForms) return;
-  const orderedDrivers = [...getRegisteredDrivers(appDrivers)].sort((left, right) => (left.signUpPosition || 0) - (right.signUpPosition || 0));
-  const teamRosterEntries = isTeamCompetitionMode() ? getTeamTandemRosterEntries(appDrivers) : [];
+  const searchQuery = getRosterSearchQuery();
+  const sortMode = getRegistrationSortMode();
+  const orderedDrivers = sortRegistrationDrivers(getRegisteredDrivers(appDrivers), sortMode);
+  const teamRosterEntries = isTeamCompetitionMode() ? sortRegistrationTeams(getTeamTandemRosterEntries(appDrivers), sortMode) : [];
+  const filteredOrderedDrivers = searchQuery ? orderedDrivers.filter((driver) => matchesDriverSearchQuery(driver, searchQuery)) : orderedDrivers;
+  const filteredTeamRosterEntries = searchQuery
+    ? teamRosterEntries.filter((teamEntry) => {
+        const teamNameMatch = String(teamEntry?.teamName || "").toLowerCase().includes(searchQuery);
+        const memberMatch = Array.isArray(teamEntry?.members) && teamEntry.members.some((member) => matchesDriverSearchQuery(member, searchQuery));
+        return teamNameMatch || memberMatch;
+      })
+    : teamRosterEntries;
   const canEditRegistration = registrationCanEdit();
   const pendingCount = getPendingRegistrations().length;
   const statusContext = buildDriverStatusContext();
@@ -16282,8 +16370,13 @@ function renderRegistrationForms() {
   if (registrationHeroEventName) registrationHeroEventName.textContent = activeEventMeta?.name || "Main Event";
   if (registrationHeroEventDate) registrationHeroEventDate.textContent = formatEventDate(activeEventMeta?.date);
   if (registrationDriverCount) {
-    const count = getRegisteredDrivers(appDrivers).length;
-    registrationDriverCount.textContent = `${count} Driver${count === 1 ? "" : "s"}`;
+    const totalCount = getRegisteredDrivers(appDrivers).length;
+    const visibleCount = isTeamCompetitionMode()
+      ? filteredTeamRosterEntries.reduce((sum, entry) => sum + Number(entry?.memberCount || 0), 0)
+      : filteredOrderedDrivers.length;
+    registrationDriverCount.textContent = searchQuery && visibleCount !== totalCount
+      ? `Showing ${visibleCount} / ${totalCount}`
+      : `${totalCount} Driver${totalCount === 1 ? "" : "s"}`;
   }
   if (pendingRegistrationCount) {
     pendingRegistrationCount.textContent = `${pendingCount} Pending`;
@@ -16292,9 +16385,11 @@ function renderRegistrationForms() {
 
   if (!orderedDrivers.length) {
     registrationForms.innerHTML = `<div class="empty-state">No drivers submitted yet. Use the form on the left to add the first driver.</div>`;
+  } else if (!filteredOrderedDrivers.length && !filteredTeamRosterEntries.length) {
+    registrationForms.innerHTML = `<div class="empty-state">No drivers match your search yet. Try another name, team, or chassis keyword.</div>`;
   } else {
     registrationForms.innerHTML = isTeamCompetitionMode()
-      ? teamRosterEntries.map((teamEntry) => {
+      ? filteredTeamRosterEntries.map((teamEntry) => {
           const leader = teamEntry.members[0] || null;
           if (!leader) return "";
           const removeDisabled = teamRosterEntries.length <= 1 ? "disabled" : "";
@@ -16353,7 +16448,7 @@ function renderRegistrationForms() {
             </article>
           `;
         }).join("")
-      : orderedDrivers.map((driver) => {
+      : filteredOrderedDrivers.map((driver) => {
           const displayName = escapeHtml(formatDriverDisplayName(driver, "New Driver"));
           const teamValue = escapeHtml(driver.teamName || "");
           const chassisValue = escapeHtml(driver.chassis || "");
@@ -22634,22 +22729,18 @@ function updateQualifying() {
 }
 
 function applySearchFilter() {
-  const query = searchInput?.value?.trim().toLowerCase() || "";
+  const query = getRosterSearchQuery();
   [...driversTableBody.querySelectorAll("tr")].forEach((row) => {
     const id = row.dataset.id;
     const driver = appDrivers.find(d => d.id === id);
     if (!driver) return;
-    const nameMatch = driver.name.toLowerCase().includes(query);
-    const regMatch = formatDriverRegistrationNumber(driver, "").includes(query);
-    row.classList.toggle("hidden", !(!query || nameMatch || regMatch));
+    row.classList.toggle("hidden", !matchesDriverSearchQuery(driver, query));
   });
   [...mobileDriversList.querySelectorAll("[data-id]")].forEach((card) => {
     const id = card.dataset.id;
     const driver = appDrivers.find(d => d.id === id);
     if (!driver) return;
-    const nameMatch = driver.name.toLowerCase().includes(query);
-    const regMatch = formatDriverRegistrationNumber(driver, "").includes(query);
-    card.classList.toggle("hidden", !(!query || nameMatch || regMatch));
+    card.classList.toggle("hidden", !matchesDriverSearchQuery(driver, query));
   });
 }
 
@@ -23021,7 +23112,13 @@ loadSampleBtn.addEventListener("click", async () => {
 });
 
 openBracketBtn.addEventListener("click", openCompetitionBracket);
-searchInput?.addEventListener("input", applySearchFilter);
+searchInput?.addEventListener("input", () => {
+  applySearchFilter();
+  renderRegistrationForms();
+});
+registrationSortSelect?.addEventListener("change", () => {
+  renderRegistrationForms();
+});
 window.addEventListener("resize", () => {
   clearTimeout(window.__driverLayoutResizeTimer);
   window.__driverLayoutResizeTimer = setTimeout(() => {

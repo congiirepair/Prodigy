@@ -4327,6 +4327,28 @@
       margin-bottom: 14px;
     }
 
+    .registration-roster-tools {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-left: auto;
+    }
+
+    .registration-roster-search {
+      min-width: min(340px, 76vw);
+    }
+
+    .registration-roster-sort {
+      min-width: 220px;
+    }
+
+    .registration-roster-search span {
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+    }
+
     .registration-roster-count {
       display: inline-flex;
       align-items: center;
@@ -18358,7 +18380,24 @@
               <p class="section-kicker">Registered Drivers</p>
               <h2>Current Roster</h2>
             </div>
-            <div class="registration-roster-count" id="registrationDriverCount">0 Drivers</div>
+            <div class="registration-roster-tools">
+              <label class="search-field registration-roster-search" for="searchInput">
+                <span>Search Drivers</span>
+                <input id="searchInput" type="search" placeholder="Name, team, chassis, number, @handle" autocomplete="off" />
+              </label>
+              <label class="search-field registration-roster-sort" for="registrationSortSelect">
+                <span>Sort By</span>
+                <select id="registrationSortSelect">
+                  <option value="signup-asc">Registration Order (Oldest First)</option>
+                  <option value="signup-desc">Registration Order (Newest First)</option>
+                  <option value="name-asc">Driver Name (A-Z)</option>
+                  <option value="name-desc">Driver Name (Z-A)</option>
+                  <option value="team-asc">Team (A-Z)</option>
+                  <option value="team-desc">Team (Z-A)</option>
+                </select>
+              </label>
+              <div class="registration-roster-count" id="registrationDriverCount">0 Drivers</div>
+            </div>
           </div>
           <div id="registrationForms" class="registration-stack"></div>
           <section class="admin-register-only" style="margin-top: 18px;">
