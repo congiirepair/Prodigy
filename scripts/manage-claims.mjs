@@ -56,9 +56,9 @@ function normalizeRole(value) {
 function usage() {
   return `
 Usage:
-  node scripts/manage-claims.mjs list --uid <uid> --project <projectId>
-  node scripts/manage-claims.mjs set --uid <uid> --role <role> [--event <eventId>] --project <projectId> --yes
-  node scripts/manage-claims.mjs revoke --uid <uid> --role <role> [--event <eventId>] --project <projectId> --yes
+  node scripts/manage-claims.mjs list (--uid <uid> | --email <email>) --project <projectId>
+  node scripts/manage-claims.mjs set (--uid <uid> | --email <email>) --role <role> [--event <eventId>] --project <projectId> --yes
+  node scripts/manage-claims.mjs revoke (--uid <uid> | --email <email>) --role <role> [--event <eventId>] --project <projectId> --yes
 
 Authentication:
   Set GOOGLE_APPLICATION_CREDENTIALS to a service account JSON path, or use Application Default Credentials.
@@ -74,10 +74,22 @@ function ensureProjectId(args) {
   return projectId;
 }
 
-function ensureUid(args) {
+function getRequestedUid(args) {
   const uid = String(args.uid || "").trim();
-  if (!uid) throw new Error("Missing --uid <uid>.");
-  return uid;
+  return uid || "";
+}
+
+function getRequestedEmail(args) {
+  const email = String(args.email || "").trim();
+  return email || "";
+}
+
+function ensureSingleUserSelector(args) {
+  const uid = getRequestedUid(args);
+  const email = getRequestedEmail(args);
+  if (!uid && !email) throw new Error("Missing --uid <uid> or --email <email>.");
+  if (uid && email) throw new Error("Use either --uid <uid> or --email <email>, not both.");
+  return { uid, email };
 }
 
 function cloneClaims(claims = {}) {
@@ -142,7 +154,7 @@ async function main() {
     return;
   }
   const projectId = ensureProjectId(args);
-  const uid = ensureUid(args);
+  const userSelector = ensureSingleUserSelector(args);
   if (!["list", "set", "revoke"].includes(command)) {
     throw new Error(`Unknown command "${command}".\n${usage()}`);
   }
@@ -154,11 +166,14 @@ async function main() {
     projectId,
   });
 
-  const user = await admin.auth().getUser(uid);
+  const user = userSelector.email
+    ? await admin.auth().getUserByEmail(userSelector.email)
+    : await admin.auth().getUser(userSelector.uid);
+  const uid = user.uid;
   const currentClaims = user.customClaims || {};
 
   if (command === "list") {
-    console.log(JSON.stringify({ uid, projectId, claims: currentClaims }, null, 2));
+    console.log(JSON.stringify({ uid, email: user.email || null, projectId, claims: currentClaims }, null, 2));
     return;
   }
 
@@ -169,6 +184,7 @@ async function main() {
   console.log(JSON.stringify({
     command,
     uid,
+    email: user.email || null,
     projectId,
     role,
     eventId: eventId || null,

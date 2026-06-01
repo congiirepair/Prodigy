@@ -32,4 +32,19 @@ test.describe("public landing audience separation", () => {
     await expect(page.getByRole("heading", { name: "Privacy Notice" })).toBeVisible();
     await expect(page.locator("body")).toHaveAttribute("data-active-view", "privacy");
   });
+
+  test("spectator bracket and live views keep navigation clickable outside fullscreen", async ({ page }) => {
+    await page.locator('.mode-tab[data-target="bracket"]').click();
+    await expect(page.locator("body")).toHaveAttribute("data-active-view", "bracket");
+    await expect(page.locator(".main-topbar")).toBeVisible();
+    await expect(page.locator('.mode-tab[data-target="results"]')).toBeVisible();
+    await page.locator('.mode-tab[data-target="results"]').click();
+    await expect(page.locator("body")).toHaveAttribute("data-active-view", "results");
+
+    await page.locator('.mode-tab[data-target="live"]').click();
+    await expect(page.locator("body")).toHaveAttribute("data-active-view", "live");
+    await expect(page.locator(".main-topbar")).toBeVisible();
+    await page.locator('.mode-tab[data-target="home"]').click();
+    await expect(page.locator("body")).toHaveAttribute("data-active-view", "home");
+  });
 });

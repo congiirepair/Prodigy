@@ -119,7 +119,24 @@
         ]
       },
       {
-        "source": "**/*.@(png|jpg|jpeg|gif|svg|webp|ico|css|js|woff|woff2)",
+        "source": "**/*.js",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, no-store, must-revalidate"
+          },
+          {
+            "key": "Pragma",
+            "value": "no-cache"
+          },
+          {
+            "key": "Expires",
+            "value": "0"
+          }
+        ]
+      },
+      {
+        "source": "**/*.@(png|jpg|jpeg|gif|svg|webp|ico|css|woff|woff2)",
         "headers": [
           {
             "key": "Cache-Control",

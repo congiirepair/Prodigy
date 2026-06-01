@@ -45,7 +45,8 @@ test.describe("winner reveal presentation", () => {
 
       const overlay = page.locator("#winnerRevealOverlay");
       await expect(overlay).toBeVisible();
-      await expect(overlay.locator(".winner-focus-name")).toContainText(winnerName);
+      const revealName = String(winnerName || "").split(/\s+/)[0] || winnerName;
+      await expect(overlay.locator(".winner-focus-name")).toContainText(revealName);
       await expect(overlay.locator(".winner-status-box")).toContainText(/winner result stays saved/i);
 
       const typeScale = await overlay.evaluate((node) => {

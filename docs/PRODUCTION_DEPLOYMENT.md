@@ -56,30 +56,39 @@ Authenticate with Application Default Credentials or set `GOOGLE_APPLICATION_CRE
 set GOOGLE_APPLICATION_CREDENTIALS=C:\secure\firebase-admin-service-account.json
 ```
 
-List current claims:
+List current claims by UID or stable Firebase Auth email:
 
 ```bash
-npm run claims:list -- --uid <uid> --project <projectId>
+node scripts/manage-claims.mjs list --uid <uid> --project <projectId>
+node scripts/manage-claims.mjs list --email <email> --project <projectId>
 ```
 
 Dry-run a role change:
 
 ```bash
-npm run claims:set -- --uid <uid> --role judge1 --event <eventId> --project <projectId>
+node scripts/manage-claims.mjs set --email <email> --role judge1 --event <eventId> --project <projectId>
 ```
 
 Apply with explicit confirmation:
 
 ```bash
-npm run claims:set -- --uid <uid> --role owner --project <projectId> --yes
-npm run claims:set -- --uid <uid> --role websiteAdmin --project <projectId> --yes
-npm run claims:set -- --uid <uid> --role eventAdmin --event <eventId> --project <projectId> --yes
-npm run claims:set -- --uid <uid> --role j1 --event <eventId> --project <projectId> --yes
-npm run claims:set -- --uid <uid> --role j2 --event <eventId> --project <projectId> --yes
-npm run claims:set -- --uid <uid> --role j3 --event <eventId> --project <projectId> --yes
-npm run claims:set -- --uid <uid> --role streamOperator --event <eventId> --project <projectId> --yes
-npm run claims:set -- --uid <uid> --role judge1 --event <eventId> --project <projectId> --yes
+node scripts/manage-claims.mjs set --email <email> --role owner --project <projectId> --yes
+node scripts/manage-claims.mjs set --email <email> --role websiteAdmin --project <projectId> --yes
+node scripts/manage-claims.mjs set --email <email> --role eventAdmin --event <eventId> --project <projectId> --yes
+node scripts/manage-claims.mjs set --email <email> --role j1 --event <eventId> --project <projectId> --yes
+node scripts/manage-claims.mjs set --email <email> --role j2 --event <eventId> --project <projectId> --yes
+node scripts/manage-claims.mjs set --email <email> --role j3 --event <eventId> --project <projectId> --yes
+node scripts/manage-claims.mjs set --email <email> --role streamOperator --event <eventId> --project <projectId> --yes
+node scripts/manage-claims.mjs set --email <email> --role judge1 --event <eventId> --project <projectId> --yes
 ```
+
+For Website Admin, prefer a stable Firebase Auth email user over an anonymous browser UID:
+
+```bash
+node scripts/manage-claims.mjs set --email <website-admin-email> --role websiteAdmin --project <projectId> --yes
+```
+
+The Website Admin unlock modal can sign into that Firebase Auth email user with the same website admin password. After changing claims, use Refresh Access or reload the page so the ID token picks up the role.
 
 Revoke after the event:
 

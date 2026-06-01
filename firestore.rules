@@ -6,16 +6,22 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function eventDayOpenAccess() {
+      return isSignedIn();
+    }
+
     function tokenRoles() {
-      return isSignedIn() && request.auth.token.roles is list ? request.auth.token.roles : [];
+      return isSignedIn() && request.auth.token.keys().hasAny(['roles']) && request.auth.token.roles is list
+        ? request.auth.token.roles
+        : [];
     }
 
     function hasRole(role) {
       return isSignedIn()
         && (
-          request.auth.token.role == role
+          (request.auth.token.keys().hasAny(['role']) && request.auth.token.role == role)
           || tokenRoles().hasAny([role])
-          || request.auth.token[role] == true
+          || (request.auth.token.keys().hasAny([role]) && request.auth.token[role] == true)
         );
     }
 
@@ -23,14 +29,16 @@ service cloud.firestore {
       return hasRole(role)
         || (
           isSignedIn()
+          && request.auth.token.keys().hasAny(['eventRoles'])
           && request.auth.token.eventRoles is map
+          && request.auth.token.eventRoles.keys().hasAny([eventId])
           && request.auth.token.eventRoles[eventId] is list
           && request.auth.token.eventRoles[eventId].hasAny([role])
         );
     }
 
     function isOwner() {
-      return hasRole('owner') || hasRole('websiteAdmin') || request.auth.token.owner == true;
+      return hasRole('owner') || hasRole('websiteAdmin') || (request.auth.token.keys().hasAny(['owner']) && request.auth.token.owner == true);
     }
 
     function isEventAdmin(eventId) {
@@ -65,7 +73,11 @@ service cloud.firestore {
 
     function specialEventRegistrationOpen(appId, eventId) {
       return specialEventDoc(appId, eventId).data.registrationOpen == true
-        && specialEventDoc(appId, eventId).data.mode == 'tech1drift-anniversary';
+        && isTech1AnniversaryMode(specialEventDoc(appId, eventId).data.mode);
+    }
+
+    function isTech1AnniversaryMode(mode) {
+      return mode == 'tech1-anniversary' || mode == 'tech1drift-anniversary';
     }
 
     function validShortString(value, maxLen) {
@@ -87,6 +99,11 @@ service cloud.firestore {
           'date',
           'status',
           'schemaVersion',
+          'judgeCount',
+          'judgingMode',
+          'competitionMode',
+          'modeSettings',
+          'specialEventId',
           'registrationStatus',
           'liveStatus',
           'publicFlags',
@@ -97,6 +114,43 @@ service cloud.firestore {
         && validShortString(request.resource.data.name, 120)
         && request.resource.data.status in ['active', 'completed', 'archived']
         && request.resource.data.schemaVersion == 2
+        && request.resource.data.judgeCount in [1, 2, 3]
+        && request.resource.data.judgingMode in ['average', 'line-angle-style']
+        && request.resource.data.competitionMode in ['solo', 'team-tandem', 'twin-triple', 'twin-double', 'tech1-anniversary']
+        && (
+          !request.resource.data.keys().hasAny(['modeSettings'])
+          || request.resource.data.modeSettings == null
+          || (
+            request.resource.data.modeSettings is map
+            && request.resource.data.modeSettings.keys().hasOnly([
+              'mode',
+              'competitionType',
+              'qualifyingEnabled',
+              'registrationEnabled',
+              'raffleEnabled',
+              'raffleTicketPrice',
+              'freeTicketsPerRegistration',
+              'bracketGeneration',
+              'defaultBracketSource',
+              'specialEventId'
+            ])
+            && request.resource.data.modeSettings.mode == 'tech1-anniversary'
+            && request.resource.data.modeSettings.competitionType == 'random-single-elimination'
+            && request.resource.data.modeSettings.qualifyingEnabled == false
+            && request.resource.data.modeSettings.registrationEnabled == true
+            && request.resource.data.modeSettings.raffleEnabled == true
+            && request.resource.data.modeSettings.raffleTicketPrice == 5
+            && request.resource.data.modeSettings.freeTicketsPerRegistration == 1
+            && request.resource.data.modeSettings.bracketGeneration in ['randomized-from-checked-in-drivers', 'randomized-from-competing-drivers']
+            && request.resource.data.modeSettings.defaultBracketSource in ['checkedIn', 'bracketEligible']
+            && request.resource.data.modeSettings.specialEventId == 'tech1drift-anniversary-may-30'
+          )
+        )
+        && (
+          !request.resource.data.keys().hasAny(['specialEventId'])
+          || request.resource.data.specialEventId == null
+          || request.resource.data.specialEventId == 'tech1drift-anniversary-may-30'
+        )
         && request.resource.data.registrationStatus in ['open', 'closed', 'disabled']
         && request.resource.data.liveStatus is string
         && request.resource.data.updatedAt is string
@@ -265,20 +319,40 @@ service cloud.firestore {
           'date',
           'dateLabel',
           'mode',
+          'legacySpecialEventMode',
+          'competitionType',
+          'competitionMode',
+          'judgeCount',
+          'judgingMode',
           'branding',
           'registrationOpen',
+          'registrationEnabled',
+          'raffleEnabled',
           'raffleTicketPrice',
           'freeTicketsPerRegistration',
+          'entryFee',
+          'tech1DriverEntryFee',
+          'bracketGeneration',
           'bracketStatus',
           'expectedDrivers',
           'qualifyingEnabled',
           'updatedAt'
         ])
         && validShortString(request.resource.data.title, 140)
-        && request.resource.data.mode == 'tech1drift-anniversary'
+        && isTech1AnniversaryMode(request.resource.data.mode)
+        && (!request.resource.data.keys().hasAny(['legacySpecialEventMode']) || request.resource.data.legacySpecialEventMode == 'tech1drift-anniversary')
+        && (!request.resource.data.keys().hasAny(['competitionType']) || request.resource.data.competitionType == 'random-single-elimination')
+        && (!request.resource.data.keys().hasAny(['competitionMode']) || request.resource.data.competitionMode == 'tech1-anniversary')
+        && (!request.resource.data.keys().hasAny(['judgeCount']) || request.resource.data.judgeCount in [1, 2, 3])
+        && (!request.resource.data.keys().hasAny(['judgingMode']) || request.resource.data.judgingMode in ['average', 'line-angle-style'])
+        && (!request.resource.data.keys().hasAny(['registrationEnabled']) || request.resource.data.registrationEnabled == true)
+        && (!request.resource.data.keys().hasAny(['raffleEnabled']) || request.resource.data.raffleEnabled == true)
         && request.resource.data.registrationOpen is bool
         && request.resource.data.raffleTicketPrice == 5
         && request.resource.data.freeTicketsPerRegistration == 1
+        && (!request.resource.data.keys().hasAny(['entryFee']) || request.resource.data.entryFee == 40)
+        && (!request.resource.data.keys().hasAny(['tech1DriverEntryFee']) || request.resource.data.tech1DriverEntryFee == 30)
+        && (!request.resource.data.keys().hasAny(['bracketGeneration']) || request.resource.data.bracketGeneration in ['randomized-from-checked-in-drivers', 'randomized-from-competing-drivers'])
         && request.resource.data.bracketStatus in ['not_generated', 'generated', 'locked', 'in_progress', 'complete']
         && request.resource.data.expectedDrivers is number
         && request.resource.data.expectedDrivers >= 0
@@ -297,6 +371,8 @@ service cloud.firestore {
           'instagram',
           'checkedIn',
           'bracketEligible',
+          'tech1Driver',
+          'entryFee',
           'bracketSeed',
           'freeTickets',
           'paidTickets',
@@ -310,7 +386,7 @@ service cloud.firestore {
           'updatedAt'
         ])
         && request.resource.data.eventId == eventId
-        && request.resource.data.mode == 'tech1drift-anniversary'
+        && isTech1AnniversaryMode(request.resource.data.mode)
         && validShortString(request.resource.data.id, 120)
         && validShortString(request.resource.data.name, 80)
         && optionalString(request.resource.data.teamName, 80)
@@ -318,6 +394,10 @@ service cloud.firestore {
         && optionalString(request.resource.data.instagram, 40)
         && request.resource.data.checkedIn is bool
         && request.resource.data.bracketEligible is bool
+        && request.resource.data.tech1Driver is bool
+        && request.resource.data.entryFee is number
+        && ((request.resource.data.tech1Driver == true && request.resource.data.entryFee == 30)
+          || (request.resource.data.tech1Driver == false && request.resource.data.entryFee == 40))
         && (request.resource.data.bracketSeed == null || request.resource.data.bracketSeed is number)
         && request.resource.data.freeTickets == 1
         && request.resource.data.paidTickets is number
@@ -339,6 +419,8 @@ service cloud.firestore {
         && request.resource.data.ownerUid == request.auth.uid
         && request.resource.data.checkedIn == false
         && request.resource.data.bracketEligible == false
+        && request.resource.data.tech1Driver == false
+        && request.resource.data.entryFee == 40
         && request.resource.data.bracketSeed == null
         && request.resource.data.paidTickets == 0
         && request.resource.data.totalTickets == 1
@@ -356,6 +438,8 @@ service cloud.firestore {
         && request.resource.data.ownerUid == resource.data.ownerUid
         && request.resource.data.checkedIn == resource.data.checkedIn
         && request.resource.data.bracketEligible == resource.data.bracketEligible
+        && request.resource.data.tech1Driver == resource.data.tech1Driver
+        && request.resource.data.entryFee == resource.data.entryFee
         && request.resource.data.bracketSeed == resource.data.bracketSeed
         && request.resource.data.freeTickets == resource.data.freeTickets
         && request.resource.data.paidTickets == resource.data.paidTickets
@@ -384,7 +468,7 @@ service cloud.firestore {
           'updatedAt'
         ])
         && request.resource.data.eventId == eventId
-        && request.resource.data.mode == 'tech1drift-anniversary'
+        && isTech1AnniversaryMode(request.resource.data.mode)
         && validShortString(request.resource.data.publicId, 120)
         && request.resource.data.registrationId == request.resource.data.publicId
         && validShortString(request.resource.data.displayName, 80)
@@ -426,6 +510,9 @@ service cloud.firestore {
           'status',
           'generatedAt',
           'lockedAt',
+          'winnerRevealStatus',
+          'winnerRevealedAt',
+          'winnerRevealUpdatedBy',
           'driverCount',
           'bracketSize',
           'source',
@@ -441,11 +528,23 @@ service cloud.firestore {
         && request.resource.data.driverCount >= 0
         && request.resource.data.bracketSize is number
         && request.resource.data.bracketSize >= 2
-        && request.resource.data.source in ['checkedIn', 'allRegistered']
+        && request.resource.data.source in ['checkedIn', 'allRegistered', 'bracketEligible']
         && request.resource.data.rounds is list
         && request.resource.data.matches is map
         && request.resource.data.randomizedSeedOrder is list
         && request.resource.data.byes is list
+        && (
+          !request.resource.data.keys().hasAny(['winnerRevealStatus'])
+          || request.resource.data.winnerRevealStatus in ['hidden', 'revealed']
+        )
+        && (
+          !request.resource.data.keys().hasAny(['winnerRevealedAt'])
+          || optionalString(request.resource.data.winnerRevealedAt, 40)
+        )
+        && (
+          !request.resource.data.keys().hasAny(['winnerRevealUpdatedBy'])
+          || optionalString(request.resource.data.winnerRevealUpdatedBy, 120)
+        )
         && optionalString(request.resource.data.createdBy, 120)
         && request.resource.data.updatedAt is string;
     }
@@ -524,6 +623,12 @@ service cloud.firestore {
     match /artifacts/{appId}/public/testData/{document=**} {
       allow read: if true;
       allow write: if isOwner() || (isSignedIn() && appId.matches('.*test.*'));
+    }
+
+    // RGRC-style sync model: any signed-in app session can read/write shared event state.
+    // Role/password workflow is enforced in-app per host route.
+    match /artifacts/{appId}/public/data/{document=**} {
+      allow read, write: if eventDayOpenAccess();
     }
 
     match /artifacts/{appId}/public/data/meta/eventDirectory {
@@ -637,10 +742,10 @@ service cloud.firestore {
 
       match /registrations/{registrationId} {
         allow read: if isEventAdmin(eventId) || (isSignedIn() && resource.data.ownerUid == request.auth.uid);
-        allow create: if validTech1PublicRegistrationCreate(appId, eventId)
-          || (isEventAdmin(eventId) && validTech1RegistrationBase(eventId));
-        allow update: if validTech1PublicRegistrationUpdate(appId, eventId)
-          || (isEventAdmin(eventId) && validTech1RegistrationBase(eventId));
+        allow create: if (isEventAdmin(eventId) && validTech1RegistrationBase(eventId))
+          || validTech1PublicRegistrationCreate(appId, eventId);
+        allow update: if (isEventAdmin(eventId) && validTech1RegistrationBase(eventId))
+          || validTech1PublicRegistrationUpdate(appId, eventId);
         allow delete: if isEventAdmin(eventId);
       }
 
@@ -669,7 +774,8 @@ service cloud.firestore {
 
       match /brackets/{bracketId} {
         allow read: if true;
-        allow create, update: if isEventAdmin(eventId) && validTech1Bracket();
+        allow create: if isEventAdmin(eventId) && validTech1Bracket();
+        allow update: if (isEventAdmin(eventId) || isJudgeSlot(eventId, 'j1')) && validTech1Bracket();
         allow delete: if isEventAdmin(eventId);
       }
 

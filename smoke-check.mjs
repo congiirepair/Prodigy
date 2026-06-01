@@ -153,7 +153,7 @@ const checks = [
     name: "Tech 1 anniversary mode stays isolated from normal competition paths",
     test: () => appBundle.includes("tech1drift-anniversary-may-30")
       && appBundle.includes('"specialEvents", eventId')
-      && appBundle.includes("renderTech1DriftAnniversaryView")
+      && appBundle.includes("renderTech1EventControlWorkflow")
       && tech1BracketSource.includes("buildRandomSingleEliminationBracket")
       && tech1AdapterSource.includes("buildTech1PublicRegistrationIndexDoc")
       && !/judgeSubmissions|qualifyingRuns|battleVotes|publicAggregates/.test(`${tech1ViewSource}\n${tech1AdapterSource}\n${tech1BracketSource}`)

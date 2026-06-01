@@ -5,6 +5,7 @@ import {
   onAuthStateChanged,
   signInAnonymously,
   signInWithCustomToken,
+  signInWithEmailAndPassword,
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import {
   collection,
@@ -29,6 +30,7 @@ export {
   setDoc,
   signInAnonymously,
   signInWithCustomToken,
+  signInWithEmailAndPassword,
 };
 
 export function initializeProdigyFirebase(firebaseConfig, options = {}) {

@@ -31,9 +31,6 @@ export const EVENT_ROUTE_VIEW_ALIASES = Object.freeze({
   live: "live",
   home: "home",
   privacy: "privacy",
-  tech1: "tech1",
-  "tech-1": "tech1",
-  "tech1drift": "tech1",
 });
 
 export const ROUTABLE_VIEWS = new Set([
@@ -46,7 +43,6 @@ export const ROUTABLE_VIEWS = new Set([
   "bracket",
   "results",
   "privacy",
-  "tech1",
 ]);
 
 const PUBLIC_ROUTE_PATHS = Object.freeze({
@@ -57,7 +53,6 @@ const PUBLIC_ROUTE_PATHS = Object.freeze({
   bracket: "/competition",
   results: "/results",
   privacy: "/privacy",
-  tech1: "/tech1",
 });
 
 export function normalizeRouteViewName(viewName) {
@@ -82,7 +77,6 @@ export function getPublicRouteLabel(viewName = "home") {
     bracket: "Competition",
     results: "Results",
     privacy: "Privacy",
-    tech1: "Tech 1 Drift",
   })[viewName] || "Home";
 }
 

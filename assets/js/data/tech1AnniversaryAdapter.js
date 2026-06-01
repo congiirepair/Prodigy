@@ -12,6 +12,13 @@ export function normalizeInstagramHandle(value) {
   return trimmed ? `@${trimmed}` : "";
 }
 
+export function normalizeTech1PaymentMethod(value, fallback = "cash") {
+  const normalized = normalizeTech1String(value, 40).toLowerCase();
+  if (normalized === "pay pal") return "paypal";
+  if (normalized === "paypal" || normalized === "zelle" || normalized === "cash") return normalized;
+  return fallback;
+}
+
 export function getTech1RegistrationDisplayName(registration = {}) {
   return normalizeTech1String(registration.displayName || registration.name, 80) || "Unnamed Driver";
 }
@@ -22,6 +29,18 @@ export function buildTech1RegistrationDoc(input = {}, options = {}) {
   const eventId = options.eventId || TECH1DRIFT_ANNIVERSARY_CONFIG.eventId;
   const paidTickets = Math.max(0, Number.parseInt(input.paidTickets || 0, 10) || 0);
   const freeTickets = TECH1DRIFT_ANNIVERSARY_CONFIG.freeTicketsPerRegistration;
+  const bracketEligible = Boolean(input.bracketEligible ?? input.competing ?? input.checkedIn);
+  const tech1Driver = Boolean(input.tech1Driver);
+  const standardEntryFee = Math.max(0, Number(TECH1DRIFT_ANNIVERSARY_CONFIG.entryFee || 0));
+  const tech1DriverEntryFee = Math.max(0, Number(TECH1DRIFT_ANNIVERSARY_CONFIG.tech1DriverEntryFee || standardEntryFee));
+  const entryFee = Math.max(0, Number(input.entryFee ?? (tech1Driver ? tech1DriverEntryFee : standardEntryFee)));
+  const requestedPaymentStatus = normalizeTech1String(input.paymentStatus, 40);
+  const amountPaid = paidTickets * TECH1DRIFT_ANNIVERSARY_CONFIG.raffleTicketPrice;
+  const paymentStatus = requestedPaymentStatus && !(requestedPaymentStatus === "free-only" && paidTickets)
+    ? requestedPaymentStatus
+    : paidTickets
+      ? "paid"
+      : "free-only";
   return {
     id,
     eventId,
@@ -31,14 +50,18 @@ export function buildTech1RegistrationDoc(input = {}, options = {}) {
     chassis: normalizeTech1String(input.chassis, 80),
     instagram: normalizeInstagramHandle(input.instagram),
     checkedIn: Boolean(input.checkedIn),
-    bracketEligible: Boolean(input.bracketEligible ?? input.checkedIn),
+    bracketEligible,
+    tech1Driver,
+    entryFee,
     bracketSeed: input.bracketSeed == null ? null : Number(input.bracketSeed),
     freeTickets,
     paidTickets,
     totalTickets: freeTickets + paidTickets,
-    amountPaid: paidTickets * TECH1DRIFT_ANNIVERSARY_CONFIG.raffleTicketPrice,
-    paymentStatus: input.paymentStatus || (paidTickets ? "paid" : "free-only"),
-    paymentMethod: normalizeTech1String(input.paymentMethod, 40),
+    amountPaid,
+    paymentStatus,
+    paymentMethod: paidTickets > 0
+      ? normalizeTech1PaymentMethod(input.paymentMethod, "cash")
+      : "",
     staffNotes: normalizeTech1String(input.staffNotes, 240),
     ownerUid: options.ownerUid || input.ownerUid || null,
     createdAt: input.createdAt || nowIso,
@@ -77,7 +100,7 @@ export function buildTech1RaffleTransactionDoc(input = {}, options = {}) {
     registrationId: normalizeTech1String(input.registrationId, 120),
     paidTicketsAdded,
     amountPaid: paidTicketsAdded * TECH1DRIFT_ANNIVERSARY_CONFIG.raffleTicketPrice,
-    paymentMethod: normalizeTech1String(input.paymentMethod || "cash", 40),
+    paymentMethod: normalizeTech1PaymentMethod(input.paymentMethod || "cash", "cash"),
     confirmedBy: normalizeTech1String(options.confirmedBy || input.confirmedBy || "event-staff", 120),
     createdAt: nowIso,
   };

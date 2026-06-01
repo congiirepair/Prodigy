@@ -3,6 +3,8 @@ export function buildPublicEventShellPayload({
   activeEventId = "",
   defaultEventId = "main-event",
   status = "active",
+  judgeCount = 3,
+  judgingMode = "average",
   qualifyingPhase = "waiting",
   registrationClosed = false,
   hasValidVenue = false,
@@ -11,12 +13,23 @@ export function buildPublicEventShellPayload({
   nowMs = Date.now(),
 } = {}) {
   const source = eventMeta || {};
+  const modeSettings = source.modeSettings && typeof source.modeSettings === "object"
+    ? { ...source.modeSettings }
+    : null;
+  const competitionMode = modeSettings?.mode || source.competitionMode || "solo";
+  const resolvedJudgeCount = source.judgeCount ?? judgeCount;
+  const resolvedJudgingMode = source.judgingMode || judgingMode;
   return {
     id: source.id || activeEventId || defaultEventId,
     name: source.name || "Main Event",
     date: source.date || "",
     status,
     schemaVersion: 2,
+    judgeCount: resolvedJudgeCount,
+    judgingMode: resolvedJudgingMode,
+    competitionMode,
+    modeSettings,
+    specialEventId: source.specialEventId || modeSettings?.specialEventId || null,
     registrationStatus: registrationClosed ? "closed" : hasValidVenue ? "open" : "disabled",
     liveStatus: bracketLive ? "bracket" : qualifyingPhase,
     publicFlags: {
@@ -45,12 +58,18 @@ export function buildPrivateEventConfigPayload({
   nowIso = new Date().toISOString(),
 } = {}) {
   const source = eventMeta || {};
+  const modeSettings = source.modeSettings && typeof source.modeSettings === "object"
+    ? { ...source.modeSettings }
+    : null;
+  const resolvedCompetitionMode = modeSettings?.mode || competitionMode;
   return {
     eventId: source.id || activeEventId || defaultEventId,
     schemaVersion: 2,
     judgeCount,
     judgingMode,
-    competitionMode,
+    competitionMode: resolvedCompetitionMode,
+    modeSettings,
+    specialEventId: source.specialEventId || modeSettings?.specialEventId || null,
     roleNames,
     roleAccess,
     venueConfig,

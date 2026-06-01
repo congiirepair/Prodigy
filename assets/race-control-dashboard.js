@@ -92,6 +92,7 @@ export function createRaceControlDashboardRenderer(deps) {
     if (mode === competitionModes.teamTandem) return "Team Tandem";
     if (mode === competitionModes.twinTriple) return "Team Tandem Triple Elim";
     if (mode === competitionModes.twinDouble) return "Team Tandem Double Elim";
+    if (mode === competitionModes.tech1Anniversary) return "Tech 1 Drift Anniversary";
     return "Solo Drivers";
   }
 

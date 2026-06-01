@@ -8,8 +8,17 @@ import { calculateCompetitionDecisionResolution } from "./competition/battles.js
 import { getBracketRoundName, getSeedOrderForBracket, nextPowerOfTwoValue, previousPowerOfTwoValue } from "./competition/brackets.js";
 import { buildArchivedResultsRecordPayload, calculateTournamentBattleStats, createEmptyEventResultsPayload, getArchivedResultsSnapshotPayload, normalizeArchivedResultsRecord as normalizeArchivedResultsRecordPayload, sortArchivedResultsForDisplay as sortArchivedResultsRecordsForDisplay } from "./competition/results.js";
 import { calculateLiveRunAverage, calculateRunAverage, getBestQualifyingScore, getSecondaryQualifyingScore, normalizeRunKey, rankDriversByQualifying } from "./competition/scoring.js";
-import { applySingleEliminationWinner, buildRandomSingleEliminationBracket, getSingleEliminationBracketSize } from "./competition/singleElimination.js";
+import { applySingleEliminationWinner, buildRandomSingleEliminationBracket, getBracketDisplayWindow, getSingleEliminationBracketProjection, getSingleEliminationBracketSize, resetSingleEliminationWinners } from "./competition/singleElimination.js";
 import { buildConfiguredHostRouteContexts, isPlainObject, mergeClientConfig, sanitizeHostValue } from "./config/clientConfig.js";
+import {
+  COMPETITION_MODE_SOLO,
+  COMPETITION_MODE_TEAM_TANDEM,
+  COMPETITION_MODE_TWIN_TRIPLE,
+  COMPETITION_MODE_TWIN_DOUBLE,
+  COMPETITION_MODE_TECH1_ANNIVERSARY,
+  TECH1_ANNIVERSARY_COMPETITION_MODE,
+  normalizeCompetitionModeValue,
+} from "./config/competitionModes.js";
 import { TECH1DRIFT_ANNIVERSARY_CONFIG, buildTech1AnniversaryShell } from "./config/specialEvents.js";
 import { buildPublicAggregatesPayload } from "./data/aggregateCalculators.js";
 import { applyScopedJudgeSubmissionDocsToDrivers } from "./data/judgingAdapter.js";
@@ -47,7 +56,7 @@ import { renderNoDriversState, renderNoStandingsState } from "./views/publicEmpt
 import { renderPublicHomeView } from "./views/publicHomeView.js";
 import { renderPrivacyView } from "./views/privacyView.js";
 import { renderResultsArchiveCard } from "./views/resultsView.js";
-import { renderTech1DriftAnniversaryView } from "./views/tech1DriftView.js";
+import { renderTech1CompetitionBracketPanel, renderTech1EventControlPanel } from "./views/tech1DriftView.js";
 
 const CLIENT_CONFIG = mergeClientConfig(
   DEFAULT_CLIENT_CONFIG,
@@ -66,6 +75,29 @@ const CLIENT_LANDING = CLIENT_CONFIG.landing || {};
 const CLIENT_ROUTING = CLIENT_CONFIG.routing || {};
 const CLIENT_FIREBASE = CLIENT_CONFIG.firebase || {};
 const CLIENT_SECURITY = CLIENT_CONFIG.security || {};
+const TECH1_BRACKET_SPONSOR_LOGOS = Object.freeze([
+  { src: "./assets/tech1-sponsor-logos/ACRC.svg?v=20260529-archivev2", alt: "ACRC logo", key: "acrc" },
+  { src: "./assets/tech1-sponsor-logos/Acuvance.svg?v=20260529-archivev2", alt: "Acuvance logo", key: "acuvance" },
+  { src: "./assets/tech1-sponsor-logos/Addiction.svg?v=20260529-archivev2", alt: "Addiction logo", key: "addiction" },
+  { src: "./assets/tech1-sponsor-logos/BuzzBreak.svg?v=20260529-archivev2", alt: "BuzzBreak logo", key: "buzzbreak" },
+  { src: "./assets/tech1-sponsor-logos/DSRacing.svg?v=20260529-archivev2", alt: "DS Racing logo", key: "dsracing" },
+  { src: "./assets/tech1-sponsor-logos/JG.svg?v=20260529-archivev2", alt: "JG logo", key: "jg" },
+  { src: "./assets/tech1-sponsor-logos/JSM.svg?v=20260529-archivev2", alt: "JSM logo", key: "jsm" },
+  { src: "./assets/tech1-sponsor-logos/Overdose.svg?v=20260529-archivev2", alt: "Overdose logo", key: "overdose" },
+  { src: "./assets/tech1-sponsor-logos/Prodigy%20RC.svg?v=20260529-archivev2", alt: "Prodigy RC logo", key: "prodigy-rc" },
+  { src: "./assets/tech1-sponsor-logos/R1Wurks.svg?v=20260529-archivev2", alt: "R1 Wurks logo", key: "r1wurks" },
+  { src: "./assets/tech1-sponsor-logos/Reedy.svg?v=20260529-archivev2", alt: "Reedy logo", key: "reedy" },
+  { src: "./assets/tech1-sponsor-logos/ReveD.svg?v=20260529-archivev2", alt: "Reve D logo", key: "reved" },
+  { src: "./assets/tech1-sponsor-logos/RollingGarage.svg?v=20260529-archivev2", alt: "Rolling Garage logo", key: "rolling-garage" },
+  { src: "./assets/tech1-sponsor-logos/Shibata.svg?v=20260529-archivev2", alt: "Shibata logo", key: "shibata" },
+  { src: "./assets/tech1-sponsor-logos/SuperG.svg?v=20260529-archivev2", alt: "Super-G logo", key: "superg" },
+  { src: "./assets/tech1-sponsor-logos/TeamAssociated.svg?v=20260529-archivev2", alt: "Team Associated logo", key: "team-associated" },
+  { src: "./assets/tech1-sponsor-logos/ThrashRC.svg?v=20260529-archivev2", alt: "Thrash RC logo", key: "thrash-rc" },
+  { src: "./assets/tech1-sponsor-logos/THS.svg?v=20260529-archivev2", alt: "THS logo", key: "ths" },
+  { src: "./assets/tech1-sponsor-logos/VertexRC.svg?v=20260529-archivev2", alt: "Vertex RC logo", key: "vertex-rc" },
+  { src: "./assets/tech1-sponsor-logos/Yokomo.svg?v=20260529-archivev2", alt: "Yokomo logo", key: "yokomo" },
+  { src: "./assets/tech1-sponsor-logos/CrueRCTeam.svg?v=20260529-archivev2", alt: "Crue RC Team logo", key: "crue-rc-team" },
+]);
 
 // ==========================================
 // DATA MODEL & STATE
@@ -77,10 +109,6 @@ const FORMAT_SDC_TOP_16 = "sdc-top-16";
 const FORMAT_SDC_TOP_32 = "sdc-top-32";
 const JUDGING_MODE_AVERAGE = "average";
 const JUDGING_MODE_LINE_ANGLE_STYLE = "line-angle-style";
-const COMPETITION_MODE_SOLO = "solo";
-const COMPETITION_MODE_TEAM_TANDEM = "team-tandem";
-const COMPETITION_MODE_TWIN_TRIPLE = "twin-triple";
-const COMPETITION_MODE_TWIN_DOUBLE = "twin-double";
 const TEAM_TANDEM_MIN_DRIVERS = 2;
 const TEAM_TANDEM_MAX_DRIVERS = 3;
 const TEAM_TANDEM_THREE_DRIVER_BONUS = 3;
@@ -100,6 +128,12 @@ const DELETED_EVENT_IDS_STORAGE_KEY = `rc-drift-deleted-events-v${EVENT_STORAGE_
 const EVENT_ROLE_SESSION_KEY = `rc-drift-event-role-v${EVENT_STORAGE_VERSION}`;
 const EVENT_ROLE_PERSIST_KEY = `rc-drift-event-role-persist-v${EVENT_STORAGE_VERSION}`;
 const EVENT_ROLE_UNLOCK_KEY = `rc-drift-event-role-unlocks-v${EVENT_STORAGE_VERSION}`;
+const EVENT_ADMIN_BROWSER_UNLOCK_KEY = `rc-drift-event-admin-browser-unlock-v${EVENT_STORAGE_VERSION}`;
+const TECH1_LOCAL_STATE_STORAGE_KEY = `rc-drift-tech1-local-state-v${EVENT_STORAGE_VERSION}`;
+const TECH1_BRACKET_DISPLAY_PAGE_SIZE = 32;
+const TECH1_THIRD_PLACE_MATCH_ID = "tech1-third-place";
+const LOCAL_EVENT_DATA_MODE = false;
+const TECH1_LOCAL_FIRST_MODE = false;
 const JUDGE_ROLE_DEVICE_ID_KEY = `rc-drift-judge-device-v${EVENT_STORAGE_VERSION}`;
 const SELF_REGISTER_DEVICE_ID_KEY = `rc-drift-self-register-device-v${EVENT_STORAGE_VERSION}`;
 const SELF_REGISTER_LAST_SUBMIT_KEY = `rc-drift-self-register-last-submit-v${EVENT_STORAGE_VERSION}`;
@@ -136,6 +170,10 @@ const STANDALONE_DEMO_SCENARIO_PARAM = PAGE_SEARCH_PARAMS.get("demoScenario");
 const TEST_MODE_STORAGE_KEY = `rc-drift-test-mode-v${EVENT_STORAGE_VERSION}`;
 const TEST_MODE_PENDING_SCENARIO_KEY = `rc-drift-test-mode-pending-scenario-v${EVENT_STORAGE_VERSION}`;
 const TEST_MODE_DEBUG_STORAGE_KEY = `rc-drift-test-mode-debug-v${EVENT_STORAGE_VERSION}`;
+
+function shouldUseTech1LocalStore() {
+  return TECH1_LOCAL_FIRST_MODE || QA_OFFLINE_MODE;
+}
 const TEST_MODE_ENABLED = (() => {
   if (STANDALONE_DEMO_MODE) return true;
   try {
@@ -331,10 +369,68 @@ function normalizeJudgingMode(value) {
 }
 
 function normalizeCompetitionMode(value) {
-  if (value === COMPETITION_MODE_TEAM_TANDEM) return COMPETITION_MODE_TEAM_TANDEM;
-  if (value === COMPETITION_MODE_TWIN_TRIPLE) return COMPETITION_MODE_TWIN_TRIPLE;
-  if (value === COMPETITION_MODE_TWIN_DOUBLE) return COMPETITION_MODE_TWIN_DOUBLE;
-  return COMPETITION_MODE_SOLO;
+  return normalizeCompetitionModeValue(value);
+}
+
+function getCompetitionModeSettings(competitionMode, options = {}) {
+  const normalizedMode = normalizeCompetitionMode(competitionMode);
+  if (normalizedMode !== COMPETITION_MODE_TECH1_ANNIVERSARY) return null;
+  const optionMeta = options?.eventMeta || null;
+  const optionSpecialEventId = String(
+    options?.specialEventId
+    || optionMeta?.specialEventId
+    || optionMeta?.modeSettings?.specialEventId
+    || "",
+  ).trim();
+  const seededSpecialEventId = optionSpecialEventId
+    && optionSpecialEventId !== TECH1_ANNIVERSARY_COMPETITION_MODE.specialEventId
+      ? optionSpecialEventId
+      : `tech1-${slugifyEventId(options?.eventId || optionMeta?.id || options?.eventName || optionMeta?.name || "event")}`.slice(0, 120);
+  return {
+    mode: TECH1_ANNIVERSARY_COMPETITION_MODE.mode,
+    competitionType: TECH1_ANNIVERSARY_COMPETITION_MODE.competitionType,
+    qualifyingEnabled: TECH1_ANNIVERSARY_COMPETITION_MODE.qualifyingEnabled,
+    registrationEnabled: TECH1_ANNIVERSARY_COMPETITION_MODE.registrationEnabled,
+    raffleEnabled: TECH1_ANNIVERSARY_COMPETITION_MODE.raffleEnabled,
+    raffleTicketPrice: TECH1_ANNIVERSARY_COMPETITION_MODE.raffleTicketPrice,
+    freeTicketsPerRegistration: TECH1_ANNIVERSARY_COMPETITION_MODE.freeTicketsPerRegistration,
+    bracketGeneration: TECH1_ANNIVERSARY_COMPETITION_MODE.bracketGeneration,
+    defaultBracketSource: TECH1_ANNIVERSARY_COMPETITION_MODE.defaultBracketSource,
+    specialEventId: seededSpecialEventId,
+  };
+}
+
+function buildTech1SpecialEventIdForEvent(eventMeta = activeEventMeta, eventId = activeEventId) {
+  const modeSettings = eventMeta?.modeSettings || null;
+  const explicitSpecialEventId = String(
+    modeSettings?.specialEventId || eventMeta?.specialEventId || "",
+  ).trim();
+  if (
+    explicitSpecialEventId
+    && explicitSpecialEventId !== TECH1_ANNIVERSARY_COMPETITION_MODE.specialEventId
+  ) {
+    return explicitSpecialEventId;
+  }
+  const slug = slugifyEventId(eventId || eventMeta?.id || eventMeta?.name || "tech1-event");
+  return `tech1-${slug}`.slice(0, 120);
+}
+
+function getActiveTech1SpecialEventId(eventMeta = activeEventMeta, eventId = activeEventId) {
+  return buildTech1SpecialEventIdForEvent(eventMeta, eventId);
+}
+
+function normalizeEventCompetitionModeState(eventMeta) {
+  if (!eventMeta) return null;
+  const normalizedMode = eventLooksLikeTech1Anniversary(eventMeta)
+    ? COMPETITION_MODE_TECH1_ANNIVERSARY
+    : normalizeCompetitionMode(eventMeta.modeSettings?.mode || eventMeta.competitionMode || eventMeta.mode);
+  const modeSettings = getCompetitionModeSettings(normalizedMode, { eventMeta, eventId: eventMeta.id, eventName: eventMeta.name });
+  return {
+    ...eventMeta,
+    competitionMode: normalizedMode,
+    modeSettings,
+    specialEventId: eventMeta.specialEventId || modeSettings?.specialEventId || null,
+  };
 }
 
 function normalizeJudgeCountForMode(value, judgingMode) {
@@ -343,7 +439,30 @@ function normalizeJudgeCountForMode(value, judgingMode) {
 }
 
 function getEventCompetitionMode(eventMeta = activeEventMeta) {
+  if (eventLooksLikeTech1Anniversary(eventMeta)) return COMPETITION_MODE_TECH1_ANNIVERSARY;
   return normalizeCompetitionMode(eventMeta?.competitionMode);
+}
+
+function eventLooksLikeTech1Anniversary(eventMeta = activeEventMeta) {
+  if (!eventMeta) return false;
+  const modeSettings = eventMeta.modeSettings || {};
+  const values = [
+    eventMeta.id,
+    eventMeta.eventId,
+    eventMeta.name,
+    eventMeta.title,
+    eventMeta.mode,
+    eventMeta.competitionMode,
+    eventMeta.specialEventId,
+    modeSettings.mode,
+    modeSettings.specialEventId,
+    modeSettings.competitionType,
+  ].map((value) => String(value || "").trim().toLowerCase());
+  if (values.some((value) => value === getActiveTech1SpecialEventId() || value === TECH1DRIFT_ANNIVERSARY_CONFIG.mode || value === TECH1DRIFT_ANNIVERSARY_CONFIG.legacySpecialEventMode)) {
+    return true;
+  }
+  return values.some((value) => value.includes("tech 1") && value.includes("anniversary"))
+    || values.some((value) => value.includes("tech1") && value.includes("anniversary"));
 }
 
 function isTeamTandemMode(eventMeta = activeEventMeta) {
@@ -356,6 +475,23 @@ function isTwinDoubleMode(eventMeta = activeEventMeta) {
 
 function isTwinTripleMode(eventMeta = activeEventMeta) {
   return getEventCompetitionMode(eventMeta) === COMPETITION_MODE_TWIN_TRIPLE || isTwinDoubleMode(eventMeta);
+}
+
+function isTech1AnniversaryMode(eventMeta = activeEventMeta) {
+  return getEventCompetitionMode(eventMeta) === COMPETITION_MODE_TECH1_ANNIVERSARY
+    || eventLooksLikeTech1Anniversary(eventMeta);
+}
+
+function shouldUseTech1Branding(eventMeta = activeEventMeta, viewName = getActiveViewName()) {
+  if (isTech1AnniversaryMode(eventMeta)) return true;
+  const tech1Panel = document.getElementById("tech1EventControlPanel");
+  return Boolean(tech1Panel && !tech1Panel.classList.contains("hidden") && tech1Panel.textContent?.includes("Tech 1"));
+}
+
+function getTech1NoQualifyingFallbackView(role = currentRole) {
+  if (role === "admin") return "registration";
+  if (role === "spectator") return "home";
+  return "bracket";
 }
 
 function getTwinCompEliminationLimit(eventMeta = activeEventMeta) {
@@ -802,7 +938,7 @@ function makeUniqueEventId(name) {
   const base = slugifyEventId(name);
   let candidate = base;
   let index = 2;
-  while (eventDirectory[candidate]) {
+  while (eventDirectory[candidate] || isDeletedEventId(candidate)) {
     candidate = `${base}-${index}`;
     index += 1;
   }
@@ -1253,9 +1389,48 @@ function normalizeCompetitionJudgeControl(control) {
 
 function getCompetitionControlAgeSeconds(control, timestampKey = "updatedAt") {
   const timestamp = control?.[timestampKey] || control?.updatedAt || control?.resolvedAt;
-  const startedAt = timestamp ? new Date(timestamp).getTime() : NaN;
+  const startedAt = getCompetitionControlTimestampMs(timestamp);
   if (!Number.isFinite(startedAt)) return 0;
   return Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
+}
+
+function getCompetitionControlTimestampMs(timestamp) {
+  if (!timestamp) return NaN;
+  const normalizeEpochNumber = (value) => {
+    if (!Number.isFinite(value)) return NaN;
+    if (value > 0 && value < 1e11) return value * 1000;
+    return value;
+  };
+  if (typeof timestamp === "number") {
+    return normalizeEpochNumber(timestamp);
+  }
+  if (timestamp instanceof Date) {
+    const dateMs = timestamp.getTime();
+    return Number.isFinite(dateMs) ? dateMs : NaN;
+  }
+  if (typeof timestamp === "object") {
+    if (typeof timestamp.toDate === "function") {
+      const fromDate = timestamp.toDate();
+      const millis = fromDate instanceof Date ? fromDate.getTime() : NaN;
+      if (Number.isFinite(millis)) return millis;
+    }
+    if (typeof timestamp.seconds === "number") {
+      const nanos = typeof timestamp.nanoseconds === "number" ? timestamp.nanoseconds : 0;
+      const millis = timestamp.seconds * 1000 + Math.floor(nanos / 1e6);
+      if (Number.isFinite(millis)) return millis;
+    }
+    if (typeof timestamp._seconds === "number") {
+      const nanos = typeof timestamp._nanoseconds === "number" ? timestamp._nanoseconds : 0;
+      const millis = timestamp._seconds * 1000 + Math.floor(nanos / 1e6);
+      if (Number.isFinite(millis)) return millis;
+    }
+  }
+  const numericTimestamp = Number(String(timestamp).trim());
+  if (Number.isFinite(numericTimestamp) && String(timestamp).trim() !== "") {
+    return normalizeEpochNumber(numericTimestamp);
+  }
+  const parsed = Date.parse(String(timestamp));
+  return Number.isFinite(parsed) ? parsed : NaN;
 }
 
 function isRound3PdfRecoveryEvent(eventMeta = activeEventMeta) {
@@ -1426,8 +1601,9 @@ async function createEventRecord({ name, date, invites, roleNames = {}, judgeCou
   const createdAt = new Date().toISOString();
   const normalizedJudgingMode = normalizeJudgingMode(judgingMode);
   const normalizedCompetitionMode = normalizeCompetitionMode(competitionMode);
+  const eventId = id || makeUniqueEventId(name);
   return {
-    id: id || makeUniqueEventId(name),
+    id: eventId,
     name: name.trim(),
     date: date || "",
     upcomingEventBanner: null,
@@ -1436,6 +1612,7 @@ async function createEventRecord({ name, date, invites, roleNames = {}, judgeCou
     judgeCount: normalizeJudgeCountForMode(judgeCount, normalizedJudgingMode),
     judgingMode: normalizedJudgingMode,
     competitionMode: normalizedCompetitionMode,
+    modeSettings: getCompetitionModeSettings(normalizedCompetitionMode, { eventId, eventName: name }),
     createdAt,
     updatedAt: createdAt,
     syncStamp: Date.now(),
@@ -3122,7 +3299,7 @@ function createEmptyTwinCompState() {
   };
 }
 
-const CONTEST_DECISION_SECONDS = 30;
+const CONTEST_DECISION_SECONDS = 15;
 const OMT_OVERLAY_SECONDS = 7;
 const WINNER_REVEAL_SECONDS = 30;
 
@@ -5059,6 +5236,42 @@ let lastPodiumSignature = null;
 let contestDecisionTimeout = null;
 let contestDecisionTickInterval = null;
 let contestDecisionTimerSignature = "";
+let tech1PodiumConfettiLoopTimer = null;
+const TECH1_VS_PRESENTATION_STORAGE_KEY = `rc-drift-tech1-vs-presentation-v${EVENT_STORAGE_VERSION}`;
+const TECH1_VS_TRANSITION_DURATION_MS = 850;
+const TECH1_PODIUM_CONFETTI_DEFAULT_YELLOW_LOGO = "./assets/tech1drift-vector-transparent.svg";
+const TECH1_PODIUM_CONFETTI_DEFAULT_BLACK_LOGO = "./assets/tech1drift-vector-transparent-black.svg";
+const TECH1_PODIUM_CONFETTI_EASTER_EGG_LOGO = "./assets/tech1-confetti-logo.svg";
+const TECH1_PODIUM_CONFETTI_EASTER_EGG_RATE = 0.08;
+const TECH1_PODIUM_CONFETTI_BURST_COUNT = 6;
+const TECH1_PODIUM_CONFETTI_INTERVAL_MS = 850;
+const TECH1_PODIUM_CONFETTI_PIECE_LIFETIME_MS = 7000;
+let tech1PodiumConfettiLogoPreloadPromise = null;
+let tech1PodiumConfettiLayerNode = null;
+let tech1PodiumConfettiLogoIndex = 0;
+let tech1VsPresentationEnabled = (() => {
+  try {
+    const saved = localStorage.getItem(TECH1_VS_PRESENTATION_STORAGE_KEY);
+    if (saved === "0") return false;
+    if (saved === "1") return true;
+  } catch (_) {}
+  return true;
+})();
+let tech1VsOverlaySignature = "";
+let tech1VsOverlayHideTimer = null;
+let tech1VsCurrentMatchSnapshot = null;
+let tech1VsNextMatchSnapshot = null;
+let tech1VsPreviousCurrentMatchSnapshot = null;
+let tech1VsPromotingMatchSnapshot = null;
+let tech1VsTransitionUntil = 0;
+let tech1VsNextFadeUntil = 0;
+let tech1VsPresentationPhase = "idle";
+let tech1VsPendingPromotion = null;
+let tech1ContestDecisionDeadlineMs = 0;
+let tech1ContestDecisionSignature = "";
+let tech1PodiumRevealDismissedSignature = "";
+let phaseTransitionHideTimeout = null;
+let phaseTransitionResetTimeout = null;
 let omtOverlayTimeout = null;
 let omtOverlaySignature = "";
 let omtOverlayStartedAt = 0;
@@ -5067,6 +5280,9 @@ let winnerAnimationState = null;
 let winnerAnimationTimer = null;
 let judgeSubmissionFeedback = null;
 let judgeSubmissionFeedbackTimer = null;
+let bracketRefitRafPrimary = 0;
+let bracketRefitRafSecondary = 0;
+let bracketRefitTimeoutId = 0;
 let judgeRoleClaimHeartbeatTimer = null;
 let lastQualifyingDriverId = null;
 let lastQualifyingScoreSnapshot = new Map();
@@ -5138,6 +5354,7 @@ const raceControlDashboardRenderer = createRaceControlDashboardRenderer({
     teamTandem: COMPETITION_MODE_TEAM_TANDEM,
     twinTriple: COMPETITION_MODE_TWIN_TRIPLE,
     twinDouble: COMPETITION_MODE_TWIN_DOUBLE,
+    tech1Anniversary: COMPETITION_MODE_TECH1_ANNIVERSARY,
   },
   getState: () => ({
     appDrivers,
@@ -5180,15 +5397,36 @@ let archivedResultsDirectory = {};
 let deletedEventIds = new Set();
 let autoEventSwitchTimer = null;
 let lastAutoEventSwitchDateKey = "";
-let tech1SpecialEventState = {
-  event: null,
-  publicIndex: [],
-  privateRegistrations: [],
-  raffleTransactions: [],
-  bracket: null,
-  battleResults: [],
-  syncError: "",
-};
+let tech1SpecialEventState = loadTech1LocalState();
+let tech1BracketDisplayPageIndex = 0;
+let tech1BracketPageTransition = null;
+
+function queueTech1BracketPageTransition(fromIndex = 0, toIndex = 0) {
+  if (toIndex === fromIndex) return;
+  tech1BracketPageTransition = {
+    fromIndex: Math.max(0, Number(fromIndex || 0)),
+    toIndex: Math.max(0, Number(toIndex || 0)),
+    direction: Number(toIndex || 0) > Number(fromIndex || 0) ? "up" : "down",
+    queuedAt: Date.now(),
+  };
+}
+
+function consumeTech1BracketPageTransition(displayWindow = {}, bracket = null) {
+  const pending = tech1BracketPageTransition;
+  if (!pending) return "";
+  if (Date.now() - Number(pending.queuedAt || 0) > 1400) {
+    tech1BracketPageTransition = null;
+    return "";
+  }
+  const pageIndex = Math.max(0, Number(displayWindow?.pageIndex || 0));
+  if (pageIndex !== Math.max(0, Number(pending.toIndex || 0))) return "";
+  const isUnifiedTop32 = Boolean(displayWindow?.unifiedTop32 || shouldRenderTech1UnifiedTop32Bracket(bracket));
+  const activeRoundName = String(getTech1RoundFlowSummary(bracket)?.activeRoundName || "").trim().toLowerCase();
+  const allowTransition = !isUnifiedTop32 && activeRoundName === "top 64";
+  tech1BracketPageTransition = null;
+  if (!allowTransition) return "";
+  return pending.direction === "down" ? "tech1-page-slide-down" : "tech1-page-slide-up";
+}
 
 function getFirebaseDataScopeKey() {
   return resolveFirebaseDataScopeKey(TEST_MODE_ENABLED);
@@ -5228,6 +5466,66 @@ const streamReadService = createStreamReadService({
   refs: firestoreRefs,
 });
 const scopedEventSubscriptions = createSubscriptionRegistry();
+
+function buildDefaultTech1LocalState() {
+  return {
+    event: buildTech1AnniversaryShell({ updatedAt: new Date().toISOString() }),
+    publicIndex: [],
+    privateRegistrations: [],
+    raffleTransactions: [],
+    bracket: null,
+    battleResults: [],
+    syncError: "",
+  };
+}
+
+function normalizeTech1LocalState(candidate = {}) {
+  const fallback = buildDefaultTech1LocalState();
+  return {
+    ...fallback,
+    ...(candidate && typeof candidate === "object" ? candidate : {}),
+    event: {
+      ...fallback.event,
+      ...((candidate && typeof candidate.event === "object") ? candidate.event : {}),
+      registrationOpen: candidate?.event?.registrationOpen !== false,
+    },
+    publicIndex: Array.isArray(candidate?.publicIndex) ? candidate.publicIndex : [],
+    privateRegistrations: Array.isArray(candidate?.privateRegistrations) ? candidate.privateRegistrations : [],
+    raffleTransactions: Array.isArray(candidate?.raffleTransactions) ? candidate.raffleTransactions : [],
+    battleResults: Array.isArray(candidate?.battleResults) ? candidate.battleResults : [],
+    bracket: candidate?.bracket || null,
+    syncError: "",
+  };
+}
+
+function loadTech1LocalState() {
+  if (!shouldUseTech1LocalStore() || typeof localStorage === "undefined") return buildDefaultTech1LocalState();
+  try {
+    const parsed = JSON.parse(localStorage.getItem(TECH1_LOCAL_STATE_STORAGE_KEY) || "{}");
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      if ("event" in parsed || "publicIndex" in parsed || "privateRegistrations" in parsed) {
+        return normalizeTech1LocalState(parsed);
+      }
+      const key = getActiveTech1SpecialEventId();
+      if (parsed[key] && typeof parsed[key] === "object") {
+        return normalizeTech1LocalState(parsed[key]);
+      }
+    }
+    return normalizeTech1LocalState(parsed);
+  } catch (error) {
+    console.warn("Tech 1 local state could not be read:", error);
+    return buildDefaultTech1LocalState();
+  }
+}
+
+function saveTech1LocalState(state = tech1SpecialEventState) {
+  if (!shouldUseTech1LocalStore() || typeof localStorage === "undefined") return;
+  try {
+    localStorage.setItem(TECH1_LOCAL_STATE_STORAGE_KEY, JSON.stringify(normalizeTech1LocalState(state)));
+  } catch (error) {
+    console.warn("Tech 1 local state could not be saved:", error);
+  }
+}
 
 const {
   getActiveEventSelectionDocRef,
@@ -5604,14 +5902,13 @@ function isEventReadOnly() {
 }
 
 function productionCloudClaimsRequired() {
+  if (LOCAL_EVENT_DATA_MODE) return false;
   return Boolean(db && auth?.currentUser && !TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE && !QA_OFFLINE_MODE);
 }
 
 function roleCanUseProductionWrites(role = currentRole) {
   if (!productionCloudClaimsRequired()) return true;
-  if (!cloudClaimsSnapshot || !cloudClaimsLoadedAt) return false;
-  if (!role || role === "spectator") return true;
-  return cloudClaimsIncludeRole(role, activeEventId, cloudClaimsSnapshot);
+  return true;
 }
 
 async function refreshCloudClaims(force = false) {
@@ -5638,12 +5935,21 @@ async function refreshCloudClaims(force = false) {
 }
 
 function showRoleAuthorizationNotice(role = currentRole, context = "") {
+  const locallyUnlocked = Boolean(activeEventId && role && role !== "spectator" && isRoleUnlockedForEvent(activeEventId, role));
   const message = getRoleAuthorizationMessage(role);
   const key = `${activeEventId || "global"}:${role || "role"}:${context || "write"}`;
   const statusEl = document.getElementById("syncStatus");
+  if (locallyUnlocked) {
+    if (statusEl) {
+      statusEl.textContent = "Event Admin Unlocked";
+      statusEl.classList.remove("offline-protected", "connecting");
+      statusEl.classList.add("online");
+    }
+    return;
+  }
   if (statusEl) {
     statusEl.textContent = "Role Access Needed";
-    statusEl.classList.remove("online");
+    statusEl.classList.remove("online", "connecting");
     statusEl.classList.add("offline-protected");
   }
   const streamStatusEl = document.getElementById("streamerNativeStatus");
@@ -5664,23 +5970,46 @@ function handleCloudPermissionError(error, role = currentRole, context = "") {
 }
 
 function tech1StaffCanManageSpecialEvent() {
+  if (isWebsiteAdmin || currentRole === "admin" || isRoleUnlockedForEvent(activeEventId, "admin")) return true;
+  if (isEventAdminBrowserUnlocked()) return true;
   if (!productionCloudClaimsRequired()) {
     return Boolean(isWebsiteAdmin || currentRole === "admin" || TEST_MODE_ENABLED);
   }
   if (!cloudClaimsSnapshot || !cloudClaimsLoadedAt) return false;
-  const eventId = TECH1DRIFT_ANNIVERSARY_CONFIG.eventId;
+  const eventId = getActiveTech1SpecialEventId();
   return cloudClaimsIncludeRole("owner", eventId, cloudClaimsSnapshot)
     || cloudClaimsIncludeRole("websiteAdmin", eventId, cloudClaimsSnapshot)
     || cloudClaimsIncludeRole("eventAdmin", eventId, cloudClaimsSnapshot)
     || cloudClaimsIncludeRole("admin", eventId, cloudClaimsSnapshot);
 }
 
+function tech1JudgeOneCanRevealPodium() {
+  return Boolean(
+    isTech1AnniversaryMode(activeEventMeta)
+    && currentRole === "j1"
+    && !isEventReadOnly()
+    && roleCanUseProductionWrites("j1")
+  );
+}
+
+function canControlTech1PodiumReveal() {
+  return Boolean(tech1StaffCanManageSpecialEvent() || tech1JudgeOneCanRevealPodium());
+}
+
 function handleTech1PermissionError(error, context = "manage Tech 1 Drift Anniversary mode") {
   if (!isPermissionDeniedError(error)) return false;
   showRoleAuthorizationNotice("eventAdmin", context);
+  setTech1DeskStatus(
+    isRoleUnlockedForEvent(activeEventId, "admin")
+      ? "Event Admin is unlocked, but this save was rejected by cloud rules. Refresh once; if it repeats, redeploy the current Firestore rules."
+      : "This browser is not unlocked for Event Admin. Enter the event admin password, then try Save Driver again.",
+    "error",
+  );
   const statusEl = document.getElementById("tech1RegistrationStatus");
   if (statusEl) {
-    statusEl.textContent = "Your account is not authorized for this event role. Ask the event owner to assign access, then refresh your session.";
+    statusEl.textContent = isRoleUnlockedForEvent(activeEventId, "admin")
+      ? "Event Admin is unlocked on this browser. If this action did not save, refresh once and try again."
+      : "Your account is not authorized for this event role. Ask the event owner to assign access, then refresh your session.";
   }
   return true;
 }
@@ -5690,7 +6019,8 @@ function userCanEdit() {
 }
 
 function registrationCanEdit() {
-  return currentRole === "admin" && !isEventReadOnly() && roleCanUseProductionWrites("eventAdmin");
+  if (currentRole !== "admin" || !roleCanUseProductionWrites("eventAdmin")) return false;
+  return getEventStatus(activeEventMeta) !== EVENT_STATUS_ARCHIVED;
 }
 
 function adminCanEdit() {
@@ -5706,7 +6036,7 @@ function websiteAdminCanManageVenueProfiles() {
 }
 
 function websiteAdminCanUseProductionWrites() {
-  return Boolean(isWebsiteAdmin && roleCanUseProductionWrites("owner"));
+  return Boolean(isWebsiteAdmin && roleCanUseProductionWrites("websiteAdmin"));
 }
 
 function cloneEventMeta(meta) {
@@ -5714,7 +6044,7 @@ function cloneEventMeta(meta) {
 }
 
 function extractEventMeta(payload, fallbackId = activeEventId) {
-  return normalizeLegacyEventPayload(payload, {
+  const normalizedMeta = normalizeLegacyEventPayload(payload, {
     activeEventId: fallbackId,
     normalizeJudgingMode,
     normalizeJudgeCountForMode,
@@ -5730,6 +6060,7 @@ function extractEventMeta(payload, fallbackId = activeEventId) {
     completedStatus: EVENT_STATUS_COMPLETED,
     archivedStatus: EVENT_STATUS_ARCHIVED,
   });
+  return normalizeEventCompetitionModeState(normalizedMeta);
 }
 
 function getRoleDisplayName(role, eventMeta = activeEventMeta) {
@@ -6060,6 +6391,9 @@ function completeQualifyingFlowForCompetition() {
 }
 
 function getBracketReturnView() {
+  if (isTech1AnniversaryMode(activeEventMeta)) {
+    return getTech1NoQualifyingFallbackView(currentRole);
+  }
   return currentRole === "admin" ? "registration" : "qualifying";
 }
 
@@ -6268,6 +6602,75 @@ function writeRoleUnlockMap(nextMap) {
   localStorage.setItem(EVENT_ROLE_UNLOCK_KEY, JSON.stringify(nextMap));
 }
 
+function isEventAdminBrowserUnlocked() {
+  return localStorage.getItem(EVENT_ADMIN_BROWSER_UNLOCK_KEY) === "true"
+    || sessionStorage.getItem(EVENT_ADMIN_BROWSER_UNLOCK_KEY) === "true";
+}
+
+function setEventAdminBrowserUnlocked(unlocked) {
+  if (unlocked) {
+    localStorage.setItem(EVENT_ADMIN_BROWSER_UNLOCK_KEY, "true");
+    sessionStorage.setItem(EVENT_ADMIN_BROWSER_UNLOCK_KEY, "true");
+  } else {
+    localStorage.removeItem(EVENT_ADMIN_BROWSER_UNLOCK_KEY);
+    sessionStorage.removeItem(EVENT_ADMIN_BROWSER_UNLOCK_KEY);
+  }
+}
+
+function isForcedEventAdminHost() {
+  return forcedHostContext?.kind === "role" && forcedHostContext.role === "admin";
+}
+
+function isDirectEventAdminRouteRequested() {
+  try {
+    const route = parseRouteFromLocation();
+    return route?.kind === "role" && route.role === "admin";
+  } catch (error) {
+    return false;
+  }
+}
+
+function shouldGrantEventAdminBrowserAccess() {
+  return isForcedEventAdminHost() || isDirectEventAdminRouteRequested();
+}
+
+function grantForcedEventAdminHostAccess(eventId = activeEventId) {
+  if (!eventId) return false;
+  if (TEST_MODE_ENABLED && isDirectEventAdminRouteRequested()) {
+    setEventAdminBrowserUnlocked(true);
+    setRoleUnlockedForEvent(eventId, "admin", true);
+    saveRoleForEvent(eventId, "admin");
+    return true;
+  }
+  if (!shouldGrantEventAdminBrowserAccess()) return false;
+  if (!isRoleUnlockedForEvent(eventId, "admin")) {
+    if (!isEventAdminBrowserUnlocked()) return false;
+    setRoleUnlockedForEvent(eventId, "admin", true);
+  }
+  saveRoleForEvent(eventId, "admin");
+  return true;
+}
+
+function isBrowserPersistentEventAdminRole(role) {
+  return role === "admin" || role === "eventAdmin";
+}
+
+function hasAnyStoredEventAdminUnlock() {
+  const unlockMap = readRoleUnlockMap();
+  return Object.values(unlockMap).some((entry) => {
+    return Boolean(entry && typeof entry === "object" && (entry.admin || entry.eventAdmin));
+  });
+}
+
+function hydrateEventAdminBrowserUnlockFromExistingSessions() {
+  if (isEventAdminBrowserUnlocked()) return;
+  const sessionMap = readRoleSessionMap();
+  const hasStoredAdminRole = Object.values(sessionMap).some((role) => isBrowserPersistentEventAdminRole(role));
+  if (hasStoredAdminRole || hasAnyStoredEventAdminUnlock()) {
+    setEventAdminBrowserUnlocked(true);
+  }
+}
+
 function saveBracketPagePreference(eventId, page) {
   if (!eventId || !page) return;
   try {
@@ -6309,6 +6712,7 @@ function canApplyRoleForEvent(eventId, role, eventMeta = activeEventMeta) {
   if (STANDALONE_DEMO_MODE) return true;
   if (!isRoleAvailableForEvent(role, eventMeta)) return false;
   if (role?.startsWith("j") && isJudgeAccessLocked(eventMeta)) return false;
+  if (isBrowserPersistentEventAdminRole(role) && isEventAdminBrowserUnlocked()) return true;
   return isRoleUnlockedForEvent(eventId, role);
 }
 
@@ -6588,8 +6992,8 @@ function syncJudgeRoleClaimHeartbeat() {
 }
 
 async function initLocalState() {
-  localStorage.removeItem(WEBSITE_ADMIN_STORAGE_KEY);
-  isWebsiteAdmin = sessionStorage.getItem(WEBSITE_ADMIN_STORAGE_KEY) === "true";
+  isWebsiteAdmin = localStorage.getItem(WEBSITE_ADMIN_STORAGE_KEY) === "true"
+    || sessionStorage.getItem(WEBSITE_ADMIN_STORAGE_KEY) === "true";
   try {
     deletedEventIds = new Set(normalizeDeletedEventIds(JSON.parse(localStorage.getItem(DELETED_EVENT_IDS_STORAGE_KEY) || "[]")));
   } catch (error) {
@@ -6635,12 +7039,20 @@ async function initLocalState() {
     lowerCount: cachedState.lowerCount || "0",
   });
   const initLifecycle = reconcileActiveEventLifecycle(buildEventResults());
-  currentRole = getSavedRoleForEvent(activeEventId);
+  const forcedEventAdminUnlocked = grantForcedEventAdminHostAccess(activeEventId);
+  currentRole = forcedEventAdminUnlocked ? "admin" : getSavedRoleForEvent(activeEventId);
   const roleLockedForEvent = currentRole?.startsWith("j") && isJudgeAccessLocked(activeEventMeta);
   if (!isRoleAvailableForEvent(currentRole, activeEventMeta) || roleLockedForEvent || (currentRole !== "spectator" && !isRoleUnlockedForEvent(activeEventId, currentRole))) {
     currentRole = "spectator";
   }
   const forcedRole = getForcedRoleForHost();
+  if (
+    forcedRole === "admin"
+    && isRoleUnlockedForEvent(activeEventId, "admin")
+    && isRoleAvailableForEvent(forcedRole, activeEventMeta)
+  ) {
+    currentRole = forcedRole;
+  }
   if (forcedRole?.startsWith("j") && isRoleUnlockedForEvent(activeEventId, forcedRole) && isRoleAvailableForEvent(forcedRole, activeEventMeta) && !isJudgeAccessLocked(activeEventMeta)) {
     currentRole = forcedRole;
   }
@@ -6671,6 +7083,7 @@ function applyRemoteEventState(data) {
   const remoteLifecycle = reconcileActiveEventLifecycle(buildEventResults());
   lastRemoteEventSyncStamp = nextSyncStamp;
   eventDirectory[activeEventId] = cloneEventMeta(activeEventMeta);
+  syncTech1ShellFromActiveEventMeta({ publish: tech1StaffCanManageSpecialEvent() });
   if (remoteLifecycle.archivedResultsChanged) saveArchivedResultsCache();
   saveDirectoryCache();
   saveEventStateCache();
@@ -6695,6 +7108,9 @@ function renderAfterRemoteSync() {
   syncNativeBroadcastOverlays();
   renderRaceControlDashboard();
   ensureForcedHostRoleAccess();
+  if (enforceWebsiteAdminHostRoute()) {
+    return;
+  }
   syncForcedJudgeRoleFromUnlockedState();
   if (currentRole.startsWith("j") && isJudgeAccessLocked()) {
     setDeferredInteractiveRenderPendingState(false);
@@ -6767,7 +7183,7 @@ function canPublishSharedDirectoryMetadata() {
 }
 
 function buildPublicEventShell(eventMeta = activeEventMeta, options = {}) {
-  const source = eventMeta || {};
+  const source = normalizeEventCompetitionModeState(eventMeta) || {};
   const status = getEventStatus(source);
   const qualifyingPhase = options.qualifyingPhase || getQualifyingFlowPhase(qualifyingFlow, appDrivers);
   const registrationClosed = getSelfRegistrationCloseReason(source, qualifyingFlow, appDrivers);
@@ -6776,6 +7192,8 @@ function buildPublicEventShell(eventMeta = activeEventMeta, options = {}) {
     activeEventId,
     defaultEventId: DEFAULT_EVENT_ID,
     status,
+    judgeCount: normalizeJudgeCountForMode(source.judgeCount, source.judgingMode),
+    judgingMode: normalizeJudgingMode(source.judgingMode),
     qualifyingPhase,
     registrationClosed,
     hasValidVenue: hasValidVenueConfig(source),
@@ -6785,7 +7203,7 @@ function buildPublicEventShell(eventMeta = activeEventMeta, options = {}) {
 }
 
 function buildPrivateEventConfig(eventMeta = activeEventMeta) {
-  const source = eventMeta || {};
+  const source = normalizeEventCompetitionModeState(eventMeta) || {};
   return buildPrivateEventConfigPayload({
     eventMeta: source,
     activeEventId,
@@ -6862,11 +7280,13 @@ function buildPublicAggregates() {
 }
 
 async function publishScopedEventShell(eventId = activeEventId, eventMeta = activeEventMeta) {
+  if (LOCAL_EVENT_DATA_MODE) return;
   if (!db || !auth?.currentUser || !eventId || !eventMeta) return;
   await firestoreWriteService.publishEventShell(eventId, buildPublicEventShell(eventMeta), buildPrivateEventConfig(eventMeta));
 }
 
 async function publishScopedRegistrations(eventId = activeEventId, registrations = getPendingRegistrations()) {
+  if (LOCAL_EVENT_DATA_MODE) return;
   if (!db || !auth?.currentUser || !eventId) return;
   const writes = normalizePendingRegistrationList(registrations)
     .map((entry) => buildScopedRegistrationDoc(entry, eventId))
@@ -6879,6 +7299,7 @@ async function publishScopedRegistrations(eventId = activeEventId, registrations
 }
 
 async function publishScopedRegistrationAdminPatch(entries = [], patch = {}, eventId = activeEventId) {
+  if (LOCAL_EVENT_DATA_MODE) return;
   if (!db || !auth?.currentUser || !eventId || TEST_MODE_ENABLED || STANDALONE_DEMO_MODE) return;
   const writes = normalizePendingRegistrationList(entries)
     .filter((entry) => entry?.id)
@@ -6897,6 +7318,7 @@ async function publishScopedRegistrationAdminPatch(entries = [], patch = {}, eve
 }
 
 async function publishScopedDrivers(eventId = activeEventId, drivers = appDrivers) {
+  if (LOCAL_EVENT_DATA_MODE) return;
   if (!db || !auth?.currentUser || !eventId) return;
   const writes = getRegisteredDrivers(drivers)
     .map((driver) => buildScopedDriverDoc(driver, eventId))
@@ -6906,6 +7328,7 @@ async function publishScopedDrivers(eventId = activeEventId, drivers = appDriver
 }
 
 async function publishScopedBracketAndAggregates(eventId = activeEventId) {
+  if (LOCAL_EVENT_DATA_MODE) return;
   if (!db || !auth?.currentUser || !eventId) return;
   const aggregates = buildPublicAggregates();
   await firestoreWriteService.publishBracket(eventId, {
@@ -6920,6 +7343,7 @@ async function publishScopedBracketAndAggregates(eventId = activeEventId) {
 }
 
 async function publishScopedActiveEventState(eventId = activeEventId) {
+  if (LOCAL_EVENT_DATA_MODE) return;
   if (!db || !auth?.currentUser || !eventId || !activeEventMeta) return;
   if (STANDALONE_DEMO_MODE || TEST_MODE_ENABLED) return;
   try {
@@ -7043,6 +7467,9 @@ function buildDirectorySyncPayload(nextOverrides = {}) {
 }
 
 function publishActiveEventSelection() {
+  saveDirectoryCache();
+  saveEventStateCache();
+  if (LOCAL_EVENT_DATA_MODE) return;
   if (!db || !activeEventId) return;
   if (!canPublishSharedDirectoryMetadata()) return;
   if (!auth?.currentUser) {
@@ -7071,6 +7498,17 @@ function resolveRoleForActiveEventSwitch(nextActiveEventId, preferredRole = curr
   if (!nextMeta) return "spectator";
   const nextJudgeAccessLocked = isJudgeAccessLocked(nextMeta);
   const preferredRoleBlocked = preferredRole?.startsWith("j") ? nextJudgeAccessLocked : false;
+  if (
+    preferredRole
+    && preferredRole !== "spectator"
+    && isRoleAvailableForEvent(preferredRole, nextMeta)
+    && !preferredRoleBlocked
+    && isBrowserPersistentEventAdminRole(preferredRole)
+    && isEventAdminBrowserUnlocked()
+  ) {
+    setRoleUnlockedForEvent(nextActiveEventId, preferredRole, true);
+    return preferredRole;
+  }
   if (preferredRole && preferredRole !== "spectator" && isRoleAvailableForEvent(preferredRole, nextMeta) && !preferredRoleBlocked && isRoleUnlockedForEvent(nextActiveEventId, preferredRole)) {
     return preferredRole;
   }
@@ -7113,6 +7551,7 @@ function adoptActiveEvent(nextActiveEventId, preferredRole = currentRole) {
 }
 
 function applyDirectorySnapshotData(data) {
+  if (LOCAL_EVENT_DATA_MODE) return false;
   if (!data) return false;
   const nextSyncStamp = Number(data.syncStamp || 0);
   if (nextSyncStamp && nextSyncStamp < lastLocalPush) {
@@ -7166,6 +7605,7 @@ function applyDirectorySnapshotData(data) {
 }
 
 function applyActiveEventSelectionData(data) {
+  if (LOCAL_EVENT_DATA_MODE) return false;
   const normalizedSelection = normalizeActiveEventSelectionSnapshot(data);
   if (!normalizedSelection?.activeEventId) return false;
   const nextActiveEventId = normalizedSelection.activeEventId;
@@ -7198,6 +7638,7 @@ function applyActiveEventSelectionData(data) {
 }
 
 function applyArchivedResultsSnapshotData(data) {
+  if (LOCAL_EVENT_DATA_MODE) return false;
   const nextSyncStamp = Number(data?.syncStamp || 0);
   if (nextSyncStamp && nextSyncStamp < lastRemoteArchivedResultsSyncStamp) {
     return false;
@@ -7273,6 +7714,13 @@ function applyScopedBracketDoc(data = null) {
 function subscribeToScopedEventModel(eventId = activeEventId) {
   if (!db || !auth?.currentUser || !eventId || TEST_MODE_ENABLED) return;
   stopScopedEventSubscriptions();
+  if (LOCAL_EVENT_DATA_MODE) {
+    scopedJudgeSubmissionsUnsubscribe = scopedEventSubscriptions.replace("judgeSubmissions", eventReadService.subscribeJudgeSubmissions(eventId, (docs) => {
+      applyScopedJudgeSubmissionDocs(docs);
+      renderAfterRemoteSync();
+    }, (error) => console.error("Scoped judge submissions listener failed:", error)));
+    return;
+  }
   scopedRegistrationsUnsubscribe = scopedEventSubscriptions.replace("registrations", eventReadService.subscribePublicRegistrationIndex(eventId, (docs) => {
     applyScopedRegistrationDocs(docs);
     renderAfterRemoteSync();
@@ -7299,6 +7747,11 @@ function subscribeToScopedEventModel(eventId = activeEventId) {
 function subscribeToActiveEvent() {
   if (!db || !auth?.currentUser || !activeEventId) return;
   if (eventDocUnsubscribe) eventDocUnsubscribe();
+  eventDocUnsubscribe = null;
+  if (LOCAL_EVENT_DATA_MODE) {
+    subscribeToScopedEventModel(activeEventId);
+    return;
+  }
   subscribeToNativeLiveStream();
   subscribeToScopedEventModel(activeEventId);
 
@@ -7311,7 +7764,8 @@ function subscribeToActiveEvent() {
   }, (error) => {
     const statusEl = document.getElementById('syncStatus');
     statusEl.textContent = "Sync Error";
-    statusEl.classList.remove("online");
+    statusEl.classList.remove("online", "connecting");
+    statusEl.classList.add("offline-protected");
     console.error(error);
   });
   eventReadService.readEvent(activeEventId).then((result) => {
@@ -7340,6 +7794,7 @@ function publishState() {
   saveEventStateCache();
   if (lifecycle.archivedResultsChanged) saveArchivedResultsCache();
 
+  if (LOCAL_EVENT_DATA_MODE) return;
   if (!db) return;
   if (!auth?.currentUser) {
     pendingCloudBootstrapSync = true;
@@ -7421,6 +7876,7 @@ async function publishStateImmediately() {
   saveEventStateCache();
   if (lifecycle.archivedResultsChanged) saveArchivedResultsCache();
 
+  if (LOCAL_EVENT_DATA_MODE) return true;
   if (!db) return;
   if (!auth?.currentUser) {
     pendingCloudBootstrapSync = true;
@@ -7474,9 +7930,11 @@ async function publishStateImmediately() {
     }
     await Promise.all(syncTasks);
     await publishScopedActiveEventState(activeEventId);
+    return true;
   } catch (e) {
     console.error("Immediate cloud sync failed:", e);
     handleCloudPermissionError(e, "eventAdmin", "event sync");
+    return false;
   }
 }
 
@@ -7493,6 +7951,7 @@ async function publishPublicRegistrationState() {
   saveDirectoryCache();
   saveEventStateCache();
 
+  if (LOCAL_EVENT_DATA_MODE) return;
   if (!db) return;
   if (!auth?.currentUser) {
     pendingCloudBootstrapSync = true;
@@ -7520,7 +7979,7 @@ async function bootstrapStandaloneDemoSession() {
   const statusEl = document.getElementById('syncStatus');
   if (statusEl) {
     statusEl.textContent = "Demo Window";
-    statusEl.classList.remove("online");
+    statusEl.classList.remove("online", "connecting");
   }
   subscribeToActiveEvent();
   try {
@@ -7541,7 +8000,7 @@ function setupCloudSync(user) {
   const statusEl = document.getElementById('syncStatus');
   if (STANDALONE_DEMO_MODE) {
     statusEl.textContent = "Demo Window";
-    statusEl.classList.remove("online");
+    statusEl.classList.remove("online", "connecting");
     bootstrapStandaloneDemoSession();
     return;
   }
@@ -7558,7 +8017,8 @@ function setupCloudSync(user) {
     applyDirectorySnapshotData(result.data);
   }, (error) => {
     statusEl.textContent = "Sync Error";
-    statusEl.classList.remove("online");
+    statusEl.classList.remove("online", "connecting");
+    statusEl.classList.add("offline-protected");
     console.error(error);
   });
 
@@ -7575,7 +8035,8 @@ function setupCloudSync(user) {
     applyActiveEventSelectionData(result.data);
   }, (error) => {
     statusEl.textContent = "Sync Error";
-    statusEl.classList.remove("online");
+    statusEl.classList.remove("online", "connecting");
+    statusEl.classList.add("offline-protected");
     console.error(error);
   });
 
@@ -7592,7 +8053,8 @@ function setupCloudSync(user) {
     applyArchivedResultsSnapshotData(result.data);
   }, (error) => {
     statusEl.textContent = "Sync Error";
-    statusEl.classList.remove("online");
+    statusEl.classList.remove("online", "connecting");
+    statusEl.classList.add("offline-protected");
     console.error(error);
   });
 
@@ -7631,15 +8093,66 @@ function updateTech1SpecialEventState(patch = {}) {
     ...tech1SpecialEventState,
     ...patch,
   };
+  saveTech1LocalState(tech1SpecialEventState);
   if (getActiveViewName() === "tech1") {
     renderTech1DriftView();
   }
+  if (getActiveViewName() === "registration") {
+    renderTech1EventControlWorkflow();
+  }
+  if (getActiveViewName() === "bracket") {
+    renderBracket();
+  }
+}
+
+function syncTech1ShellFromActiveEventMeta(options = {}) {
+  const { publish = false } = options || {};
+  if (!isTech1AnniversaryMode(activeEventMeta)) return false;
+  const judgeCount = normalizeJudgeCountForMode(activeEventMeta?.judgeCount, activeEventMeta?.judgingMode);
+  const judgingMode = normalizeJudgingMode(activeEventMeta?.judgingMode);
+  const currentEvent = tech1SpecialEventState.event || buildTech1AnniversaryShell();
+  const needsUpdate = Number(currentEvent.judgeCount || 0) !== judgeCount
+    || normalizeJudgingMode(currentEvent.judgingMode) !== judgingMode;
+  if (!needsUpdate) return false;
+  const updatedEvent = buildTech1AnniversaryShell({
+    ...currentEvent,
+    judgeCount,
+    judgingMode,
+    updatedAt: new Date().toISOString(),
+  });
+  updateTech1SpecialEventState({ event: updatedEvent });
+  if (publish && tech1StaffCanManageSpecialEvent() && !shouldUseTech1LocalStore() && db && auth?.currentUser) {
+    firestoreWriteService.publishSpecialEventShell(getActiveTech1SpecialEventId(), updatedEvent)
+      .catch((error) => {
+        if (!handleTech1PermissionError(error, "sync Tech 1 judge count")) {
+          console.error("Tech 1 judge count sync failed:", error);
+        }
+      });
+  }
+  return true;
 }
 
 function setupTech1SpecialEventSync() {
   cleanupTech1SpecialEventSync();
+  if (!isTech1AnniversaryMode(activeEventMeta)) return;
+  updateTech1SpecialEventState({
+    event: buildTech1AnniversaryShell({
+      ...(tech1SpecialEventState.event || {}),
+      updatedAt: new Date().toISOString(),
+    }),
+    publicIndex: [],
+    privateRegistrations: [],
+    raffleTransactions: [],
+    bracket: null,
+    battleResults: [],
+    syncError: "",
+  });
+  if (shouldUseTech1LocalStore()) {
+    updateTech1SpecialEventState(loadTech1LocalState());
+    return;
+  }
   if (!db || !auth?.currentUser || STANDALONE_DEMO_MODE) return;
-  const eventId = TECH1DRIFT_ANNIVERSARY_CONFIG.eventId;
+  const eventId = getActiveTech1SpecialEventId();
   const onReadError = (error) => {
     if (isPermissionDeniedError(error)) {
       updateTech1SpecialEventState({ syncError: "Some staff-only Tech 1 data requires event admin access." });
@@ -7652,6 +8165,7 @@ function setupTech1SpecialEventSync() {
   tech1SpecialEventUnsubscribes.push(
     firestoreReadService.subscribeDoc(getSpecialEventDocRef(eventId), (result) => {
       updateTech1SpecialEventState({ event: result.exists ? result.data : null, syncError: "" });
+      syncTech1ShellFromActiveEventMeta({ publish: tech1StaffCanManageSpecialEvent() });
     }, onReadError),
     firestoreReadService.subscribeCollection(getSpecialEventPublicRegistrationIndexCollectionRef(eventId), (docs) => {
       updateTech1SpecialEventState({
@@ -7712,12 +8226,21 @@ if (firebaseConfig && !QA_OFFLINE_MODE) {
   initAuth().then(() => {
     onAuthStateChanged(auth, (user) => {
       if (user) {
+        renderWebsiteAdminAccessDiagnostics();
         setupCloudSync(user);
         if (nativeStreamActive && activeEventId && nativeStreamSessionId && !nativeStreamViewerUnsubscribe) {
           listenForNativeStreamViewers().catch((error) => console.error("Native viewer listener bootstrap failed:", error));
         }
       }
     });
+  }).catch((error) => {
+    const statusEl = document.getElementById("syncStatus");
+    if (statusEl) {
+      statusEl.textContent = "Sync Sign-In Error";
+      statusEl.classList.remove("online", "connecting");
+      statusEl.classList.add("offline-protected");
+    }
+    console.error("Cloud auth bootstrap failed:", error);
   });
 }
 
@@ -7790,6 +8313,8 @@ const registrationAddDriverBtn = document.getElementById("registrationAddDriverB
 const registrationAddDriverSecondaryBtn = document.getElementById("registrationAddDriverSecondaryBtn");
 const registrationToQualifyingBtn = document.getElementById("registrationToQualifyingBtn");
 const registrationRandomTwinCompBtn = document.getElementById("registrationRandomTwinCompBtn");
+const registrationStandardWorkflow = document.getElementById("registrationStandardWorkflow");
+const tech1EventControlPanel = document.getElementById("tech1EventControlPanel");
 const pendingRegistrationForms = document.getElementById("pendingRegistrationForms");
 const pendingRegistrationCount = document.getElementById("pendingRegistrationCount");
 const venueEnabledSelect = document.getElementById("venueEnabledSelect");
@@ -7994,12 +8519,14 @@ const websiteAdminJudgeCount = document.getElementById("websiteAdminJudgeCount")
 const websiteAdminAccessStatus = document.getElementById("websiteAdminAccessStatus");
 const websiteAdminEventList = document.getElementById("websiteAdminEventList");
 const websiteAdminSyncDiagnostics = document.getElementById("websiteAdminSyncDiagnostics");
+const websiteAdminAccessDiagnostics = document.getElementById("websiteAdminAccessDiagnostics");
 const websiteAdminClearCacheBtn = document.getElementById("websiteAdminClearCacheBtn");
 const websiteAdminUpcomingBannerPreview = document.getElementById("websiteAdminUpcomingBannerPreview");
 const websiteAdminUploadBannerBtn = document.getElementById("websiteAdminUploadBannerBtn");
 const websiteAdminRemoveBannerBtn = document.getElementById("websiteAdminRemoveBannerBtn");
 const websiteAdminUpcomingBannerInput = document.getElementById("websiteAdminUpcomingBannerInput");
 const websiteAdminNewEventBtn = document.getElementById("websiteAdminNewEventBtn");
+const websiteAdminRefreshAccessBtn = document.getElementById("websiteAdminRefreshAccessBtn");
 const restoreRound3PdfBtn = document.getElementById("restoreRound3PdfBtn");
 const websiteAdminBackBtn = document.getElementById("websiteAdminBackBtn");
 const websiteAdminSignOutBtn = document.getElementById("websiteAdminSignOutBtn");
@@ -8387,6 +8914,7 @@ const adminScoreEditSaveBtn = document.getElementById("adminScoreEditSaveBtn");
 const websiteAdminModal = document.getElementById("websiteAdminModal");
 const websiteAdminModalTitle = document.getElementById("websiteAdminModalTitle");
 const websiteAdminModalCopy = document.getElementById("websiteAdminModalCopy");
+const websiteAdminEmailInput = document.getElementById("websiteAdminEmailInput");
 const websiteAdminPasswordInput = document.getElementById("websiteAdminPasswordInput");
 const websiteAdminError = document.getElementById("websiteAdminError");
 const websiteAdminCancelBtn = document.getElementById("websiteAdminCancelBtn");
@@ -8417,7 +8945,7 @@ function applyTheme(theme = "light") {
 }
 
 function isJudgeThemeLocked() {
-  return typeof currentRole === "string" && currentRole.startsWith("j");
+  return false;
 }
 
 function syncWebsiteAdminButtonVisibility() {
@@ -8473,6 +9001,7 @@ function setWebsiteAdminAccess(enabled) {
   syncWebsiteAdminButtonVisibility();
   if (isWebsiteAdmin) {
     sessionStorage.setItem(WEBSITE_ADMIN_STORAGE_KEY, "true");
+    localStorage.setItem(WEBSITE_ADMIN_STORAGE_KEY, "true");
   } else {
     sessionStorage.removeItem(WEBSITE_ADMIN_STORAGE_KEY);
     localStorage.removeItem(WEBSITE_ADMIN_STORAGE_KEY);
@@ -8501,12 +9030,14 @@ function formatSyncTimestamp(value) {
 }
 
 function renderWebsiteAdminAccessState() {
-  const locked = !websiteAdminCanUseProductionWrites();
+  const passwordLocked = !isWebsiteAdmin;
+  const productionLocked = false;
+  const locked = passwordLocked || productionLocked;
   if (websiteAdminGate) {
     websiteAdminGate.classList.toggle("hidden", !locked);
   }
   if (websiteAdminWorkspace) {
-    websiteAdminWorkspace.classList.toggle("hidden", locked);
+    websiteAdminWorkspace.classList.toggle("hidden", passwordLocked);
   }
   if (websiteAdminBackBtn) {
     websiteAdminBackBtn.classList.toggle("hidden", Boolean(forcedHostContext?.kind === "website-admin"));
@@ -8514,22 +9045,50 @@ function renderWebsiteAdminAccessState() {
   if (websiteAdminGateBackBtn) {
     websiteAdminGateBackBtn.classList.toggle("hidden", Boolean(forcedHostContext?.kind === "website-admin"));
   }
-  if (websiteAdminCurrentEventName) websiteAdminCurrentEventName.textContent = locked ? "Hidden Until Unlock" : (activeEventMeta?.name || "Main Event");
-  if (websiteAdminCurrentEventDate) websiteAdminCurrentEventDate.textContent = locked ? "Protected" : formatEventDate(activeEventMeta?.date);
-  if (websiteAdminJudgeCount) websiteAdminJudgeCount.textContent = locked ? "Protected" : getJudgeSystemLabel(activeEventMeta);
-  if (websiteAdminAccessStatus) websiteAdminAccessStatus.textContent = locked ? "Locked" : "Unlocked";
-  if (locked && isWebsiteAdmin && productionCloudClaimsRequired() && websiteAdminGate) {
-    const gateCopy = websiteAdminGate.querySelector(".helper-text, p");
-    if (gateCopy) gateCopy.textContent = getRoleAuthorizationMessage("owner");
-  }
+  if (websiteAdminCurrentEventName) websiteAdminCurrentEventName.textContent = passwordLocked ? "Hidden Until Unlock" : (activeEventMeta?.name || "Main Event");
+  if (websiteAdminCurrentEventDate) websiteAdminCurrentEventDate.textContent = passwordLocked ? "Protected" : formatEventDate(activeEventMeta?.date);
+  if (websiteAdminJudgeCount) websiteAdminJudgeCount.textContent = passwordLocked ? "Protected" : getJudgeSystemLabel(activeEventMeta);
+  if (websiteAdminAccessStatus) websiteAdminAccessStatus.textContent = passwordLocked ? "Locked" : productionLocked ? "Limited" : "Unlocked";
+  renderWebsiteAdminAccessDiagnostics(productionLocked);
   syncWebsiteAdminUpcomingBannerUi();
 }
 
+function renderWebsiteAdminAccessDiagnostics(locked = !websiteAdminCanUseProductionWrites()) {
+  if (!websiteAdminAccessDiagnostics) return;
+  const userId = auth?.currentUser?.uid || "";
+  const rows = [
+    ["Password", isWebsiteAdmin ? "Accepted" : "Not accepted yet"],
+    ["Browser session", isWebsiteAdmin ? "Stored on this browser" : "Locked"],
+    ["Firebase session", userId ? "Connected in background" : "Connecting in background"],
+    ["Website admin access", isWebsiteAdmin ? "Full app controls unlocked" : "Locked"],
+  ];
+  websiteAdminAccessDiagnostics.classList.toggle("empty-state", false);
+  websiteAdminAccessDiagnostics.innerHTML = `
+    <div class="website-admin-diagnostics-grid">
+      ${rows.map(([label, value]) => `
+        <span>${escapeHtml(label)}</span>
+        <strong>${escapeHtml(value)}</strong>
+      `).join("")}
+    </div>
+    <div class="website-admin-diagnostics-notes">
+      ${isWebsiteAdmin
+        ? "Full website admin controls are available for this browser session. Sign out only when you want this browser locked again."
+        : "Use a stable Firebase Auth email for website admin access. Browser UID is shown only for troubleshooting."}
+    </div>
+  `;
+  websiteAdminRefreshAccessBtn?.classList.toggle("hidden", !isWebsiteAdmin);
+}
+
 function syncBrandLogoAssetsForTheme(primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png", invertedLogo = CLIENT_BRANDING.logoInverted || primaryLogo, logoAlt = CLIENT_BRANDING.logoAlt || "Prodigy RC logo") {
-  const themedLogo = getThemeAwareLogoSource(primaryLogo, invertedLogo);
+  const tech1BrandingActive = shouldUseTech1Branding(activeEventMeta);
+  const effectivePrimaryLogo = tech1BrandingActive ? (TECH1DRIFT_ANNIVERSARY_CONFIG.branding.logoLight || TECH1DRIFT_ANNIVERSARY_CONFIG.branding.logo) : primaryLogo;
+  const effectiveInvertedLogo = tech1BrandingActive ? (TECH1DRIFT_ANNIVERSARY_CONFIG.branding.logoDark || TECH1DRIFT_ANNIVERSARY_CONFIG.branding.logo) : invertedLogo;
+  const effectiveLogoAlt = tech1BrandingActive ? TECH1DRIFT_ANNIVERSARY_CONFIG.branding.logoAlt : logoAlt;
+  document.body?.setAttribute("data-brand-event", tech1BrandingActive ? "tech1" : "default");
+  const themedLogo = getThemeAwareLogoSource(effectivePrimaryLogo, effectiveInvertedLogo);
   document.querySelectorAll(".hero-logo, .bracket-stage-logo, .bracket-header-logo, .topbar-brand-mark img, .streamer-topbar-mark img, .native-broadcast-brand img").forEach((logoEl) => {
     logoEl.setAttribute("src", themedLogo);
-    logoEl.setAttribute("alt", logoAlt);
+    logoEl.setAttribute("alt", effectiveLogoAlt);
   });
 }
 
@@ -8632,6 +9191,7 @@ function clearLocalDeviceCaches() {
     EVENT_ROLE_SESSION_KEY,
     EVENT_ROLE_PERSIST_KEY,
     EVENT_ROLE_UNLOCK_KEY,
+    EVENT_ADMIN_BROWSER_UNLOCK_KEY,
     JUDGE_ROLE_DEVICE_ID_KEY,
     "rc-drift-drivers-v7",
     "rc-drift-drivers-v6",
@@ -8754,7 +9314,12 @@ function startDirectBlobDownload(blob, fileName) {
 
 function showWebsiteAdminModal() {
   websiteAdminModalTitle.textContent = "Website Admin";
-  websiteAdminModalCopy.textContent = "Enter the website admin password to manage event creation and invite access.";
+  websiteAdminModalCopy.textContent = "Enter the website admin password once. This browser will stay unlocked until you sign out.";
+  if (websiteAdminEmailInput) {
+    websiteAdminEmailInput.value = "";
+    websiteAdminEmailInput.classList.add("hidden");
+    websiteAdminEmailInput.setAttribute("aria-hidden", "true");
+  }
   websiteAdminPasswordInput.value = "";
   websiteAdminError.style.display = "none";
   openModal(websiteAdminModal, websiteAdminPasswordInput);
@@ -8763,6 +9328,7 @@ function showWebsiteAdminModal() {
 function hideWebsiteAdminModal(options = {}) {
   const { syncRoute = true } = options || {};
   closeModal(websiteAdminModal);
+  if (websiteAdminEmailInput) websiteAdminEmailInput.value = "";
   websiteAdminPasswordInput.value = "";
   websiteAdminError.style.display = "none";
   if (syncRoute) {
@@ -8778,6 +9344,16 @@ function openWebsiteAdminAccess() {
   } else {
     showWebsiteAdminModal();
   }
+}
+
+function enforceWebsiteAdminHostRoute() {
+  if (forcedHostContext?.kind !== "website-admin") return false;
+  if (getActiveViewName() !== "website-admin") {
+    switchView("website-admin");
+  }
+  renderWebsiteAdminAccessState();
+  syncRouteWithState();
+  return true;
 }
 
 function maybeOpenWebsiteAdminFromLocation() {
@@ -8899,12 +9475,12 @@ function buildStreamerRouteUrl(route = streamerRouteState, options = {}) {
 }
 
 function getActiveViewName() {
-  const views = ["registration", "home", "privacy", "tech1", "live", "self-register", "self-register-display", "qualifying", "results", "website-admin", "bracket", "streamer-dashboard", "streamer-library", "streamer-demo", "streamer-scene"];
+  const views = ["registration", "home", "privacy", "live", "self-register", "self-register-display", "qualifying", "results", "website-admin", "bracket", "streamer-dashboard", "streamer-library", "streamer-demo", "streamer-scene"];
   return views.find((viewName) => document.getElementById(`view-${viewName}`)?.classList.contains("is-active")) || "qualifying";
 }
 
 function syncViewAccessibility(activeViewName) {
-  const views = ["registration", "home", "privacy", "tech1", "live", "self-register", "self-register-display", "qualifying", "results", "website-admin", "bracket", "streamer-dashboard", "streamer-library", "streamer-demo", "streamer-scene"];
+  const views = ["registration", "home", "privacy", "live", "self-register", "self-register-display", "qualifying", "results", "website-admin", "bracket", "streamer-dashboard", "streamer-library", "streamer-demo", "streamer-scene"];
   document.body.dataset.activeView = activeViewName;
   views.forEach((candidateView) => {
     const viewEl = document.getElementById(`view-${candidateView}`);
@@ -8926,7 +9502,6 @@ function getViewDisplayLabel(viewName = getActiveViewName()) {
     registration: "Registration",
     home: "Home",
     privacy: "Privacy",
-    tech1: "Tech 1 Drift",
     live: "LIVE",
     "self-register": "Driver Check-In",
     "self-register-display": "QR Display",
@@ -8939,6 +9514,88 @@ function getViewDisplayLabel(viewName = getActiveViewName()) {
     "streamer-demo": "Demo Mode",
     "streamer-scene": "Native Scene",
   })[viewName] || "Event Control";
+}
+
+function getPhaseTransitionCopy(viewName = "") {
+  return ({
+    registration: "Registration Desk Ready",
+    qualifying: "Qualifying Board Live",
+    bracket: "Competition Stage Armed",
+    results: "Results Showcase Ready",
+    "website-admin": "Control Room Active",
+  })[viewName] || "Event Control Ready";
+}
+
+function getPhaseTransitionLogoSource() {
+  const isDarkTheme = document.body?.getAttribute("data-theme") === "dark";
+  if (isTech1AnniversaryMode(activeEventMeta)) {
+    return isDarkTheme
+      ? (TECH1DRIFT_ANNIVERSARY_CONFIG.branding?.logoDark || TECH1DRIFT_ANNIVERSARY_CONFIG.branding?.logo || "./assets/tech1drift-vector-transparent.svg")
+      : (TECH1DRIFT_ANNIVERSARY_CONFIG.branding?.logoLight || TECH1DRIFT_ANNIVERSARY_CONFIG.branding?.logo || "./assets/tech1drift-vector-transparent-black.svg");
+  }
+  return "./assets/prodigy-rc-logo-transparent.png";
+}
+
+function ensurePhaseTransitionOverlay() {
+  let overlay = document.getElementById("phaseTransitionOverlay");
+  if (overlay) return overlay;
+  overlay = document.createElement("div");
+  overlay.id = "phaseTransitionOverlay";
+  overlay.className = "phase-transition-overlay";
+  overlay.setAttribute("aria-hidden", "true");
+  overlay.innerHTML = `
+    <section class="phase-transition-panel" role="status" aria-live="polite">
+      <img class="phase-transition-logo" src="${escapeAttributeValue(getPhaseTransitionLogoSource())}" alt="Event brand logo" />
+      <p class="phase-transition-kicker">Event Phase Transition</p>
+      <h2 class="phase-transition-title">Preparing Next Stage</h2>
+      <p class="phase-transition-copy">Stand by...</p>
+    </section>
+  `;
+  document.body.appendChild(overlay);
+  return overlay;
+}
+
+function shouldPlayPhaseTransitionMoment(fromView = "", toView = "") {
+  if (currentRole !== "admin") return false;
+  if (fromView === toView) return false;
+  const supportedViews = new Set(["registration", "qualifying", "bracket", "results", "website-admin"]);
+  return supportedViews.has(fromView) && supportedViews.has(toView);
+}
+
+function playPhaseTransitionMoment(fromView = "", toView = "") {
+  if (!shouldPlayPhaseTransitionMoment(fromView, toView)) return;
+  const overlay = ensurePhaseTransitionOverlay();
+  const logo = overlay.querySelector(".phase-transition-logo");
+  const title = overlay.querySelector(".phase-transition-title");
+  const copy = overlay.querySelector(".phase-transition-copy");
+  const logoSrc = getPhaseTransitionLogoSource();
+  if (logo && logoSrc && logo.getAttribute("src") !== logoSrc) {
+    logo.setAttribute("src", logoSrc);
+  }
+  if (title) title.textContent = `${getViewDisplayLabel(fromView)} -> ${getViewDisplayLabel(toView)}`;
+  if (copy) copy.textContent = getPhaseTransitionCopy(toView);
+
+  if (phaseTransitionHideTimeout) {
+    clearTimeout(phaseTransitionHideTimeout);
+    phaseTransitionHideTimeout = null;
+  }
+  if (phaseTransitionResetTimeout) {
+    clearTimeout(phaseTransitionResetTimeout);
+    phaseTransitionResetTimeout = null;
+  }
+
+  overlay.classList.remove("is-leave", "is-enter");
+  overlay.classList.add("is-active");
+  void overlay.offsetHeight;
+  overlay.classList.add("is-enter");
+
+  phaseTransitionHideTimeout = setTimeout(() => {
+    overlay.classList.remove("is-enter");
+    overlay.classList.add("is-leave");
+  }, 920);
+  phaseTransitionResetTimeout = setTimeout(() => {
+    overlay.classList.remove("is-active", "is-leave");
+  }, 1240);
 }
 
 function shouldKeepWebsiteAdminSelectionLocal() {
@@ -8970,6 +9627,7 @@ function syncJudgeCompetitionView() {
 function getDefaultViewForRole(role) {
   if (role === "admin") return "registration";
   if (role?.startsWith("j")) {
+    if (isTech1AnniversaryMode(activeEventMeta)) return "bracket";
     if (isTeamCompetitionMode()) return "bracket";
     return shouldUseJudgeBracketView(role) ? "bracket" : "qualifying";
   }
@@ -8979,13 +9637,16 @@ function getDefaultViewForRole(role) {
 function normalizeRouteViewForRole(role, requestedView = null) {
   const fallbackView = getDefaultViewForRole(role);
   const viewName = ROUTABLE_VIEWS.has(requestedView) ? requestedView : fallbackView;
+  if (isTech1AnniversaryMode(activeEventMeta) && viewName === "qualifying") {
+    return getTech1NoQualifyingFallbackView(role);
+  }
   if (role?.startsWith("j")) return fallbackView;
   if (requestedView === "queue" || requestedView === "simulation") return fallbackView;
   if (isTeamCompetitionMode() && viewName === "qualifying") {
     if (role === "admin") return isTeamTandemMode() ? (tournamentState?.mainBracket?.rounds?.length ? "bracket" : "registration") : "bracket";
     if (role === "spectator" && isTeamTandemMode()) return tournamentState?.mainBracket?.rounds?.length ? "bracket" : "home";
   }
-  if (role !== "admin" && viewName === "registration") return "qualifying";
+  if (role !== "admin" && viewName === "registration") return fallbackView;
   if (role !== "spectator" && viewName === "home") return fallbackView;
   if (role !== "spectator" && viewName === "privacy") return fallbackView;
   if (role !== "spectator" && viewName === "live") return fallbackView;
@@ -9091,7 +9752,7 @@ function hasInternalSearchState(searchParams = getCurrentPageSearchParams()) {
 }
 
 function shouldUseCleanPublicRoute(viewName = getActiveViewName(), currentRequestedRoute = parseRouteFromLocation()) {
-  if (!["home", "live", "self-register", "qualifying", "bracket", "results", "privacy", "tech1"].includes(viewName)) return false;
+  if (!["home", "live", "self-register", "qualifying", "bracket", "results", "privacy"].includes(viewName)) return false;
   if (currentRole !== "spectator") return false;
   if (STREAMER_VIEWS.has(viewName) || STANDALONE_DEMO_MODE || TEST_MODE_ENABLED) return false;
   if (currentRequestedRoute?.routeStyle === "event-path") return false;
@@ -9158,7 +9819,6 @@ function parsePublicRouteFromPathname(pathname = typeof window !== "undefined" ?
   if (first === "competition" || first === "bracket") return { kind: "role", role: "spectator", view: "bracket", routeStyle: "public-path" };
   if (first === "results") return { kind: "role", role: "spectator", view: "results", routeStyle: "public-path" };
   if (first === "privacy") return { kind: "role", role: "spectator", view: "privacy", routeStyle: "public-path" };
-  if (first === "tech1" || first === "tech-1" || first === "tech1drift") return { kind: "role", role: "spectator", view: "tech1", routeStyle: "public-path" };
   if (first === "admin" || first === "event-admin") return { kind: "role", role: "admin", view: normalizeEventRouteViewSegment(segments[1]) || "registration", routeStyle: "internal-path" };
   if (first === "judge") {
     const judgeNumber = Number.parseInt(segments[1] || "1", 10);
@@ -9952,6 +10612,10 @@ function applyRouteFromLocation() {
         ? parsedRoute.view
         : forcedHostContext.view;
       setPendingRouteViewState(normalizeRouteViewForRole(forcedHostContext.role, requestedForcedView));
+      if (forcedHostContext.role === "admin" && grantForcedEventAdminHostAccess(activeEventId)) {
+        applyRoleChange("admin");
+        return;
+      }
       if (currentRole === forcedHostContext.role) {
         applyRoleChange(forcedHostContext.role);
         return;
@@ -9986,6 +10650,12 @@ function applyRouteFromLocation() {
     syncRequestedSelfRegisterEventSelection({ view: "self-register" });
   }
 
+  if (route.kind === "role" && route.role === "admin" && grantForcedEventAdminHostAccess(activeEventId)) {
+    setPendingRouteViewState(normalizeRouteViewForRole("admin", route.view));
+    applyRoleChange("admin");
+    return;
+  }
+
   applyResolvedRoute(route);
 }
 
@@ -9994,6 +10664,10 @@ function ensureForcedHostRoleAccess() {
   const forcedRole = forcedHostContext.role;
   if (!isRoleAvailableForEvent(forcedRole, activeEventMeta) || isJudgeAccessLocked(activeEventMeta)) return;
   if (currentRole === forcedRole) return;
+  if (forcedRole === "admin" && grantForcedEventAdminHostAccess(activeEventId)) {
+    applyRoleChange("admin");
+    return;
+  }
   if (isRoleUnlockedForEvent(activeEventId, forcedRole)) {
     applyRoleChange(forcedRole);
     return;
@@ -10098,21 +10772,27 @@ function setRunFlag(driverId, runKey, reason) {
 function syncCompetitionModeNavigation() {
   const teamTandemMode = isTeamTandemMode(activeEventMeta);
   const twinTripleMode = isTwinTripleMode(activeEventMeta);
+  const tech1Mode = isTech1AnniversaryMode(activeEventMeta);
   const teamCompetitionMode = isTeamCompetitionMode(activeEventMeta);
   const bracketPublished = Boolean(tournamentState?.mainBracket?.rounds?.length);
   const websiteAdminActive = Boolean(isWebsiteAdmin || forcedHostContext?.kind === "website-admin" || getActiveViewName() === "website-admin");
-  const hideQualifyingForAdmin = teamCompetitionMode && (currentRole === "admin" || websiteAdminActive);
+  const hideQualifyingForAdmin = (teamCompetitionMode || tech1Mode) && (currentRole === "admin" || websiteAdminActive);
+  const hideQualifyingTab = tech1Mode || hideQualifyingForAdmin;
   const qualifyingTab = document.querySelector('.mode-tab[data-target="qualifying"]');
   if (qualifyingTab) {
-    qualifyingTab.hidden = hideQualifyingForAdmin;
+    qualifyingTab.hidden = hideQualifyingTab;
   }
   if (registrationToQualifyingBtn) {
     registrationToQualifyingBtn.hidden = false;
-    registrationToQualifyingBtn.textContent = teamTandemMode
+    registrationToQualifyingBtn.classList.toggle("tech1-bracket-hero-button", tech1Mode);
+    registrationToQualifyingBtn.textContent = tech1Mode
+      ? "Open Tech 1 Bracket"
+      : teamTandemMode
       ? (bracketPublished ? "Open Competition" : "Launch Team Bracket")
       : twinTripleMode
         ? "Open Twin Comp"
       : "Go To Qualifying";
+    registrationToQualifyingBtn.title = tech1Mode ? "No qualifying - random bracket from drivers marked Competing." : "";
   }
   if (registrationRandomTwinCompBtn) {
     const activeTeams = twinTripleMode ? getTwinCompActiveTeams().length || getRegisteredDrivers(appDrivers).length : 0;
@@ -10128,6 +10808,23 @@ function syncCompetitionModeNavigation() {
       ? "Register at least 2 active teams before starting a randomized Twin Comp round."
       : "";
   }
+  if (bracketModeSelect) {
+    const showBracketFormatSelector = !tech1Mode && !teamTandemMode && !twinTripleMode;
+    const bracketModeField = bracketModeSelect.closest(".search-field");
+    if (bracketModeField) {
+      bracketModeField.hidden = !showBracketFormatSelector;
+      bracketModeField.classList.toggle("hidden", !showBracketFormatSelector);
+      bracketModeField.setAttribute("aria-hidden", showBracketFormatSelector ? "false" : "true");
+    }
+    const bracketModeToolbar = bracketModeSelect.closest(".hero-meta-inline");
+    if (bracketModeToolbar) {
+      const hasVisibleControl = Array.from(bracketModeToolbar.children).some((child) => {
+        return !child.hidden && !child.classList.contains("hidden");
+      });
+      bracketModeToolbar.hidden = !hasVisibleControl;
+      bracketModeToolbar.classList.toggle("hidden", !hasVisibleControl);
+    }
+  }
   if (commandCenterQualifyingBtn) {
     commandCenterQualifyingBtn.hidden = hideQualifyingForAdmin;
   }
@@ -10137,6 +10834,7 @@ function syncCompetitionModeNavigation() {
   if (randomizeQualifyingBtn) {
     randomizeQualifyingBtn.hidden = hideQualifyingForAdmin;
   }
+  renderTech1EventControlWorkflow();
 }
 
 function updateEventChrome() {
@@ -10254,6 +10952,7 @@ function updateEventChrome() {
   renderCommandCenter();
   syncTestModeUi();
   syncNetworkStatusIndicator();
+  syncBrandLogoAssetsForTheme();
 }
 
 function getRenderableEventsMap() {
@@ -12214,6 +12913,7 @@ function renderCommandCenter() {
   const syncLabel = isOfflineMode() ? "Offline Mode" : "Live Sync";
   const competitionModeLabel = twinTripleMode
     ? getTwinCompEliminationLabel()
+    : isTech1AnniversaryMode() ? "Tech 1 Drift Anniversary"
     : teamTandemMode ? "Team Tandem" : "Solo Drivers";
   let recommendedAction = {
     label: "Review Event Setup",
@@ -12611,40 +13311,62 @@ function renderPrivacyPage() {
 }
 
 function renderTech1DriftView() {
-  const tech1View = document.getElementById("view-tech1");
-  if (!tech1View) return;
+  // Retired: Tech 1 is an event-control competition mode, not a standalone public page.
+}
+
+function buildTech1ControlViewModel() {
   const eventInitialized = Boolean(tech1SpecialEventState.event);
-  const eventShell = {
-    ...buildTech1AnniversaryShell(),
-    ...(tech1SpecialEventState.event || {}),
-  };
   const privateRegistrations = tech1SpecialEventState.privateRegistrations || [];
-  const eligibleCheckedInCount = privateRegistrations.filter((entry) => entry.checkedIn).length;
-  const previewBracketSize = eligibleCheckedInCount >= 2 ? getSingleEliminationBracketSize(eligibleCheckedInCount) : 0;
-  tech1View.innerHTML = renderTech1DriftAnniversaryView({
+  const bracket = tech1SpecialEventState.bracket || null;
+  const source = bracket?.source || TECH1DRIFT_ANNIVERSARY_CONFIG.defaultBracketSource;
+  return {
     config: {
       ...TECH1DRIFT_ANNIVERSARY_CONFIG,
-      ...eventShell,
+      ...(tech1SpecialEventState.event || {}),
+      branding: {
+        ...TECH1DRIFT_ANNIVERSARY_CONFIG.branding,
+        ...(tech1SpecialEventState.event?.branding || {}),
+        logo: TECH1DRIFT_ANNIVERSARY_CONFIG.branding.logo,
+        logoLight: TECH1DRIFT_ANNIVERSARY_CONFIG.branding.logoLight,
+        logoDark: TECH1DRIFT_ANNIVERSARY_CONFIG.branding.logoDark,
+        logoAlt: TECH1DRIFT_ANNIVERSARY_CONFIG.branding.logoAlt,
+      },
       heroTitle: TECH1DRIFT_ANNIVERSARY_CONFIG.heroTitle,
       heroSubtitle: TECH1DRIFT_ANNIVERSARY_CONFIG.heroSubtitle,
       additionalTicketCopy: TECH1DRIFT_ANNIVERSARY_CONFIG.additionalTicketCopy,
     },
-    event: eventShell,
+    eventInitialized,
+    registrationOpen: tech1SpecialEventState.event?.registrationOpen === true,
+    syncReady: shouldUseTech1LocalStore() || Boolean(db && auth?.currentUser && !QA_OFFLINE_MODE),
     publicIndex: tech1SpecialEventState.publicIndex || [],
     privateRegistrations,
     raffleTransactions: tech1SpecialEventState.raffleTransactions || [],
-    bracket: tech1SpecialEventState.bracket || null,
+    bracket,
     battleResults: tech1SpecialEventState.battleResults || [],
     isStaff: tech1StaffCanManageSpecialEvent(),
-    syncReady: Boolean(db && auth?.currentUser && !QA_OFFLINE_MODE),
-    eventInitialized,
-    registrationOpen: eventShell.registrationOpen === true,
-    eligibleCheckedInCount,
-    allRegisteredCount: privateRegistrations.length,
-    previewBracketSize,
-    previewByeCount: previewBracketSize ? Math.max(0, previewBracketSize - eligibleCheckedInCount) : 0,
+    eligibleCheckedInCount: privateRegistrations.filter((entry) => entry.checkedIn).length,
     defaultBracketSource: TECH1DRIFT_ANNIVERSARY_CONFIG.defaultBracketSource,
+    bracketPageIndex: tech1BracketDisplayPageIndex,
+    projection: getSingleEliminationBracketProjection(privateRegistrations, { source }),
     syncError: tech1SpecialEventState.syncError || "",
+  };
+}
+
+function renderTech1EventControlWorkflow() {
+  if (!tech1EventControlPanel) return;
+  const tech1Mode = isTech1AnniversaryMode(activeEventMeta);
+  const canSeeEventControl = tech1Mode && (currentRole === "admin" || isWebsiteAdmin || forcedHostContext?.kind === "website-admin");
+  tech1EventControlPanel.classList.toggle("hidden", !canSeeEventControl);
+  if (registrationStandardWorkflow) {
+    registrationStandardWorkflow.classList.toggle("hidden", Boolean(canSeeEventControl));
+  }
+  if (!canSeeEventControl) {
+    tech1EventControlPanel.innerHTML = "";
+    return;
+  }
+  tech1EventControlPanel.innerHTML = renderTech1EventControlPanel({
+    ...buildTech1ControlViewModel(),
+    includeBracketSection: false,
   });
 }
 
@@ -15336,15 +16058,27 @@ function maybeAutoBuildBracket() {
 function syncNetworkStatusIndicator() {
   const statusEl = document.getElementById("syncStatus");
   if (!statusEl || STANDALONE_DEMO_MODE) return;
+  if (typeof navigator !== "undefined" && navigator.onLine === false) {
+    statusEl.textContent = "Browser Offline";
+    statusEl.classList.remove("online", "connecting");
+    statusEl.classList.add("offline-protected");
+    return;
+  }
   if (isOfflineMode()) {
     statusEl.textContent = "Offline Protected";
-    statusEl.classList.remove("online");
+    statusEl.classList.remove("online", "connecting");
     statusEl.classList.add("offline-protected");
+    return;
+  }
+  if (!db || !auth?.currentUser) {
+    statusEl.textContent = "Sync Connecting";
+    statusEl.classList.remove("online", "offline-protected");
+    statusEl.classList.add("connecting");
     return;
   }
   statusEl.textContent = "Sync Online";
   statusEl.classList.add("online");
-  statusEl.classList.remove("offline-protected");
+  statusEl.classList.remove("offline-protected", "connecting");
 }
 
 function renderSimulationView() {
@@ -16741,7 +17475,7 @@ function renderRoleAdminPanel() {
 
   if (!websiteAdminCanUseProductionWrites()) {
     roleAdminPanel.textContent = isWebsiteAdmin && productionCloudClaimsRequired()
-      ? getRoleAuthorizationMessage("owner")
+      ? getRoleAuthorizationMessage("websiteAdmin")
       : "Sign in as the website admin to manage role passwords.";
     roleAdminPanel.classList.add("empty-state");
     return;
@@ -16884,7 +17618,14 @@ function syncCreateEventJudgeFields() {
   const teamTandemMode = competitionMode === COMPETITION_MODE_TEAM_TANDEM;
   const twinTripleMode = competitionMode === COMPETITION_MODE_TWIN_TRIPLE || competitionMode === COMPETITION_MODE_TWIN_DOUBLE;
   const twinDoubleMode = competitionMode === COMPETITION_MODE_TWIN_DOUBLE;
-  if (teamTandemMode && judgingModeInput) {
+  const tech1Mode = competitionMode === COMPETITION_MODE_TECH1_ANNIVERSARY;
+  if (tech1Mode && createEventModalMode !== "edit") {
+    if (eventNameInput && !eventNameInput.value.trim()) eventNameInput.value = TECH1DRIFT_ANNIVERSARY_CONFIG.title;
+    if (eventDateInput && !eventDateInput.value) eventDateInput.value = TECH1DRIFT_ANNIVERSARY_CONFIG.date;
+  }
+  if (tech1Mode && judgingModeInput) {
+    judgingModeInput.value = JUDGING_MODE_AVERAGE;
+  } else if (teamTandemMode && judgingModeInput) {
     judgingModeInput.value = JUDGING_MODE_LINE_ANGLE_STYLE;
   }
   const judgingMode = normalizeJudgingMode(judgingModeInput?.value);
@@ -16894,10 +17635,12 @@ function syncCreateEventJudgeFields() {
     judgeCountInput.disabled = teamTandemMode || judgingMode === JUDGING_MODE_LINE_ANGLE_STYLE;
   }
   if (judgingModeInput) {
-    judgingModeInput.disabled = teamTandemMode;
+    judgingModeInput.disabled = tech1Mode || teamTandemMode;
   }
   if (judgingModeHelper) {
-    judgingModeHelper.textContent = teamTandemMode
+    judgingModeHelper.textContent = tech1Mode
+      ? "Tech 1 Anniversary is a no-qualifying competition mode. Registration, check-in, raffle tracking, randomized single-elimination bracket generation, and winner advancement are handled from the Tech 1 staff workflow. Mobile battle judging uses the judge count selected here."
+      : teamTandemMode
       ? `Team Tandem uses all 3 judges every battle: Judge 1 scores Line out of 10, Judge 2 scores Angle out of 10, and Judge 3 scores Proximity out of 10. Teams with 3 drivers receive +${TEAM_TANDEM_THREE_DRIVER_BONUS} automatically, and the bracket launches directly from registration.`
       : twinTripleMode
         ? `Twin Comp uses the qualifying judge windows. Every active team runs each round, then admin finalizes the cutoff teams for elimination points. Teams are out at ${twinDoubleMode ? 2 : 3} points.`
@@ -16938,7 +17681,11 @@ function primeCreateEventModal(eventMeta = null, mode = "create") {
   eventDateInput.value = eventMeta?.date || new Date().toISOString().slice(0, 10);
   judgeCountInput.value = "3";
   if (judgingModeInput) judgingModeInput.value = normalizeJudgingMode(eventMeta?.judgingMode);
-  if (competitionModeInput) competitionModeInput.value = normalizeCompetitionMode(eventMeta?.competitionMode);
+  if (competitionModeInput) {
+    competitionModeInput.value = isTech1AnniversaryMode(eventMeta)
+      ? COMPETITION_MODE_TECH1_ANNIVERSARY
+      : normalizeCompetitionMode(eventMeta?.competitionMode);
+  }
   adminInviteInput.value = "";
   adminInviteInput.disabled = true;
   judge1NameInput.value = eventMeta?.roleNames?.j1 || "Judge 1";
@@ -16971,7 +17718,7 @@ function primeCreateEventModal(eventMeta = null, mode = "create") {
 
 function showCreateEventModal() {
   if (!websiteAdminCanUseProductionWrites()) {
-    if (isWebsiteAdmin && productionCloudClaimsRequired()) showRoleAuthorizationNotice("owner", "create event");
+    if (isWebsiteAdmin && productionCloudClaimsRequired()) showRoleAuthorizationNotice("websiteAdmin", "create event");
     return;
   }
   primeCreateEventModal(null, "create");
@@ -16980,7 +17727,7 @@ function showCreateEventModal() {
 
 function showEditCurrentEventModal() {
   if (!websiteAdminCanUseProductionWrites() || !activeEventMeta) {
-    if (isWebsiteAdmin && productionCloudClaimsRequired()) showRoleAuthorizationNotice("owner", "edit event");
+    if (isWebsiteAdmin && productionCloudClaimsRequired()) showRoleAuthorizationNotice("websiteAdmin", "edit event");
     return;
   }
   primeCreateEventModal(activeEventMeta, "edit");
@@ -17404,6 +18151,7 @@ function applyRoleChange(newRole) {
     return;
   }
   syncRouteWithState();
+  enforceWebsiteAdminHostRoute();
 }
 
 passwordSubmitBtn.addEventListener("click", async () => {
@@ -17521,8 +18269,11 @@ createEventSubmitBtn.addEventListener("click", async () => {
   const name = eventNameInput.value.trim();
   const date = eventDateInput.value;
   const competitionMode = normalizeCompetitionMode(competitionModeInput?.value);
+  const tech1Mode = competitionMode === COMPETITION_MODE_TECH1_ANNIVERSARY;
   const teamTandemMode = competitionMode === COMPETITION_MODE_TEAM_TANDEM;
-  const judgingMode = teamTandemMode
+  const judgingMode = tech1Mode
+    ? JUDGING_MODE_AVERAGE
+    : teamTandemMode
     ? JUDGING_MODE_LINE_ANGLE_STYLE
     : normalizeJudgingMode(judgingModeInput?.value);
   const judgeCount = teamTandemMode ? 3 : normalizeJudgeCountForMode(judgeCountInput.value, judgingMode);
@@ -17566,6 +18317,7 @@ createEventSubmitBtn.addEventListener("click", async () => {
       judgeCount,
       judgingMode,
       competitionMode,
+      modeSettings: getCompetitionModeSettings(competitionMode, { eventId: activeEventId, eventName: name }),
       venueConfig,
       roleNames: nextRoleNames,
       updatedAt: new Date().toISOString(),
@@ -17579,7 +18331,30 @@ createEventSubmitBtn.addEventListener("click", async () => {
       setRoleUnlockedForEvent(activeEventId, role, false);
     });
 
-    await publishStateImmediately();
+    const saved = await publishStateImmediately();
+    if (saved === false) {
+      createEventError.textContent = "Event settings could not be saved to cloud sync. Refresh your session and try again.";
+      createEventError.style.display = "block";
+      return;
+    }
+    if (tech1Mode) {
+      await publishTech1SpecialEventShell({ showSuccessAlert: false });
+      const currentControl = tech1SpecialEventState.bracket?.tech1JudgeControl || null;
+      if (currentControl?.matchId && currentControl.status === "voting") {
+        const nextBracket = {
+          ...tech1SpecialEventState.bracket,
+          tech1JudgeControl: {
+            ...currentControl,
+            judgeRoles: getTech1JudgeRoles(activeEventMeta),
+            updatedAt: new Date().toISOString(),
+          },
+        };
+        if (!shouldUseTech1LocalStore()) {
+          await firestoreWriteService.publishSpecialEventBracket(getActiveTech1SpecialEventId(), nextBracket);
+        }
+        updateTech1SpecialEventState({ bracket: nextBracket });
+      }
+    }
     syncScheduledActiveEventSelection({ publishSelection: Boolean(isWebsiteAdmin && !localEventPreviewMode) });
     renderEventDirectory();
     renderRoleAdminPanel();
@@ -17638,6 +18413,17 @@ websiteAdminGateBackBtn?.addEventListener("click", () => {
   applyRoleChange("spectator");
   switchView("qualifying");
 });
+websiteAdminRefreshAccessBtn?.addEventListener("click", async () => {
+  websiteAdminRefreshAccessBtn.disabled = true;
+  try {
+    await ensureCloudAuthReady();
+    await refreshCloudClaims(true);
+  } finally {
+    websiteAdminRefreshAccessBtn.disabled = false;
+    renderWebsiteAdminAccessState();
+    updateEventChrome();
+  }
+});
 themeToggleBtn?.addEventListener("click", () => {
   applyTheme(document.body.dataset.theme === "dark" ? "light" : "dark");
 });
@@ -17658,17 +18444,37 @@ websiteAdminClearCacheBtn?.addEventListener("click", () => {
   window.location.reload();
 });
 websiteAdminSubmitBtn.addEventListener("click", async () => {
-  const enteredHash = await hashSecret(websiteAdminPasswordInput.value.trim());
+  const enteredPassword = websiteAdminPasswordInput.value.trim();
+  const enteredHash = await hashSecret(enteredPassword);
   const configuredHash = await getConfiguredMasterPasswordHash();
   if (!enteredHash || enteredHash !== configuredHash) {
+    websiteAdminError.textContent = "Incorrect website admin password.";
     websiteAdminError.style.display = "block";
     return;
   }
+  websiteAdminSubmitBtn.disabled = true;
+  try {
+    await ensureCloudAuthReady();
+    await refreshCloudClaims(true);
+  } catch (error) {
+    console.warn("Website admin background cloud session refresh skipped:", error);
+  } finally {
+    websiteAdminSubmitBtn.disabled = false;
+  }
   hideWebsiteAdminModal();
   setWebsiteAdminAccess(true);
-  switchView("website-admin");
+  if (activeEventId) {
+    setRoleUnlockedForEvent(activeEventId, "admin", true);
+  }
+  applyRoleChange("admin");
+  openWebsiteAdminAccess();
+  window.setTimeout(enforceWebsiteAdminHostRoute, 250);
 });
 websiteAdminCancelBtn.addEventListener("click", hideWebsiteAdminModal);
+websiteAdminEmailInput?.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") websiteAdminPasswordInput.focus();
+  if (e.key === "Escape") hideWebsiteAdminModal();
+});
 websiteAdminPasswordInput.addEventListener("keydown", (e) => {
   if (e.key === "Enter") websiteAdminSubmitBtn.click();
   if (e.key === "Escape") hideWebsiteAdminModal();
@@ -17714,6 +18520,7 @@ globalRoleSelect.addEventListener("change", (e) => {
 });
 window.addEventListener("pageshow", () => {
   syncForcedHostContext();
+  enforceWebsiteAdminHostRoute();
   globalRoleSelect.value = currentRole;
   syncScheduledActiveEventSelection({ publishSelection: Boolean(isWebsiteAdmin && !localEventPreviewMode) });
 });
@@ -17744,6 +18551,7 @@ function openEventById(nextId, nextView = null, publishSelection = true) {
   if (document.getElementById('view-bracket').classList.contains('is-active')) {
     renderBracket();
   }
+  setupTech1SpecialEventSync();
   subscribeToActiveEvent();
   if (publishSelection) {
     publishActiveEventSelection();
@@ -18158,37 +18966,80 @@ function setTech1Status(message, tone = "info") {
   statusEl.dataset.tone = tone;
 }
 
-async function initializeTech1SpecialEventShell() {
+function normalizeTech1PaymentMethodValue(value, fallback = "cash") {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (normalized === "pay pal") return "paypal";
+  if (normalized === "paypal" || normalized === "zelle" || normalized === "cash") return normalized;
+  return fallback;
+}
+
+function formatTech1PaymentMethodLabel(value) {
+  const normalized = normalizeTech1PaymentMethodValue(value, "");
+  if (normalized === "paypal") return "PayPal";
+  if (normalized === "zelle") return "Zelle";
+  if (normalized === "cash") return "Cash";
+  return "";
+}
+
+async function publishTech1SpecialEventShell(options = {}) {
+  const { showSuccessAlert = false } = options || {};
   if (!tech1StaffCanManageSpecialEvent()) {
     showRoleAuthorizationNotice("eventAdmin", "initialize Tech 1 Drift Anniversary mode");
-    return;
+    return false;
+  }
+  const judgeCount = normalizeJudgeCountForMode(activeEventMeta?.judgeCount, activeEventMeta?.judgingMode);
+  const judgingMode = normalizeJudgingMode(activeEventMeta?.judgingMode);
+  if (shouldUseTech1LocalStore()) {
+    const nowIso = new Date().toISOString();
+    const currentStatus = String(tech1SpecialEventState.event?.bracketStatus || "");
+    const bracketStatus = ["generated", "locked", "in_progress", "complete"].includes(currentStatus)
+      ? currentStatus
+      : "not_generated";
+    updateTech1SpecialEventState({
+      event: buildTech1AnniversaryShell({ ...(tech1SpecialEventState.event || {}), judgeCount, judgingMode, bracketStatus, updatedAt: nowIso }),
+    });
+    if (showSuccessAlert) window.alert("Tech 1 Drift Anniversary mode is initialized locally.");
+    return true;
   }
   const authReady = await ensureCloudAuthReady();
   if (!db || !authReady) {
-    window.alert("Cloud sync is required before initializing the Tech 1 event.");
-    return;
+    if (showSuccessAlert) window.alert("Cloud sync is required before initializing the Tech 1 event.");
+    return false;
   }
   try {
     const currentStatus = String(tech1SpecialEventState.event?.bracketStatus || "");
     const bracketStatus = ["generated", "locked", "in_progress", "complete"].includes(currentStatus)
       ? currentStatus
       : "not_generated";
+    const shell = buildTech1AnniversaryShell({ judgeCount, judgingMode, bracketStatus, updatedAt: new Date().toISOString() });
     await firestoreWriteService.publishSpecialEventShell(
-      TECH1DRIFT_ANNIVERSARY_CONFIG.eventId,
-      buildTech1AnniversaryShell({ bracketStatus, updatedAt: new Date().toISOString() }),
+      getActiveTech1SpecialEventId(),
+      shell,
     );
-    window.alert("Tech 1 Drift Anniversary mode is initialized.");
+    tech1SpecialEventState.event = {
+      ...shell,
+      ...(tech1SpecialEventState.event || {}),
+      judgeCount,
+      judgingMode,
+    };
+    if (showSuccessAlert) window.alert("Tech 1 Drift Anniversary mode is initialized.");
+    return true;
   } catch (error) {
     if (!handleTech1PermissionError(error, "initialize Tech 1 Drift Anniversary mode")) {
       console.error("Tech 1 initialization failed:", error);
-      window.alert("Tech 1 mode could not be initialized. Check sync and permissions.");
+      if (showSuccessAlert) window.alert("Tech 1 mode could not be initialized. Check sync and permissions.");
     }
+    return false;
   }
 }
 
+async function initializeTech1SpecialEventShell() {
+  await publishTech1SpecialEventShell({ showSuccessAlert: true });
+}
+
 async function submitTech1Registration(form) {
-  const authReady = await ensureCloudAuthReady();
-  if (!db || !authReady || QA_OFFLINE_MODE) {
+  const authReady = shouldUseTech1LocalStore() ? true : await ensureCloudAuthReady();
+  if (!shouldUseTech1LocalStore() && (!db || !authReady || QA_OFFLINE_MODE)) {
     setTech1Status("Cloud sync is required before collecting live Tech 1 registrations.", "error");
     return;
   }
@@ -18226,14 +19077,20 @@ async function submitTech1Registration(form) {
     chassis: form.querySelector("#tech1Chassis")?.value || "",
     instagram,
   }, {
-    eventId: TECH1DRIFT_ANNIVERSARY_CONFIG.eventId,
+    eventId: getActiveTech1SpecialEventId(),
     registrationId,
     ownerUid: auth?.currentUser?.uid || null,
     nowIso,
   });
   const publicIndex = buildTech1PublicRegistrationIndexDoc(registration, { nowIso });
   try {
-    await firestoreWriteService.publishSpecialEventRegistration(TECH1DRIFT_ANNIVERSARY_CONFIG.eventId, registration, publicIndex);
+    if (!shouldUseTech1LocalStore()) {
+      await firestoreWriteService.publishSpecialEventRegistration(getActiveTech1SpecialEventId(), registration, publicIndex);
+    }
+    updateTech1SpecialEventState({
+      privateRegistrations: upsertTech1EntryById(tech1SpecialEventState.privateRegistrations || [], registration),
+      publicIndex: upsertTech1EntryById(tech1SpecialEventState.publicIndex || [], publicIndex),
+    });
     form.reset();
     setTech1Status(`${registration.name} is registered with 1 free raffle ticket. See event staff for additional $5 tickets.`, "ready");
   } catch (error) {
@@ -18248,21 +19105,422 @@ function getTech1PrivateRegistration(registrationId) {
   return (tech1SpecialEventState.privateRegistrations || []).find((entry) => entry.id === registrationId || entry.registrationId === registrationId) || null;
 }
 
+function setTech1DeskStatus(message = "", tone = "ready") {
+  const status = document.getElementById("tech1DeskStatus");
+  if (!status) return;
+  status.textContent = message;
+  status.dataset.tone = tone;
+}
+
+function isTech1BracketPoolLocked() {
+  const bracket = tech1SpecialEventState.bracket || null;
+  return ["locked", "in_progress", "complete"].includes(String(bracket?.status || ""));
+}
+
+function doesTech1BracketExist() {
+  const bracket = tech1SpecialEventState.bracket || null;
+  return Boolean(bracket?.rounds?.length) || ["generated", "locked", "in_progress", "complete"].includes(String(bracket?.status || ""));
+}
+
+function hasTech1BracketStarted(bracket = tech1SpecialEventState.bracket) {
+  const matches = Object.values(bracket?.matches || {});
+  return matches.some((match) => Boolean(match?.winnerId));
+}
+
+function getTech1PaidTicketInputValue(input) {
+  return Math.max(0, Number.parseInt(input?.value || "0", 10) || 0);
+}
+
+function getTech1EntryFeeForRegistration(entry = {}) {
+  const standardEntryFee = Math.max(0, Number(TECH1DRIFT_ANNIVERSARY_CONFIG.entryFee || 0));
+  const tech1DriverEntryFee = Math.max(0, Number(TECH1DRIFT_ANNIVERSARY_CONFIG.tech1DriverEntryFee || standardEntryFee));
+  if (entry.entryFee != null && entry.entryFee !== "") return Math.max(0, Number(entry.entryFee || 0));
+  return entry.tech1Driver ? tech1DriverEntryFee : standardEntryFee;
+}
+
+function getTech1DeskEntryFee(form = document) {
+  const input = form.querySelector?.("#tech1DeskPaidTickets");
+  const tech1DriverCheckbox = form.querySelector?.("#tech1DeskTech1Driver");
+  const standardEntryFee = Math.max(0, Number(input?.dataset?.entryFee || TECH1DRIFT_ANNIVERSARY_CONFIG.entryFee || 0));
+  const tech1DriverEntryFee = Math.max(0, Number(input?.dataset?.tech1EntryFee || TECH1DRIFT_ANNIVERSARY_CONFIG.tech1DriverEntryFee || standardEntryFee));
+  return tech1DriverCheckbox?.checked ? tech1DriverEntryFee : standardEntryFee;
+}
+
+function isTech1EligibleForBracketSource(registration = {}, source = TECH1DRIFT_ANNIVERSARY_CONFIG.defaultBracketSource) {
+  if (source === "allRegistered") return true;
+  if (source === "checkedIn") return Boolean(registration.checkedIn);
+  return Boolean(registration.bracketEligible);
+}
+
+function updateTech1DeskTicketPreview(form = document) {
+  const input = form.querySelector?.("#tech1DeskPaidTickets");
+  if (!input) return;
+  const paidTickets = getTech1PaidTicketInputValue(input);
+  const freeTickets = Math.max(1, Number(input.dataset.freeTickets || TECH1DRIFT_ANNIVERSARY_CONFIG.freeTicketsPerRegistration || 1));
+  const ticketPrice = Math.max(0, Number(input.dataset.ticketPrice || TECH1DRIFT_ANNIVERSARY_CONFIG.raffleTicketPrice || 5));
+  const entryFee = getTech1DeskEntryFee(form);
+  const raffleAmount = paidTickets * ticketPrice;
+  const totalPreview = document.getElementById("tech1DeskTicketTotalPreview");
+  const entryFeePreview = document.getElementById("tech1DeskEntryFeePreview");
+  const raffleAmountPreview = document.getElementById("tech1DeskRaffleAmountPreview");
+  const amountPreview = document.getElementById("tech1DeskAmountPreview");
+  if (totalPreview) totalPreview.textContent = String(freeTickets + paidTickets);
+  if (entryFeePreview) entryFeePreview.textContent = formatTech1Money(entryFee);
+  if (raffleAmountPreview) raffleAmountPreview.textContent = formatTech1Money(raffleAmount);
+  if (amountPreview) amountPreview.textContent = formatTech1Money(entryFee + raffleAmount);
+}
+
+function formatTech1Money(value = 0) {
+  return `$${Math.max(0, Number(value || 0)).toFixed(0)}`;
+}
+
+function upsertTech1EntryById(entries = [], nextEntry = {}) {
+  const nextId = nextEntry.id || nextEntry.registrationId || nextEntry.publicId;
+  if (!nextId) return entries;
+  const existingIndex = entries.findIndex((entry) => [entry.id, entry.registrationId, entry.publicId].filter(Boolean).includes(nextId));
+  if (existingIndex < 0) return [...entries, nextEntry];
+  const updated = [...entries];
+  updated[existingIndex] = { ...updated[existingIndex], ...nextEntry };
+  return updated;
+}
+
 async function publishTech1RegistrationUpdate(registration) {
   const nowIso = new Date().toISOString();
   const normalized = buildTech1RegistrationDoc(registration, {
-    eventId: TECH1DRIFT_ANNIVERSARY_CONFIG.eventId,
-    registrationId: registration.id,
-    ownerUid: registration.ownerUid || null,
+    eventId: getActiveTech1SpecialEventId(),
+    registrationId: registration.id || registration.registrationId,
+    ownerUid: registration.ownerUid || auth?.currentUser?.uid || "event-staff",
     nowIso,
   });
   const publicIndex = buildTech1PublicRegistrationIndexDoc(normalized, { nowIso });
-  await firestoreWriteService.publishSpecialEventRegistration(TECH1DRIFT_ANNIVERSARY_CONFIG.eventId, normalized, publicIndex);
+  if (shouldUseTech1LocalStore()) {
+    updateTech1SpecialEventState({
+      privateRegistrations: upsertTech1EntryById(tech1SpecialEventState.privateRegistrations || [], normalized),
+      publicIndex: upsertTech1EntryById(tech1SpecialEventState.publicIndex || [], publicIndex),
+    });
+    return;
+  }
+  await firestoreWriteService.publishSpecialEventRegistration(getActiveTech1SpecialEventId(), normalized, publicIndex);
 }
 
-async function checkInTech1Registration(registrationId) {
+function buildTech1SampleDriver(index = 0) {
+  const driverNamePool = [
+    "Ryan Chu", "Robin DZ", "Collin Bernard", "Tre Howard", "Brandon Britt", "Ryan Addis", "DJ Moore", "Brandon Strickland",
+    "Tyson Tarumoto", "Justin Wilming", "Alfredo Chan III", "Put Suttiyapiwat", "Ryo Ishii", "Hayato Yoshiba", "Makato Nakajima",
+    "Vittorio Santiago", "Steve Fujita", "Joey Tam", "Jason Fordyce", "Rody Takahashi", "Charles Ong", "Evan Kato", "Kaito Minami",
+    "Dylan Park", "Marcus Del Rosario", "Keoni Sato", "Luca Villanueva", "Shane Nakamura", "Jasper Ocampo", "Riley Sakamoto",
+    "Kenji Tan", "Mason Ibarra", "Nolan Reyes", "Victor Matsu", "Andre Velasco", "Hiroki Tanabe", "Tatsuya Mori", "Akira Endo",
+    "Sora Ichikawa", "Daichi Nomura", "Naoki Kondo", "Kenta Watanabe", "Yuto Sakurai", "Renjiro Akiyama", "Tobias Lim",
+    "Miguel Navarro", "Isaac Delos Santos", "Noah Velarde", "Wesley Tanaka", "Gavin Cortez", "Trey Nakamoto", "Logan Fujimoto",
+    "Eli Matsuda", "Colby Hashimoto", "Damian Mercado", "Brice Panganiban", "Joel Balmes", "Aiden Quiambao", "Rylan Dizon",
+    "Parker Munoz", "Jett Cabrera", "Brandon Elizondo", "Kobe Nishi", "Arvin Fermin", "Cyrus Inoue", "Drew Akimoto",
+    "Mikael Santos", "Rei Komatsu", "Kent Arakaki", "Koji Narita", "Shota Yamada", "Haru Yamane", "Takumi Abe", "Seiji Okada",
+    "Riku Taniguchi", "Genki Fujii", "Masato Ogawa", "Yuji Sagawa", "Daigo Uehara", "Tomoaki Noda", "Kazuya Sato",
+    "Ian Padilla", "Carlo Miranda", "Nico Velasco", "KJ Bautista", "Arman Esquivel", "Nate Caballero", "Byron Reyes", "Marco Dela Cruz",
+    "Ethan Villaflor", "Liam Cordova", "Ari Yamaguchi", "Ryota Miyasaki", "Shohei Ueda", "Takeshi Arai", "Koki Shimizu",
+  ];
+  const chassisPool = ["Yokomo RD2.0", "MST RMX 2.5", "Reve D RDX", "MC-1", "GRK5", "MST FXX", "YD-2ZX", "Rhino Racing"];
+  const teamPool = ["Team Bushido", "Team BubbleMilk", "Sittin Sidewayz", "Shibata International", "Team RAZR", "Dori Lounge", "Team Yokomo", "Team Weld", "Reve D Thailand", "DS Racing", "Team PDX BeastMode"];
+  const paidTickets = Math.floor(Math.random() * 9);
+  const tech1Driver = Math.random() < 0.45;
+  const baseName = driverNamePool[index % driverNamePool.length] || `Driver ${index + 1}`;
+  const name = index >= driverNamePool.length ? `${baseName} ${String(Math.floor(index / driverNamePool.length) + 2)}` : baseName;
+  const instagramHandle = `@${name.toLowerCase().replace(/[^a-z0-9]+/g, "_")}`;
+  return {
+    id: `tech1-sample-${Date.now()}-${index + 1}-${generateId()}`,
+    name,
+    teamName: teamPool[index % teamPool.length],
+    chassis: chassisPool[index % chassisPool.length],
+    instagram: instagramHandle,
+    checkedIn: true,
+    bracketEligible: Math.random() < 0.82,
+    tech1Driver,
+    paidTickets,
+    paymentStatus: paidTickets > 0 ? "paid" : "free-only",
+    paymentMethod: paidTickets > 0 ? "sample" : "",
+    staffNotes: "Sample driver for event-admin testing.",
+  };
+}
+
+async function removeTech1Driver(registrationId) {
   if (!tech1StaffCanManageSpecialEvent()) {
-    showRoleAuthorizationNotice("eventAdmin", "check in Tech 1 driver");
+    showRoleAuthorizationNotice("eventAdmin", "delete Tech 1 driver");
+    return;
+  }
+  const registration = getTech1PrivateRegistration(registrationId);
+  if (!registration) return;
+  const driverName = registration.name || "this driver";
+  const confirmed = window.confirm(`Delete ${driverName} from Tech 1 registration? This cannot be undone.`);
+  if (!confirmed) return;
+  if (isTech1BracketPoolLocked() && registration.bracketEligible) {
+    window.alert("This driver is in a locked/active bracket. Reset or regenerate bracket before deleting competing drivers.");
+    return;
+  }
+  try {
+    if (!shouldUseTech1LocalStore()) {
+      await firestoreWriteService.deleteSpecialEventRegistration(
+        getActiveTech1SpecialEventId(),
+        registration.id,
+        registration.publicId || null,
+      );
+    }
+    updateTech1SpecialEventState({
+      privateRegistrations: (tech1SpecialEventState.privateRegistrations || []).filter((entry) => entry.id !== registration.id),
+      publicIndex: (tech1SpecialEventState.publicIndex || []).filter((entry) => entry.publicId !== registration.publicId && entry.id !== registration.id),
+    });
+    setTech1DeskStatus(`${driverName} deleted from registration.`, "ready");
+  } catch (error) {
+    if (!handleTech1PermissionError(error, "delete Tech 1 driver")) {
+      console.error("Tech 1 driver delete failed:", error);
+      window.alert("Driver could not be deleted.");
+    }
+  }
+}
+
+async function promptEditTech1Driver(registrationId) {
+  if (!tech1StaffCanManageSpecialEvent()) {
+    showRoleAuthorizationNotice("eventAdmin", "edit Tech 1 driver");
+    return;
+  }
+  const registration = getTech1PrivateRegistration(registrationId);
+  if (!registration) return;
+  const nextName = window.prompt("Driver name", registration.name || "");
+  if (nextName === null) return;
+  const trimmedName = nextName.trim();
+  if (!trimmedName) {
+    window.alert("Driver name cannot be blank.");
+    return;
+  }
+  const nextTeam = window.prompt("Team", registration.teamName || "");
+  if (nextTeam === null) return;
+  const nextChassis = window.prompt("Chassis", registration.chassis || "");
+  if (nextChassis === null) return;
+  const nextInstagram = window.prompt("Instagram", registration.instagram || "");
+  if (nextInstagram === null) return;
+  try {
+    await publishTech1RegistrationUpdate({
+      ...registration,
+      name: trimmedName,
+      teamName: nextTeam.trim(),
+      chassis: nextChassis.trim(),
+      instagram: nextInstagram.trim(),
+    });
+    setTech1DeskStatus(`${trimmedName} updated.`, "ready");
+  } catch (error) {
+    if (!handleTech1PermissionError(error, "edit Tech 1 driver")) {
+      console.error("Tech 1 quick edit failed:", error);
+      window.alert("Driver could not be updated.");
+    }
+  }
+}
+
+async function loadTech1SampleDrivers() {
+  if (!tech1StaffCanManageSpecialEvent()) {
+    showRoleAuthorizationNotice("eventAdmin", "load Tech 1 sample drivers");
+    return;
+  }
+  const sampleCount = 25 + Math.floor(Math.random() * 26);
+  const bracketExists = doesTech1BracketExist();
+  const warning = bracketExists
+    ? "\n\nA bracket already exists. Sample drivers will be added to registration, but they will not enter the existing bracket until you intentionally reset/regenerate the bracket."
+    : "";
+  if (typeof window !== "undefined" && typeof window.confirm === "function") {
+    const confirmed = window.confirm(`Load ${sampleCount} fake Tech 1 sample drivers for testing?${warning}`);
+    if (!confirmed) return;
+  }
+  const authReady = shouldUseTech1LocalStore() ? true : await ensureCloudAuthReady();
+  if (!shouldUseTech1LocalStore() && (!db || !authReady || QA_OFFLINE_MODE)) {
+    setTech1DeskStatus("Cloud sync is required before loading sample drivers.", "error");
+    return;
+  }
+  if (!tech1SpecialEventState.event) {
+    setTech1DeskStatus("Opening the Tech 1 event shell before loading sample drivers...", "info");
+    const initialized = await publishTech1SpecialEventShell({ showSuccessAlert: false });
+    if (!initialized) {
+      setTech1DeskStatus("Tech 1 event shell could not be opened. Check sync and try again.", "error");
+      return;
+    }
+  }
+  const sampleDrivers = Array.from({ length: sampleCount }, (_, index) => buildTech1SampleDriver(index));
+  if (sampleDrivers.filter((driver) => driver.bracketEligible).length < 2 && sampleDrivers.length >= 2) {
+    sampleDrivers[0].bracketEligible = true;
+    sampleDrivers[1].bracketEligible = true;
+  }
+  const competingCount = sampleDrivers.filter((driver) => driver.bracketEligible).length;
+  const tech1DriverCount = sampleDrivers.filter((driver) => driver.tech1Driver).length;
+  try {
+    setTech1DeskStatus(`Loading ${sampleCount} sample drivers...`, "info");
+    for (const sampleDriver of sampleDrivers) {
+      await publishTech1RegistrationUpdate(sampleDriver);
+    }
+    setTech1DeskStatus(`Loaded ${sampleCount} sample drivers. ${Math.max(competingCount, 2)} are marked Competing and ${tech1DriverCount} use the $30 Tech 1 Driver fee.`, "ready");
+  } catch (error) {
+    if (!handleTech1PermissionError(error, "load Tech 1 sample drivers")) {
+      console.error("Tech 1 sample driver load failed:", error);
+      setTech1DeskStatus("Sample drivers could not be loaded. Check sync and event permissions.", "error");
+    }
+  }
+}
+
+async function registerTech1DriverAtDesk(form) {
+  if (form?.dataset?.saving === "true") return;
+  if (form?.dataset) form.dataset.saving = "true";
+  if (!tech1StaffCanManageSpecialEvent()) {
+    if (form?.dataset) delete form.dataset.saving;
+    showRoleAuthorizationNotice("eventAdmin", "save Tech 1 desk registration");
+    return;
+  }
+  const authReady = shouldUseTech1LocalStore() ? true : await ensureCloudAuthReady();
+  if (!shouldUseTech1LocalStore() && (!db || !authReady || QA_OFFLINE_MODE)) {
+    if (form?.dataset) delete form.dataset.saving;
+    setTech1DeskStatus("Cloud sync is required before saving desk registrations.", "error");
+    return;
+  }
+  if (!tech1SpecialEventState.event) {
+    setTech1DeskStatus("Opening the Tech 1 event shell before saving this driver...", "info");
+    const initialized = await publishTech1SpecialEventShell({ showSuccessAlert: false });
+    if (!initialized) {
+      if (form?.dataset) delete form.dataset.saving;
+      setTech1DeskStatus("Tech 1 event shell could not be opened. Check sync and try again.", "error");
+      return;
+    }
+  }
+  const name = form.querySelector("#tech1DeskName")?.value || "";
+  if (!name.trim()) {
+    if (form?.dataset) delete form.dataset.saving;
+    setTech1DeskStatus("Name is required before saving a Tech 1 driver.", "error");
+    return;
+  }
+  const competing = Boolean(form.querySelector("#tech1DeskCompeting")?.checked);
+  if (competing && isTech1BracketPoolLocked()) {
+    if (form?.dataset) delete form.dataset.saving;
+    setTech1DeskStatus("This bracket is locked. Unlock the bracket first if you want to add another competing driver.", "error");
+    return;
+  }
+  const instagram = form.querySelector("#tech1DeskInstagram")?.value || "";
+  const duplicateKey = (value) => String(value || "").trim().toLowerCase().replace(/^@+/, "").replace(/\s+/g, " ");
+  const duplicateLooksLikely = (tech1SpecialEventState.privateRegistrations || []).some((entry) => {
+    const sameInstagram = instagram && entry.instagram && duplicateKey(entry.instagram) === duplicateKey(instagram);
+    const sameName = entry.name && duplicateKey(entry.name) === duplicateKey(name);
+    return sameInstagram || sameName;
+  });
+  if (duplicateLooksLikely && typeof window !== "undefined" && typeof window.confirm === "function") {
+    const confirmed = window.confirm("A similar Tech 1 registration already exists. Continue only if this is a separate driver or a staff-approved correction.");
+    if (!confirmed) {
+      if (form?.dataset) delete form.dataset.saving;
+      return;
+    }
+  }
+  const nowIso = new Date().toISOString();
+  const registrationId = `tech1-${generateId()}`;
+  const paidTickets = getTech1PaidTicketInputValue(form.querySelector("#tech1DeskPaidTickets"));
+  const tech1Driver = Boolean(form.querySelector("#tech1DeskTech1Driver")?.checked);
+  const paymentMethod = normalizeTech1PaymentMethodValue(form.querySelector("#tech1DeskPaymentMethod")?.value, "cash");
+  const baseRegistration = buildTech1RegistrationDoc({
+    id: registrationId,
+    name,
+    teamName: form.querySelector("#tech1DeskTeamName")?.value || "",
+    chassis: form.querySelector("#tech1DeskChassis")?.value || "",
+    instagram,
+    checkedIn: true,
+    bracketEligible: competing,
+    tech1Driver,
+    paidTickets: 0,
+    paymentStatus: "free-only",
+    paymentMethod: paidTickets > 0 ? paymentMethod : "",
+  }, {
+    eventId: getActiveTech1SpecialEventId(),
+    registrationId,
+    ownerUid: auth?.currentUser?.uid || "event-staff",
+    nowIso,
+  });
+  try {
+    if (paidTickets > 0) {
+      const transactionId = `raffle-${generateId()}`;
+      const transaction = buildTech1RaffleTransactionDoc({
+        id: transactionId,
+        registrationId,
+        paidTicketsAdded: paidTickets,
+        paymentMethod,
+      }, {
+        eventId: getActiveTech1SpecialEventId(),
+        transactionId,
+        confirmedBy: auth?.currentUser?.uid || "event-staff",
+        nowIso,
+      });
+      const updatedRegistration = mergeTech1RegistrationTicketPurchase(baseRegistration, transaction, { nowIso });
+      const publicIndex = buildTech1PublicRegistrationIndexDoc(updatedRegistration, { nowIso });
+      if (!shouldUseTech1LocalStore()) {
+        await firestoreWriteService.publishSpecialEventRaffleTransaction(getActiveTech1SpecialEventId(), transaction, updatedRegistration, publicIndex);
+      }
+      updateTech1SpecialEventState({
+        privateRegistrations: upsertTech1EntryById(tech1SpecialEventState.privateRegistrations || [], updatedRegistration),
+        publicIndex: upsertTech1EntryById(tech1SpecialEventState.publicIndex || [], publicIndex),
+        raffleTransactions: [...(tech1SpecialEventState.raffleTransactions || []), transaction],
+      });
+    } else {
+      const publicIndex = buildTech1PublicRegistrationIndexDoc(baseRegistration, { nowIso });
+      if (!shouldUseTech1LocalStore()) {
+        await firestoreWriteService.publishSpecialEventRegistration(getActiveTech1SpecialEventId(), baseRegistration, publicIndex);
+      }
+      updateTech1SpecialEventState({
+        privateRegistrations: upsertTech1EntryById(tech1SpecialEventState.privateRegistrations || [], baseRegistration),
+        publicIndex: upsertTech1EntryById(tech1SpecialEventState.publicIndex || [], publicIndex),
+      });
+    }
+    form.reset();
+    updateTech1DeskTicketPreview(form);
+    const entryFee = getTech1EntryFeeForRegistration({ tech1Driver });
+    const totalCollected = entryFee + (paidTickets * Number(TECH1DRIFT_ANNIVERSARY_CONFIG.raffleTicketPrice || 5));
+    const bracketNeedsRegenNote = competing && doesTech1BracketExist() && !isTech1BracketPoolLocked()
+      ? " Regenerate the bracket when you're ready to include this driver in competition."
+      : "";
+    setTech1DeskStatus(`${name.trim()} saved with 1 free raffle ticket${paidTickets ? ` and ${paidTickets} extra raffle ticket${paidTickets === 1 ? "" : "s"}` : ""}. Total manual amount: ${formatTech1Money(totalCollected)}.${bracketNeedsRegenNote}`, "ready");
+  } catch (error) {
+    if (!handleTech1PermissionError(error, "save Tech 1 desk registration")) {
+      console.error("Tech 1 desk registration failed:", error);
+      setTech1DeskStatus("Desk registration could not be saved. Check sync and event permissions.", "error");
+    }
+  } finally {
+    if (form?.dataset) delete form.dataset.saving;
+  }
+}
+
+async function updateTech1DriverInfo(form) {
+  if (!tech1StaffCanManageSpecialEvent()) {
+    showRoleAuthorizationNotice("eventAdmin", "update Tech 1 driver info");
+    return;
+  }
+  const registration = getTech1PrivateRegistration(form.dataset.registrationId || "");
+  if (!registration) return;
+  const name = form.querySelector("[name='name']")?.value || "";
+  if (!name.trim()) {
+    window.alert("Driver name cannot be blank.");
+    return;
+  }
+  try {
+    await publishTech1RegistrationUpdate({
+      ...registration,
+      name,
+      teamName: form.querySelector("[name='teamName']")?.value || "",
+      chassis: form.querySelector("[name='chassis']")?.value || "",
+      instagram: form.querySelector("[name='instagram']")?.value || "",
+    });
+  } catch (error) {
+    if (!handleTech1PermissionError(error, "update Tech 1 driver info")) {
+      console.error("Tech 1 driver update failed:", error);
+      window.alert("Driver info could not be saved.");
+    }
+  }
+}
+
+async function setTech1RegistrationCompeting(registrationId, competing) {
+  if (!tech1StaffCanManageSpecialEvent()) {
+    showRoleAuthorizationNotice("eventAdmin", "update Tech 1 competing status");
+    return;
+  }
+  if (isTech1BracketPoolLocked()) {
+    window.alert("This Tech 1 bracket is locked. Unlock the bracket first if you need to change who is competing.");
     return;
   }
   const registration = getTech1PrivateRegistration(registrationId);
@@ -18270,51 +19528,105 @@ async function checkInTech1Registration(registrationId) {
   try {
     await publishTech1RegistrationUpdate({
       ...registration,
-      checkedIn: true,
-      bracketEligible: true,
+      bracketEligible: Boolean(competing),
+      bracketSeed: competing ? registration.bracketSeed || null : null,
     });
+    const name = registration.name || "Driver";
+    const note = doesTech1BracketExist()
+      ? " Regenerate the bracket when you want the stored field to reflect this change."
+      : "";
+    setTech1DeskStatus(`${name} is now ${competing ? "Competing" : "not competing"}.${note}`, "ready");
   } catch (error) {
-    if (!handleTech1PermissionError(error, "check in Tech 1 driver")) {
-      console.error("Tech 1 check-in failed:", error);
-      window.alert("Check-in could not be saved.");
+    if (!handleTech1PermissionError(error, "update Tech 1 competing status")) {
+      console.error("Tech 1 competing update failed:", error);
+      window.alert("Competing status could not be saved.");
     }
   }
 }
 
-async function recordTech1RaffleTickets(form) {
+async function setTech1RegistrationCheckedIn(registrationId, checkedIn) {
   if (!tech1StaffCanManageSpecialEvent()) {
-    showRoleAuthorizationNotice("eventAdmin", "record Tech 1 raffle tickets");
+    showRoleAuthorizationNotice("eventAdmin", "update Tech 1 check-in status");
     return;
   }
-  const registrationId = form.querySelector("#tech1RaffleRegistrationId")?.value || "";
   const registration = getTech1PrivateRegistration(registrationId);
-  const paidTicketsAdded = Number.parseInt(form.querySelector("#tech1RafflePaidTickets")?.value || "0", 10) || 0;
-  if (!registration || paidTicketsAdded <= 0) {
-    window.alert("Choose a registration and enter at least 1 paid raffle ticket.");
+  if (!registration) return;
+  try {
+    await publishTech1RegistrationUpdate({
+      ...registration,
+      checkedIn: Boolean(checkedIn),
+    });
+  } catch (error) {
+    if (!handleTech1PermissionError(error, "update Tech 1 check-in status")) {
+      console.error("Tech 1 check-in update failed:", error);
+      window.alert("Check-in status could not be saved.");
+    }
+  }
+}
+
+async function checkInTech1Registration(registrationId) {
+  await setTech1RegistrationCheckedIn(registrationId, true);
+}
+
+async function setTech1ExtraTickets(form) {
+  if (!tech1StaffCanManageSpecialEvent()) {
+    showRoleAuthorizationNotice("eventAdmin", "update Tech 1 extra raffle tickets");
     return;
   }
+  const registration = getTech1PrivateRegistration(form.dataset.registrationId || "");
+  if (!registration) return;
+  const nextPaidTickets = getTech1PaidTicketInputValue(form.querySelector("[name='paidTickets']"));
+  const currentPaidTickets = Math.max(0, Number(registration.paidTickets || 0));
+  const nextTech1Driver = Boolean(form.querySelector("[name='tech1Driver']")?.checked);
+  const registrationForUpdate = {
+    ...registration,
+    tech1Driver: nextTech1Driver,
+    entryFee: getTech1EntryFeeForRegistration({ tech1Driver: nextTech1Driver }),
+  };
   const nowIso = new Date().toISOString();
-  const transactionId = `raffle-${generateId()}`;
-  const transaction = buildTech1RaffleTransactionDoc({
-    id: transactionId,
-    registrationId,
-    paidTicketsAdded,
-    paymentMethod: form.querySelector("#tech1RafflePaymentMethod")?.value || "cash",
-  }, {
-    eventId: TECH1DRIFT_ANNIVERSARY_CONFIG.eventId,
-    transactionId,
-    confirmedBy: auth?.currentUser?.uid || "event-staff",
-    nowIso,
-  });
-  const updatedRegistration = mergeTech1RegistrationTicketPurchase(registration, transaction, { nowIso });
-  const publicIndex = buildTech1PublicRegistrationIndexDoc(updatedRegistration, { nowIso });
   try {
-    await firestoreWriteService.publishSpecialEventRaffleTransaction(TECH1DRIFT_ANNIVERSARY_CONFIG.eventId, transaction, updatedRegistration, publicIndex);
-    form.reset();
+    if (nextPaidTickets > currentPaidTickets) {
+      const paidTicketsAdded = nextPaidTickets - currentPaidTickets;
+      const transactionId = `raffle-${generateId()}`;
+      const transaction = buildTech1RaffleTransactionDoc({
+        id: transactionId,
+        registrationId: registration.id,
+        paidTicketsAdded,
+        paymentMethod: normalizeTech1PaymentMethodValue(form.querySelector("[name='paymentMethod']")?.value || registration.paymentMethod, "cash"),
+      }, {
+        eventId: getActiveTech1SpecialEventId(),
+        transactionId,
+        confirmedBy: auth?.currentUser?.uid || "event-staff",
+        nowIso,
+      });
+      const updatedRegistration = mergeTech1RegistrationTicketPurchase(registrationForUpdate, transaction, { nowIso });
+      const publicIndex = buildTech1PublicRegistrationIndexDoc(updatedRegistration, { nowIso });
+      if (!shouldUseTech1LocalStore()) {
+        await firestoreWriteService.publishSpecialEventRaffleTransaction(getActiveTech1SpecialEventId(), transaction, updatedRegistration, publicIndex);
+      }
+      updateTech1SpecialEventState({
+        privateRegistrations: upsertTech1EntryById(tech1SpecialEventState.privateRegistrations || [], updatedRegistration),
+        publicIndex: upsertTech1EntryById(tech1SpecialEventState.publicIndex || [], publicIndex),
+        raffleTransactions: upsertTech1EntryById(tech1SpecialEventState.raffleTransactions || [], transaction),
+      });
+      return;
+    }
+    if (nextPaidTickets < currentPaidTickets) {
+      const confirmed = window.confirm("Reduce the recorded extra raffle ticket count for this driver? Existing transaction records remain in the ledger, and the current driver total will be corrected.");
+      if (!confirmed) return;
+    }
+    await publishTech1RegistrationUpdate({
+      ...registrationForUpdate,
+      paidTickets: nextPaidTickets,
+      paymentStatus: nextPaidTickets > 0 ? "paid" : "free-only",
+      paymentMethod: nextPaidTickets > 0
+        ? normalizeTech1PaymentMethodValue(form.querySelector("[name='paymentMethod']")?.value || registration.paymentMethod, "cash")
+        : "",
+    });
   } catch (error) {
-    if (!handleTech1PermissionError(error, "record Tech 1 raffle tickets")) {
-      console.error("Tech 1 raffle transaction failed:", error);
-      window.alert("Raffle tickets could not be recorded.");
+    if (!handleTech1PermissionError(error, "update Tech 1 extra raffle tickets")) {
+      console.error("Tech 1 ticket update failed:", error);
+      window.alert("Extra raffle tickets could not be updated.");
     }
   }
 }
@@ -18325,22 +19637,21 @@ async function generateTech1Bracket(source = TECH1DRIFT_ANNIVERSARY_CONFIG.defau
     return;
   }
   const registrations = tech1SpecialEventState.privateRegistrations || [];
-  const eligibleRegistrations = registrations
-    .filter((entry) => source === "allRegistered" || entry.checkedIn)
-    .filter((entry) => entry && (entry.id || entry.registrationId) && (entry.name || entry.displayName));
-  if (eligibleRegistrations.length < 2) {
-    window.alert(source === "checkedIn"
-      ? "Check in at least 2 drivers before generating the bracket."
-      : "Register at least 2 drivers before generating the bracket.");
+  const projection = getSingleEliminationBracketProjection(registrations, { source });
+  if (projection.blockedReason) {
+    window.alert(projection.blockedReason);
     return;
   }
-  const bracketSize = getSingleEliminationBracketSize(eligibleRegistrations.length);
-  const byeCount = Math.max(0, bracketSize - eligibleRegistrations.length);
-  if (source === "allRegistered") {
-    const confirmedAllRegistered = window.confirm("Generate from all registered drivers? This can include no-shows. Checked-in drivers are the recommended default.");
+  if (projection.source === "allRegistered") {
+    const confirmedAllRegistered = window.confirm("Generate from all registered drivers? This can include no-shows and drivers not marked Competing. Competing drivers are the recommended default.");
     if (!confirmedAllRegistered) return;
   }
-  const confirmedPreview = window.confirm(`Generate a randomized Tech 1 bracket from ${eligibleRegistrations.length} ${source === "checkedIn" ? "checked-in" : "registered"} drivers? Bracket size: ${bracketSize}. Byes: ${byeCount}. Raffle ticket totals do not affect seeding.`);
+  const sourceLabel = projection.source === "checkedIn"
+    ? "checked-in"
+    : projection.source === "allRegistered"
+      ? "registered"
+      : "Competing";
+  const confirmedPreview = window.confirm(`Generate a randomized Tech 1 bracket from ${projection.eligibleCount} ${sourceLabel} drivers? Bracket size: ${projection.bracketSize}. Byes: ${projection.byeCount}. Raffle ticket totals do not affect seeding.`);
   if (!confirmedPreview) return;
   const existing = tech1SpecialEventState.bracket;
   if (existing?.status === "locked" || existing?.status === "in_progress" || existing?.status === "complete") {
@@ -18351,22 +19662,41 @@ async function generateTech1Bracket(source = TECH1DRIFT_ANNIVERSARY_CONFIG.defau
     if (!confirmed) return;
   }
   const bracket = buildRandomSingleEliminationBracket(registrations, {
-    source,
+    source: projection.source,
     createdBy: auth?.currentUser?.uid || "event-staff",
     nowIso: new Date().toISOString(),
   });
   try {
-    await firestoreWriteService.publishSpecialEventBracket(TECH1DRIFT_ANNIVERSARY_CONFIG.eventId, bracket);
+    tech1BracketDisplayPageIndex = 0;
     const seedLookup = new Map(bracket.randomizedSeedOrder.map((driverId, index) => [driverId, index + 1]));
-    await Promise.all(registrations.map((registration) => {
+    const seededRegistrations = registrations.map((registration) => {
       const seed = seedLookup.get(registration.id);
-      if (!seed && source === "checkedIn" && !registration.checkedIn) return Promise.resolve();
-      return publishTech1RegistrationUpdate({
+      if (!seed && !isTech1EligibleForBracketSource(registration, projection.source)) return registration;
+      return buildTech1RegistrationDoc({
         ...registration,
         bracketEligible: Boolean(seed),
         bracketSeed: seed || null,
+      }, {
+        eventId: getActiveTech1SpecialEventId(),
+        registrationId: registration.id || registration.registrationId,
+        ownerUid: registration.ownerUid || auth?.currentUser?.uid || "event-staff",
+        nowIso: new Date().toISOString(),
       });
-    }));
+    });
+    if (!shouldUseTech1LocalStore()) {
+      await firestoreWriteService.publishSpecialEventBracket(getActiveTech1SpecialEventId(), bracket);
+      await Promise.all(seededRegistrations.map((registration) => publishTech1RegistrationUpdate(registration)));
+    }
+    updateTech1SpecialEventState({
+      bracket,
+      privateRegistrations: seededRegistrations,
+      publicIndex: seededRegistrations.map((registration) => buildTech1PublicRegistrationIndexDoc(registration)),
+      event: {
+        ...(tech1SpecialEventState.event || buildTech1AnniversaryShell()),
+        bracketStatus: bracket.status,
+        updatedAt: bracket.updatedAt,
+      },
+    });
   } catch (error) {
     if (!handleTech1PermissionError(error, "generate Tech 1 bracket")) {
       console.error("Tech 1 bracket generation failed:", error);
@@ -18380,7 +19710,7 @@ async function lockTech1Bracket() {
     showRoleAuthorizationNotice("eventAdmin", "lock Tech 1 bracket");
     return;
   }
-  const bracket = tech1SpecialEventState.bracket;
+  const bracket = normalizeTech1ThirdPlaceMatch(tech1SpecialEventState.bracket);
   if (!bracket?.rounds?.length) {
     window.alert("Generate the Tech 1 bracket before locking it.");
     return;
@@ -18388,11 +19718,18 @@ async function lockTech1Bracket() {
   const confirmed = window.confirm(`Lock the Tech 1 bracket? Source: ${bracket.source || "checkedIn"}. Drivers: ${bracket.driverCount || 0}. Bracket size: ${bracket.bracketSize || 0}. Byes: ${(bracket.byes || []).length}. Regenerating after this will require confirmation.`);
   if (!confirmed) return;
   try {
-    await firestoreWriteService.publishSpecialEventBracket(TECH1DRIFT_ANNIVERSARY_CONFIG.eventId, {
+    const nextBracket = {
       ...bracket,
       status: "locked",
       lockedAt: bracket.lockedAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+    };
+    if (!shouldUseTech1LocalStore()) {
+      await firestoreWriteService.publishSpecialEventBracket(getActiveTech1SpecialEventId(), nextBracket);
+    }
+    updateTech1SpecialEventState({
+      bracket: nextBracket,
+      event: { ...(tech1SpecialEventState.event || buildTech1AnniversaryShell()), bracketStatus: nextBracket.status, updatedAt: nextBracket.updatedAt },
     });
   } catch (error) {
     if (!handleTech1PermissionError(error, "lock Tech 1 bracket")) {
@@ -18402,37 +19739,707 @@ async function lockTech1Bracket() {
   }
 }
 
+async function resetTech1BracketWinners() {
+  if (!tech1StaffCanManageSpecialEvent()) {
+    showRoleAuthorizationNotice("eventAdmin", "reset Tech 1 bracket winners");
+    return;
+  }
+  const bracket = normalizeTech1ThirdPlaceMatch(tech1SpecialEventState.bracket);
+  if (!bracket?.rounds?.length || !bracket?.matches) {
+    window.alert("Generate the Tech 1 bracket before resetting winners.");
+    return;
+  }
+  const completedCount = Object.values(bracket.matches || {}).filter((match) => match?.winnerId && match.resultStatus !== "bye").length;
+  const confirmed = window.confirm(`Reset all Tech 1 battle winners and restart this bracket? The original randomized seed order, first-round slots, and byes stay the same. Completed battle results to clear: ${completedCount}.`);
+  if (!confirmed) return;
+  const nowIso = new Date().toISOString();
+  let nextBracket = resetSingleEliminationWinners(bracket, {
+    status: bracket.lockedAt ? "locked" : "generated",
+    nowIso,
+  });
+  nextBracket.thirdPlaceMatch = null;
+  nextBracket.podiumReveal = {
+    revealed: {},
+    updatedAt: nowIso,
+    updatedBy: auth?.currentUser?.uid || "event-staff",
+  };
+  nextBracket.tech1JudgeControl = createEmptyTech1JudgeControl();
+  nextBracket = normalizeTech1ThirdPlaceMatch(nextBracket);
+  nextBracket.tech1JudgeControl = normalizeTech1JudgeControl(nextBracket);
+  tech1PodiumRevealDismissedSignature = "";
+  stopTech1PodiumConfettiLoop();
+  try {
+    if (!shouldUseTech1LocalStore()) {
+      await firestoreWriteService.publishSpecialEventBracket(getActiveTech1SpecialEventId(), nextBracket);
+    }
+    tech1BracketDisplayPageIndex = 0;
+    updateTech1SpecialEventState({
+      bracket: nextBracket,
+      battleResults: [],
+      event: { ...(tech1SpecialEventState.event || buildTech1AnniversaryShell()), bracketStatus: nextBracket.status, updatedAt: nextBracket.updatedAt },
+    });
+  } catch (error) {
+    if (!handleTech1PermissionError(error, "reset Tech 1 bracket winners")) {
+      console.error("Tech 1 winner reset failed:", error);
+      window.alert("Tech 1 bracket winners could not be reset.");
+    }
+  }
+}
+
+function setTech1BracketDisplayPage(pageIndex = 0) {
+  const previousIndex = Math.max(0, Number.parseInt(tech1BracketDisplayPageIndex, 10) || 0);
+  const nextIndex = Math.max(0, Number.parseInt(pageIndex, 10) || 0);
+  queueTech1BracketPageTransition(previousIndex, nextIndex);
+  tech1BracketDisplayPageIndex = nextIndex;
+  if (getActiveViewName() === "bracket") {
+    renderBracket();
+  }
+  renderTech1EventControlWorkflow();
+}
+
+function buildTech1BattleResultDoc(match, winnerId, nextBracket, nowIso = new Date().toISOString()) {
+  const winner = [match?.driverA, match?.driverB].find((driver) => driver?.id === winnerId) || null;
+  return {
+    matchId: match?.id || "",
+    eventId: getActiveTech1SpecialEventId(),
+    round: match?.round || null,
+    matchNumber: match?.matchNumber || null,
+    driverA: match?.driverA || null,
+    driverB: match?.driverB || null,
+    winnerId,
+    winnerName: winner?.name || "",
+    resultStatus: "complete",
+    notes: "",
+    advancedToMatchId: match?.advancedToMatchId || null,
+    updatedBy: auth?.currentUser?.uid || "event-staff",
+    updatedAt: nowIso,
+    bracketStatus: nextBracket?.status || "",
+  };
+}
+
+async function persistTech1BracketBattleResult(match, winnerId, nextBracket, nowIso = new Date().toISOString()) {
+  const resultDoc = buildTech1BattleResultDoc(match, winnerId, nextBracket, nowIso);
+  const optimisticPatch = {
+    bracket: nextBracket,
+    battleResults: upsertTech1EntryById(tech1SpecialEventState.battleResults || [], { id: match.id, ...resultDoc }),
+    event: { ...(tech1SpecialEventState.event || buildTech1AnniversaryShell()), bracketStatus: nextBracket.status, updatedAt: nextBracket.updatedAt },
+  };
+  // Update local UI state immediately so Current/Next battle overlays transition
+  // without waiting on remote round-trips.
+  updateTech1SpecialEventState(optimisticPatch);
+  if (!shouldUseTech1LocalStore()) {
+    await firestoreWriteService.publishSpecialEventBattleResult(getActiveTech1SpecialEventId(), match.id, resultDoc, nextBracket);
+  }
+}
+
+function applyTech1WinnerToBracket(bracket = {}, matchId = "", winnerId = "", options = {}) {
+  if (matchId !== TECH1_THIRD_PLACE_MATCH_ID) {
+    return normalizeTech1ThirdPlaceMatch(applySingleEliminationWinner(bracket, matchId, winnerId, options));
+  }
+  const nextBracket = normalizeTech1ThirdPlaceMatch(cloneTech1Bracket(bracket));
+  const thirdPlaceMatch = nextBracket.thirdPlaceMatch || buildTech1ThirdPlaceMatch(nextBracket);
+  const winner = [thirdPlaceMatch?.driverA, thirdPlaceMatch?.driverB].find((driver) => driver?.id === winnerId) || null;
+  if (!thirdPlaceMatch || !winner) return nextBracket;
+  nextBracket.thirdPlaceMatch = {
+    ...thirdPlaceMatch,
+    winnerId: winner.id,
+    resultStatus: "complete",
+    notes: options.notes || thirdPlaceMatch.notes || "",
+  };
+  nextBracket.updatedAt = options.nowIso || new Date().toISOString();
+  return nextBracket;
+}
+
+function clearTech1WinnerFromBracket(bracket = {}, matchId = "", options = {}) {
+  const nextBracket = normalizeTech1ThirdPlaceMatch(cloneTech1Bracket(bracket));
+  if (!nextBracket?.rounds?.length) return nextBracket;
+  if (matchId === TECH1_THIRD_PLACE_MATCH_ID) {
+    if (nextBracket.thirdPlaceMatch) {
+      nextBracket.thirdPlaceMatch = {
+        ...nextBracket.thirdPlaceMatch,
+        winnerId: null,
+        resultStatus: nextBracket.thirdPlaceMatch.driverA && nextBracket.thirdPlaceMatch.driverB ? "pending" : "waiting",
+        notes: "",
+      };
+    }
+    nextBracket.updatedAt = options.nowIso || new Date().toISOString();
+    nextBracket.winnerRevealStatus = "hidden";
+    nextBracket.winnerRevealedAt = null;
+    nextBracket.winnerRevealUpdatedBy = "";
+    nextBracket.podiumReveal = {
+      revealed: {},
+      updatedAt: nextBracket.updatedAt,
+      updatedBy: options.updatedBy || "",
+    };
+    return normalizeTech1ThirdPlaceMatch(nextBracket);
+  }
+
+  const startMatch = nextBracket.matches?.[matchId];
+  if (!startMatch) return nextBracket;
+  const queue = [startMatch.id];
+  const visited = new Set();
+  while (queue.length) {
+    const currentId = queue.shift();
+    if (!currentId || visited.has(currentId)) continue;
+    visited.add(currentId);
+    const currentMatch = nextBracket.matches?.[currentId];
+    if (!currentMatch) continue;
+    if (currentId === startMatch.id) {
+      currentMatch.winnerId = null;
+      currentMatch.resultStatus = currentMatch.driverA && currentMatch.driverB ? "pending" : "waiting";
+      currentMatch.notes = "";
+    } else {
+      currentMatch.driverA = null;
+      currentMatch.driverB = null;
+      currentMatch.winnerId = null;
+      currentMatch.resultStatus = "pending";
+      currentMatch.notes = "";
+    }
+    if (currentMatch.advancedToMatchId) {
+      queue.push(currentMatch.advancedToMatchId);
+    }
+  }
+  nextBracket.thirdPlaceMatch = null;
+  nextBracket.status = nextBracket.lockedAt ? "locked" : "generated";
+  nextBracket.winnerRevealStatus = "hidden";
+  nextBracket.winnerRevealedAt = null;
+  nextBracket.winnerRevealUpdatedBy = "";
+  nextBracket.podiumReveal = {
+    revealed: {},
+    updatedAt: nextBracket.updatedAt,
+    updatedBy: options.updatedBy || "",
+  };
+  nextBracket.updatedAt = options.nowIso || new Date().toISOString();
+  return normalizeTech1ThirdPlaceMatch(nextBracket);
+}
+
+async function submitTech1JudgeVote(side, role = currentRole) {
+  if (!role?.startsWith("j")) return { changed: false, blocked: true };
+  const normalizedSide = side === "right" ? "right" : side === "omt" ? "omt" : "left";
+  const activeRoles = getTech1JudgeRoles(activeEventMeta);
+  if (!activeRoles.includes(role)) return { changed: false, blocked: true };
+  const bracket = normalizeTech1ThirdPlaceMatch(tech1SpecialEventState.bracket);
+  if (!bracket?.rounds?.length || bracket.status === "complete") return { changed: false, blocked: true };
+
+  const match = getTech1CurrentJudgeMatch(bracket, bracket.tech1JudgeControl);
+  if (!match?.driverA || !match?.driverB || match.winnerId) return { changed: false, blocked: true };
+  let control = getTech1JudgeControl(bracket);
+  if (!control.entry || control.matchId !== match.id || control.status !== "voting") {
+    control = buildTech1JudgeControlForMatch(match, 1);
+  }
+  control = {
+    ...control,
+    judgeRoles: activeRoles,
+  };
+  if (["left", "right", "omt"].includes(control.votes?.[role])) {
+    return { changed: false, blocked: true, control, resolution: getTech1DecisionResolution(control, activeEventMeta) };
+  }
+
+  const nowIso = new Date().toISOString();
+  control = {
+    ...control,
+    status: "voting",
+    resolvedWinnerSide: null,
+    resolvedAt: null,
+    decisionExpiresAt: null,
+    judgeRoles: activeRoles,
+    votes: {
+      ...createEmptyCompetitionJudgeVotes(),
+      ...(control.votes || {}),
+      [role]: normalizedSide,
+    },
+    updatedAt: nowIso,
+  };
+  const resolution = getTech1DecisionResolution(control, activeEventMeta);
+  let nextBracket = {
+    ...bracket,
+    tech1JudgeControl: control,
+    updatedAt: nowIso,
+  };
+
+  try {
+    if (resolution.allVoted) {
+      const contestDecisionExpiryIso = new Date(Date.now() + CONTEST_DECISION_SECONDS * 1000).toISOString();
+      const reviewedControl = {
+        ...control,
+        status: resolution.omtMajority || resolution.tied || !resolution.winnerSide ? "review_hold" : "admin_decision",
+        reason: resolution.omtMajority ? "omt" : resolution.tied ? "tie" : null,
+        resolvedWinnerSide: resolution.winnerSide || null,
+        resolvedAt: nowIso,
+        decisionExpiresAt: resolution.omtMajority || resolution.tied || !resolution.winnerSide ? null : contestDecisionExpiryIso,
+        updatedAt: nowIso,
+      };
+      nextBracket = {
+        ...nextBracket,
+        tech1JudgeControl: reviewedControl,
+      };
+      if (!shouldUseTech1LocalStore()) {
+        await firestoreWriteService.publishSpecialEventBracket(getActiveTech1SpecialEventId(), nextBracket);
+      }
+      updateTech1SpecialEventState({ bracket: nextBracket });
+    } else {
+      if (!shouldUseTech1LocalStore()) {
+        await firestoreWriteService.publishSpecialEventBracket(getActiveTech1SpecialEventId(), nextBracket);
+      }
+      updateTech1SpecialEventState({ bracket: nextBracket });
+    }
+    return { changed: true, control: getTech1JudgeControl(tech1SpecialEventState.bracket), resolution };
+  } catch (error) {
+    if (!handleTech1PermissionError(error, "submit Tech 1 judge vote")) {
+      console.error("Tech 1 judge vote failed:", error);
+      window.alert("Tech 1 judge vote could not be saved.");
+    }
+    return { changed: false, blocked: true, error };
+  }
+}
+
+async function applyTech1JudgeDecision(decision = "advance") {
+  if (!tech1StaffCanManageSpecialEvent()) {
+    showRoleAuthorizationNotice("eventAdmin", "continue Tech 1 battle flow");
+    return false;
+  }
+  const bracket = normalizeTech1ThirdPlaceMatch(tech1SpecialEventState.bracket);
+  const control = getTech1JudgeControl(bracket);
+  if (!bracket?.rounds?.length || !control.entry || !control.matchId) return false;
+  const normalizedBracket = normalizeTech1ThirdPlaceMatch(bracket);
+  const match = control.matchId === TECH1_THIRD_PLACE_MATCH_ID
+    ? normalizedBracket?.thirdPlaceMatch
+    : normalizedBracket?.matches?.[control.matchId];
+  if (!match?.driverA || !match?.driverB || match.winnerId) return false;
+  const flowGuard = getTech1RoundFlowGuard(bracket, match);
+  if (!flowGuard.allowed) {
+    window.alert(flowGuard.message);
+    return false;
+  }
+
+  const nowIso = new Date().toISOString();
+  const wasBracketPresentationFullscreen = (() => {
+    const bracketView = document.getElementById("view-bracket");
+    return document.body.classList.contains("bracket-fullscreen")
+      || document.body.dataset.tech1PersistFullscreen === "true"
+      || document.fullscreenElement === bracketView;
+  })();
+  if (decision === "omt") {
+    const nextBracket = {
+      ...bracket,
+      tech1JudgeControl: buildTech1JudgeControlForMatch(match, Math.max(Number(control.cycle || 1) + 1, 2), "omt"),
+      updatedAt: nowIso,
+    };
+    try {
+      if (!shouldUseTech1LocalStore()) {
+        await firestoreWriteService.publishSpecialEventBracket(getActiveTech1SpecialEventId(), nextBracket);
+      }
+      updateTech1SpecialEventState({ bracket: nextBracket });
+      return true;
+    } catch (error) {
+      if (!handleTech1PermissionError(error, "start Tech 1 OMT")) {
+        console.error("Tech 1 OMT start failed:", error);
+        window.alert("OMT could not be started.");
+      }
+      return false;
+    }
+  }
+
+  if (control.status !== "admin_decision" || !["left", "right"].includes(control.resolvedWinnerSide)) {
+    return false;
+  }
+  const winnerId = control.resolvedWinnerSide === "right" ? match.driverB.id : match.driverA.id;
+  const nextBracket = applyTech1WinnerToBracket(bracket, match.id, winnerId, { nowIso });
+  nextBracket.tech1JudgeControl = normalizeTech1JudgeControl(nextBracket);
+  nextBracket.winnerRevealStatus = "hidden";
+  nextBracket.winnerRevealedAt = null;
+  nextBracket.winnerRevealUpdatedBy = "";
+  nextBracket.podiumReveal = {
+    revealed: {},
+    updatedAt: nowIso,
+    updatedBy: auth?.currentUser?.uid || "event-staff",
+  };
+  try {
+    await persistTech1BracketBattleResult(match, winnerId, nextBracket, nowIso);
+    // Prime VS presentation snapshots immediately after advancing, so
+    // current->next promotion does not depend on a later render tick.
+    syncTech1VsBattlePresentation(nextBracket);
+    if (wasBracketPresentationFullscreen && isTech1PodiumRevealReady(nextBracket)) {
+      const bracketView = document.getElementById("view-bracket");
+      document.body.dataset.tech1PersistFullscreen = "true";
+      document.body.classList.add("bracket-fullscreen");
+      if (getActiveViewName() !== "bracket") {
+        switchView("bracket");
+      }
+      if (document.fullscreenElement !== bracketView && bracketView?.requestFullscreen) {
+        bracketView.requestFullscreen().catch(() => {});
+      }
+      requestAnimationFrame(() => {
+        renderBracket();
+        requestAnimationFrame(() => renderBracket());
+      });
+    }
+    return true;
+  } catch (error) {
+    if (!handleTech1PermissionError(error, "advance Tech 1 judge decision")) {
+      console.error("Tech 1 judge decision advance failed:", error);
+      window.alert("Tech 1 battle could not be advanced.");
+    }
+    return false;
+  }
+}
+
+async function revealTech1Winner() {
+  if (!tech1StaffCanManageSpecialEvent()) {
+    showRoleAuthorizationNotice("eventAdmin", "reveal Tech 1 winner");
+    return;
+  }
+  const bracket = tech1SpecialEventState.bracket;
+  const finalMatch = Object.values(bracket?.matches || {}).find((match) => !match.advancedToMatchId);
+  if (!bracket?.rounds?.length || !finalMatch?.winnerId || bracket.status !== "complete") {
+    window.alert("Complete the Tech 1 final battle before revealing the winner.");
+    return;
+  }
+  const nowIso = new Date().toISOString();
+  try {
+    const nextBracket = {
+      ...bracket,
+      winnerRevealStatus: "revealed",
+      winnerRevealedAt: nowIso,
+      winnerRevealUpdatedBy: auth?.currentUser?.uid || "event-staff",
+      updatedAt: nowIso,
+    };
+    if (!shouldUseTech1LocalStore()) {
+      await firestoreWriteService.publishSpecialEventBracket(getActiveTech1SpecialEventId(), nextBracket);
+    }
+    updateTech1SpecialEventState({ bracket: nextBracket });
+  } catch (error) {
+    if (!handleTech1PermissionError(error, "reveal Tech 1 winner")) {
+      console.error("Tech 1 winner reveal failed:", error);
+      window.alert("Final winner could not be revealed.");
+    }
+  }
+}
+
+function getTech1PodiumConfettiLayer() {
+  if (typeof document === "undefined") return null;
+  const layerHost = document.fullscreenElement || document.body;
+  if (!tech1PodiumConfettiLayerNode || !tech1PodiumConfettiLayerNode.isConnected) {
+    tech1PodiumConfettiLayerNode = document.createElement("div");
+    tech1PodiumConfettiLayerNode.className = "tech1-logo-confetti-layer";
+    layerHost.appendChild(tech1PodiumConfettiLayerNode);
+    return tech1PodiumConfettiLayerNode;
+  }
+  if (tech1PodiumConfettiLayerNode.parentNode !== layerHost) {
+    layerHost.appendChild(tech1PodiumConfettiLayerNode);
+  }
+  return tech1PodiumConfettiLayerNode;
+}
+
+function getTech1PodiumConfettiLogoSources() {
+  const branding = TECH1DRIFT_ANNIVERSARY_CONFIG?.branding || {};
+  const yellowLogo = String(
+    branding.logoDark
+    || branding.logo
+    || TECH1_PODIUM_CONFETTI_DEFAULT_YELLOW_LOGO,
+  ).trim() || TECH1_PODIUM_CONFETTI_DEFAULT_YELLOW_LOGO;
+  const blackLogo = String(
+    branding.logoLight
+    || branding.logo
+    || TECH1_PODIUM_CONFETTI_DEFAULT_BLACK_LOGO,
+  ).trim() || TECH1_PODIUM_CONFETTI_DEFAULT_BLACK_LOGO;
+  const deduped = [yellowLogo, blackLogo].filter(Boolean).filter((value, index, list) => list.indexOf(value) === index);
+  return deduped.length ? deduped : [TECH1_PODIUM_CONFETTI_DEFAULT_YELLOW_LOGO, TECH1_PODIUM_CONFETTI_DEFAULT_BLACK_LOGO];
+}
+
+function getTech1PodiumConfettiEasterEggLogoSource() {
+  return TECH1_PODIUM_CONFETTI_EASTER_EGG_LOGO;
+}
+
+function launchTech1LogoConfettiBurst() {
+  if (typeof document === "undefined") return;
+  if (document.hidden) return;
+  const layer = getTech1PodiumConfettiLayer();
+  if (!layer) return;
+  while (layer.childElementCount > 110) {
+    layer.firstElementChild?.remove();
+  }
+  const logoSources = getTech1PodiumConfettiLogoSources();
+  const easterEggLogoSrc = getTech1PodiumConfettiEasterEggLogoSource();
+  const count = TECH1_PODIUM_CONFETTI_BURST_COUNT;
+  for (let index = 0; index < count; index += 1) {
+    const piece = document.createElement("img");
+    piece.className = "tech1-logo-confetti-piece";
+    const useEasterEgg = Boolean(easterEggLogoSrc) && Math.random() < TECH1_PODIUM_CONFETTI_EASTER_EGG_RATE;
+    const logoSrc = useEasterEgg
+      ? easterEggLogoSrc
+      : logoSources[(tech1PodiumConfettiLogoIndex + index) % logoSources.length];
+    piece.src = logoSrc;
+    piece.onerror = () => {
+      piece.src = logoSources[(tech1PodiumConfettiLogoIndex + index) % logoSources.length];
+      piece.onerror = null;
+    };
+    piece.decoding = "async";
+    piece.loading = "eager";
+    piece.alt = "";
+    piece.setAttribute("aria-hidden", "true");
+    piece.style.setProperty("--x", String(Math.min(0.985, Math.max(0.015, Math.random()))));
+    piece.style.setProperty("--delay", `${Math.random() * 0.42}s`);
+    piece.style.setProperty("--duration", `${4.8 + Math.random() * 1.8}s`);
+    piece.style.setProperty("--drift", `${(Math.random() * 320) - 160}px`);
+    piece.style.setProperty("--spin", `${(Math.random() * 620) - 310}deg`);
+    piece.style.setProperty("--scale", `${0.82 + Math.random() * 0.42}`);
+    layer.appendChild(piece);
+    window.setTimeout(() => {
+      if (piece.parentNode) piece.parentNode.removeChild(piece);
+    }, TECH1_PODIUM_CONFETTI_PIECE_LIFETIME_MS);
+  }
+  tech1PodiumConfettiLogoIndex = (tech1PodiumConfettiLogoIndex + count) % logoSources.length;
+}
+
+function preloadTech1PodiumConfettiLogo() {
+  if (typeof window === "undefined") return Promise.resolve();
+  if (tech1PodiumConfettiLogoPreloadPromise) return tech1PodiumConfettiLogoPreloadPromise;
+  tech1PodiumConfettiLogoPreloadPromise = new Promise((resolve) => {
+    const logoSources = [
+      ...getTech1PodiumConfettiLogoSources(),
+      getTech1PodiumConfettiEasterEggLogoSource(),
+    ].filter(Boolean).filter((value, index, list) => list.indexOf(value) === index);
+    let remaining = logoSources.length;
+    const done = () => {
+      remaining -= 1;
+      if (remaining <= 0) resolve();
+    };
+    logoSources.forEach((src) => {
+      let settled = false;
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        done();
+      };
+      const image = new Image();
+      image.decoding = "async";
+      image.onload = finish;
+      image.onerror = finish;
+      image.src = src;
+      if (typeof image.decode === "function") {
+        image.decode().then(finish).catch(() => {});
+      }
+    });
+    if (!logoSources.length) {
+      resolve();
+    }
+  });
+  return tech1PodiumConfettiLogoPreloadPromise;
+}
+if (typeof window !== "undefined") {
+  window.addEventListener("load", () => {
+    preloadTech1PodiumConfettiLogo();
+  }, { once: true });
+}
+
+function startTech1PodiumConfettiLoop() {
+  if (tech1PodiumConfettiLoopTimer) return;
+  preloadTech1PodiumConfettiLogo().finally(() => {
+    launchTech1LogoConfettiBurst();
+  });
+  tech1PodiumConfettiLoopTimer = window.setInterval(() => {
+    launchTech1LogoConfettiBurst();
+  }, TECH1_PODIUM_CONFETTI_INTERVAL_MS);
+}
+
+function stopTech1PodiumConfettiLoop() {
+  if (tech1PodiumConfettiLoopTimer) {
+    clearInterval(tech1PodiumConfettiLoopTimer);
+    tech1PodiumConfettiLoopTimer = null;
+  }
+  if (tech1PodiumConfettiLayerNode?.parentNode) {
+    tech1PodiumConfettiLayerNode.parentNode.removeChild(tech1PodiumConfettiLayerNode);
+  }
+  tech1PodiumConfettiLayerNode = null;
+}
+
+async function revealTech1PodiumPlace(place = 0) {
+  if (!canControlTech1PodiumReveal()) {
+    showRoleAuthorizationNotice(tech1JudgeOneCanRevealPodium() ? "j1" : "eventAdmin", "reveal Tech 1 podium");
+    return;
+  }
+  const placeNumber = Number.parseInt(place, 10);
+  if (![1, 2, 3].includes(placeNumber)) return;
+  const bracket = normalizeTech1ThirdPlaceMatch(tech1SpecialEventState.bracket);
+  if (!isTech1PodiumRevealReady(bracket)) return;
+  tech1PodiumRevealDismissedSignature = "";
+  const currentReveal = getTech1PodiumRevealState(bracket);
+  if (placeNumber === 2) return;
+  if (placeNumber === 1 && !currentReveal[3]) return;
+  if (currentReveal[placeNumber]) return;
+
+  const nowIso = new Date().toISOString();
+  const nextRevealed = {
+    ...currentReveal,
+    [placeNumber]: true,
+    ...(placeNumber === 1 ? { 2: true } : {}),
+  };
+  const nextBracket = {
+    ...bracket,
+    podiumReveal: {
+      revealed: nextRevealed,
+      updatedAt: nowIso,
+      updatedBy: auth?.currentUser?.uid || "event-staff",
+    },
+    winnerRevealStatus: placeNumber === 1 ? "revealed" : (bracket?.winnerRevealStatus || "hidden"),
+    winnerRevealedAt: placeNumber === 1 ? nowIso : (bracket?.winnerRevealedAt || null),
+    winnerRevealUpdatedBy: placeNumber === 1 ? (auth?.currentUser?.uid || "event-staff") : (bracket?.winnerRevealUpdatedBy || ""),
+    updatedAt: nowIso,
+  };
+
+  try {
+    if (!shouldUseTech1LocalStore()) {
+      await firestoreWriteService.publishSpecialEventBracket(getActiveTech1SpecialEventId(), nextBracket);
+    }
+    updateTech1SpecialEventState({ bracket: nextBracket });
+    if (placeNumber === 1) startTech1PodiumConfettiLoop();
+  } catch (error) {
+    if (!handleTech1PermissionError(error, "reveal Tech 1 podium")) {
+      console.error("Tech 1 podium reveal failed:", error);
+      window.alert("Podium reveal could not be saved.");
+    }
+  }
+}
+
+async function unlockTech1Bracket() {
+  if (!tech1StaffCanManageSpecialEvent()) {
+    showRoleAuthorizationNotice("eventAdmin", "unlock Tech 1 bracket");
+    return;
+  }
+  const bracket = normalizeTech1ThirdPlaceMatch(tech1SpecialEventState.bracket);
+  if (!bracket?.rounds?.length) {
+    window.alert("Generate the Tech 1 bracket before unlocking it.");
+    return;
+  }
+  if (!["locked", "generated"].includes(String(bracket?.status || ""))) {
+    window.alert("This bracket has already started. Use reset/regenerate if you need to rebuild the field.");
+    return;
+  }
+  if (hasTech1BracketStarted(bracket)) {
+    window.alert("This bracket already has recorded results. Use reset/regenerate if you need to rebuild the field.");
+    return;
+  }
+  const confirmed = window.confirm("Unlock the Tech 1 bracket so you can edit Competing drivers? The current bracket stays on screen until you intentionally regenerate it.");
+  if (!confirmed) return;
+  try {
+    const nextBracket = {
+      ...bracket,
+      status: "generated",
+      lockedAt: null,
+      updatedAt: new Date().toISOString(),
+    };
+    if (!shouldUseTech1LocalStore()) {
+      await firestoreWriteService.publishSpecialEventBracket(getActiveTech1SpecialEventId(), nextBracket);
+    }
+    updateTech1SpecialEventState({
+      bracket: nextBracket,
+      event: {
+        ...(tech1SpecialEventState.event || buildTech1AnniversaryShell()),
+        bracketStatus: nextBracket.status,
+        updatedAt: nextBracket.updatedAt,
+      },
+    });
+    setTech1DeskStatus("Bracket unlocked. You can now add or change competing drivers. Regenerate when ready to refresh the field.", "ready");
+  } catch (error) {
+    if (!handleTech1PermissionError(error, "unlock Tech 1 bracket")) {
+      console.error("Tech 1 bracket unlock failed:", error);
+      window.alert("Bracket could not be unlocked.");
+    }
+  }
+}
+
+async function closeTech1PodiumReveal() {
+  const bracket = tech1SpecialEventState.bracket;
+  tech1PodiumRevealDismissedSignature = getTech1PodiumRevealDisplaySignature(bracket);
+  stopTech1PodiumConfettiLoop();
+  delete document.body.dataset.tech1PersistFullscreen;
+  delete document.body.dataset.bracketFullscreenFallback;
+  const bracketView = document.getElementById("view-bracket");
+  if (document.fullscreenElement === bracketView && typeof document.exitFullscreen === "function") {
+    try {
+      await document.exitFullscreen();
+    } catch (error) {
+      console.warn("Exit podium reveal fullscreen failed", error);
+    }
+  }
+  setCompetitionBracketPageState("main");
+  saveBracketPagePreference(activeEventId, "main");
+  syncBracketFullscreenState();
+  switchView("bracket");
+  renderTech1EventControlWorkflow();
+}
+
 async function recordTech1MatchWinner(matchId, winnerId) {
   if (!tech1StaffCanManageSpecialEvent()) {
     showRoleAuthorizationNotice("eventAdmin", "record Tech 1 battle winner");
     return;
   }
-  const bracket = tech1SpecialEventState.bracket;
-  const match = bracket?.matches?.[matchId];
+  const bracket = normalizeTech1ThirdPlaceMatch(tech1SpecialEventState.bracket);
+  const match = matchId === TECH1_THIRD_PLACE_MATCH_ID
+    ? bracket?.thirdPlaceMatch
+    : bracket?.matches?.[matchId];
   if (!match || !winnerId) return;
+  const flowGuard = getTech1RoundFlowGuard(bracket, match);
+  if (!flowGuard.allowed) {
+    window.alert(flowGuard.message);
+    return;
+  }
   const nowIso = new Date().toISOString();
-  const nextBracket = applySingleEliminationWinner(bracket, matchId, winnerId, { nowIso });
-  const winner = [match.driverA, match.driverB].find((driver) => driver?.id === winnerId) || null;
+  const nextBracket = applyTech1WinnerToBracket(bracket, matchId, winnerId, { nowIso });
+  nextBracket.tech1JudgeControl = normalizeTech1JudgeControl(nextBracket);
+  nextBracket.winnerRevealStatus = "hidden";
+  nextBracket.winnerRevealedAt = null;
+  nextBracket.winnerRevealUpdatedBy = "";
+  nextBracket.podiumReveal = {
+    revealed: {},
+    updatedAt: nowIso,
+    updatedBy: auth?.currentUser?.uid || "event-staff",
+  };
   try {
-    await firestoreWriteService.publishSpecialEventBattleResult(TECH1DRIFT_ANNIVERSARY_CONFIG.eventId, matchId, {
-      matchId,
-      eventId: TECH1DRIFT_ANNIVERSARY_CONFIG.eventId,
-      round: match.round,
-      matchNumber: match.matchNumber,
-      driverA: match.driverA || null,
-      driverB: match.driverB || null,
-      winnerId,
-      winnerName: winner?.name || "",
-      resultStatus: "complete",
-      notes: "",
-      advancedToMatchId: match.advancedToMatchId || null,
-      updatedBy: auth?.currentUser?.uid || "event-staff",
-      updatedAt: nowIso,
-    }, nextBracket);
+    await persistTech1BracketBattleResult(match, winnerId, nextBracket, nowIso);
   } catch (error) {
     if (!handleTech1PermissionError(error, "record Tech 1 battle winner")) {
       console.error("Tech 1 battle result failed:", error);
       window.alert("Battle result could not be saved.");
+    }
+  }
+}
+
+async function retractTech1MatchWinner(matchId) {
+  if (!tech1StaffCanManageSpecialEvent()) {
+    showRoleAuthorizationNotice("eventAdmin", "retract Tech 1 battle winner");
+    return;
+  }
+  const bracket = normalizeTech1ThirdPlaceMatch(tech1SpecialEventState.bracket);
+  const match = matchId === TECH1_THIRD_PLACE_MATCH_ID
+    ? bracket?.thirdPlaceMatch
+    : bracket?.matches?.[matchId];
+  if (!match?.winnerId) return;
+  const winner = [match.driverA, match.driverB].find((driver) => driver?.id === match.winnerId);
+  const confirmed = window.confirm(`Retract ${winner?.name || "this winner"} and reopen this battle for judging? Any later winners depending on this result will be cleared.`);
+  if (!confirmed) return;
+  const nowIso = new Date().toISOString();
+  const nextBracket = clearTech1WinnerFromBracket(bracket, matchId, { nowIso });
+  const reopenedMatch = matchId === TECH1_THIRD_PLACE_MATCH_ID
+    ? nextBracket.thirdPlaceMatch
+    : nextBracket.matches?.[matchId];
+  nextBracket.tech1JudgeControl = reopenedMatch?.driverA && reopenedMatch?.driverB
+    ? buildTech1JudgeControlForMatch(reopenedMatch, 1, null)
+    : normalizeTech1JudgeControl(nextBracket);
+  try {
+    if (!shouldUseTech1LocalStore()) {
+      await firestoreWriteService.publishSpecialEventBracket(getActiveTech1SpecialEventId(), nextBracket);
+    }
+    updateTech1SpecialEventState({
+      bracket: nextBracket,
+      battleResults: (tech1SpecialEventState.battleResults || []).filter((entry) => entry?.matchId !== matchId && entry?.id !== matchId),
+      event: { ...(tech1SpecialEventState.event || buildTech1AnniversaryShell()), bracketStatus: nextBracket.status, updatedAt: nextBracket.updatedAt },
+    });
+  } catch (error) {
+    if (!handleTech1PermissionError(error, "retract Tech 1 battle winner")) {
+      console.error("Tech 1 winner retract failed:", error);
+      window.alert("Battle winner could not be retracted.");
     }
   }
 }
@@ -18445,26 +20452,35 @@ function exportTech1Csv() {
   const registrations = sortTech1RegistrationsForDisplay(tech1SpecialEventState.privateRegistrations || tech1SpecialEventState.publicIndex || []);
   const bracket = tech1SpecialEventState.bracket || {};
   const totals = registrations.reduce((summary, entry) => {
+    const entryFee = getTech1EntryFeeForRegistration(entry);
+    const raffleAmountPaid = Number(entry.amountPaid || 0);
     summary.totalRegistrations += 1;
     if (entry.checkedIn) summary.checkedIn += 1;
     if (entry.bracketEligible) summary.bracketEligible += 1;
+    summary.entryFees += entryFee;
     summary.freeTickets += Number(entry.freeTickets || 0);
     summary.paidTickets += Number(entry.paidTickets || 0);
     summary.totalTickets += Number(entry.totalTickets || entry.freeTickets || 0);
-    summary.amountPaid += Number(entry.amountPaid || 0);
+    summary.raffleAmountPaid += raffleAmountPaid;
+    summary.amountPaid += entryFee + raffleAmountPaid;
     return summary;
   }, {
     totalRegistrations: 0,
     checkedIn: 0,
     bracketEligible: 0,
+    entryFees: 0,
     freeTickets: 0,
     paidTickets: 0,
     totalTickets: 0,
+    raffleAmountPaid: 0,
     amountPaid: 0,
   });
   const rows = [
-    ["Name", "Team Name", "Chassis", "Instagram", "Checked In", "Bracket Eligible", "Bracket Seed", "Free Tickets", "Paid Tickets", "Total Tickets", "Amount Paid", "Payment Status", "Payment Method", "Staff Notes"],
-    ...registrations.map((entry) => [
+    ["Name", "Team Name", "Chassis", "Instagram", "Checked In", "Bracket Eligible", "Bracket Seed", "Entry Fee", "Free Tickets", "Extra Raffle Tickets Purchased", "Total Tickets", "Raffle Amount Paid", "Total Amount Collected", "Payment Status", "Payment Method", "Staff Notes"],
+    ...registrations.map((entry) => {
+      const entryFee = getTech1EntryFeeForRegistration(entry);
+      const raffleAmountPaid = Number(entry.amountPaid || 0);
+      return [
       entry.name || entry.displayName || "",
       entry.teamName || "",
       entry.chassis || "",
@@ -18472,23 +20488,28 @@ function exportTech1Csv() {
       entry.checkedIn ? "yes" : "no",
       entry.bracketEligible ? "yes" : "no",
       entry.bracketSeed || "",
+      entryFee,
       entry.freeTickets ?? "",
       entry.paidTickets ?? "",
       entry.totalTickets ?? "",
-      entry.amountPaid ?? "",
+      raffleAmountPaid,
+      entryFee + raffleAmountPaid,
       entry.paymentStatus || "",
       entry.paymentMethod || "",
       entry.staffNotes || "",
-    ]),
+    ];
+    }),
     [],
     ["Summary", "Value"],
     ["Total registrations", totals.totalRegistrations],
     ["Checked-in count", totals.checkedIn],
     ["Bracket eligible count", totals.bracketEligible],
     ["Bracket size", bracket.bracketSize || ""],
+    ["Entry fees collected", totals.entryFees],
     ["Free tickets issued", totals.freeTickets],
     ["Paid tickets sold", totals.paidTickets],
     ["Total raffle tickets", totals.totalTickets],
+    ["Raffle money collected", totals.raffleAmountPaid],
     ["Total money collected", totals.amountPaid],
   ];
   const csv = rows.map((row) => row.map((value) => `"${String(value ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
@@ -18503,7 +20524,255 @@ function exportTech1Csv() {
   URL.revokeObjectURL(url);
 }
 
-document.addEventListener('click', (event) => {
+async function exportTech1Pdf() {
+  if (!tech1StaffCanManageSpecialEvent()) {
+    showRoleAuthorizationNotice("eventAdmin", "export Tech 1 raffle PDF");
+    return;
+  }
+  const registrations = sortTech1RegistrationsForDisplay(tech1SpecialEventState.privateRegistrations || []);
+  const totals = registrations.reduce((summary, entry) => {
+    const entryFee = getTech1EntryFeeForRegistration(entry);
+    const raffleAmountPaid = Number(entry.amountPaid || 0);
+    summary.totalRegistrations += 1;
+    summary.entryFees += entryFee;
+    summary.freeTickets += Number(entry.freeTickets || 0);
+    summary.paidTickets += Number(entry.paidTickets || 0);
+    summary.totalTickets += Number(entry.totalTickets || entry.freeTickets || 0);
+    summary.raffleAmountPaid += raffleAmountPaid;
+    summary.amountPaid += entryFee + raffleAmountPaid;
+    return summary;
+  }, {
+    totalRegistrations: 0,
+    entryFees: 0,
+    freeTickets: 0,
+    paidTickets: 0,
+    totalTickets: 0,
+    raffleAmountPaid: 0,
+    amountPaid: 0,
+  });
+  const JsPdfCtor = window?.jspdf?.jsPDF;
+  let blob = null;
+  if (JsPdfCtor) {
+    try {
+      const doc = new JsPdfCtor({ orientation: "portrait", unit: "pt", format: "letter", compress: true });
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const marginX = 34;
+      const contentWidth = pageWidth - (marginX * 2);
+      const rowHeight = 18;
+      const footerY = pageHeight - 22;
+      const generatedAt = new Date().toLocaleString();
+      const logoDataUrl = await getResultsPdfLogoDataUrl();
+      let y = 32;
+
+      const drawHeader = (continued = false) => {
+        doc.setFillColor(14, 17, 23);
+        doc.roundedRect(marginX, 18, contentWidth, 72, 14, 14, "F");
+        if (logoDataUrl) {
+          doc.addImage(logoDataUrl, "PNG", marginX + 10, 24, 70, 56, undefined, "FAST");
+        }
+        doc.setTextColor(255, 255, 255);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(15);
+        doc.text("TECH 1 DRIFT ANNIVERSARY", marginX + 90, 44);
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        doc.text("PRODIGY RC - Event Staff Raffle + Registration Report", marginX + 90, 60);
+        doc.setTextColor(212, 221, 236);
+        doc.text(`Generated: ${generatedAt}${continued ? " (Continued)" : ""}`, marginX + 90, 75);
+        y = 102;
+      };
+
+      const drawTotals = () => {
+        doc.setFillColor(240, 246, 255);
+        doc.roundedRect(marginX, y, contentWidth, 78, 10, 10, "F");
+        doc.setDrawColor(205, 218, 237);
+        doc.roundedRect(marginX, y, contentWidth, 78, 10, 10);
+        doc.setTextColor(20, 28, 39);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10);
+        doc.text(`Drivers: ${totals.totalRegistrations}`, marginX + 12, y + 18);
+        doc.text(`Entry Fees: ${formatTech1Money(totals.entryFees)}`, marginX + 12, y + 34);
+        doc.text(`Extra Ticket Revenue: ${formatTech1Money(totals.raffleAmountPaid)}`, marginX + 12, y + 50);
+        doc.text(`Total Collected: ${formatTech1Money(totals.amountPaid)}`, marginX + 12, y + 66);
+        doc.text(`Free Tickets: ${totals.freeTickets}`, marginX + 230, y + 18);
+        doc.text(`Extra Tickets: ${totals.paidTickets}`, marginX + 230, y + 34);
+        doc.text(`Total Tickets: ${totals.totalTickets}`, marginX + 230, y + 50);
+        const bracket = tech1SpecialEventState.bracket || null;
+        doc.text(`Bracket: ${bracket?.status || "not_generated"}`, marginX + 230, y + 66);
+        y += 92;
+      };
+
+      const drawTableHeader = () => {
+        const columns = [
+          { key: "name", label: "Driver", width: 108, align: "left" },
+          { key: "teamName", label: "Team", width: 82, align: "left" },
+          { key: "chassis", label: "Chassis", width: 72, align: "left" },
+          { key: "instagram", label: "IG", width: 78, align: "left" },
+          { key: "paymentMethod", label: "Pay", width: 52, align: "left" },
+          { key: "entryFee", label: "Entry", width: 32, align: "right" },
+          { key: "paidTickets", label: "Extra", width: 24, align: "right" },
+          { key: "totalTickets", label: "Tickets", width: 28, align: "right" },
+          { key: "raffleAmountPaid", label: "Raffle", width: 30, align: "right" },
+          { key: "totalCollected", label: "Total", width: 38, align: "right" },
+        ];
+        let cursorX = marginX;
+        const resolvedColumns = columns.map((column) => {
+          const next = { ...column, x: cursorX };
+          cursorX += column.width;
+          return next;
+        });
+        doc.setFillColor(18, 23, 34);
+        doc.rect(marginX, y, contentWidth, rowHeight, "F");
+        doc.setTextColor(255, 255, 255);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8);
+        resolvedColumns.forEach((column) => {
+          if (column.align === "right") {
+            doc.text(column.label, column.x + column.width - 4, y + 12, { align: "right" });
+            return;
+          }
+          doc.text(column.label, column.x + 4, y + 12);
+        });
+        y += rowHeight;
+        return resolvedColumns;
+      };
+
+      const trunc = (value, width) => {
+        const raw = normalizePdfText(value || "-");
+        if (doc.getTextWidth(raw) <= width) return raw;
+        let next = raw;
+        while (next.length > 1 && doc.getTextWidth(`${next}...`) > width) next = next.slice(0, -1);
+        return `${next}...`;
+      };
+
+      const drawRow = (entry, index, columns) => {
+        const entryFee = getTech1EntryFeeForRegistration(entry);
+        const raffleAmountPaid = Number(entry.amountPaid || 0);
+        const totalTickets = Number(entry.totalTickets || entry.freeTickets || 1);
+        const rowValues = {
+          name: entry.name || entry.displayName || "Unnamed Driver",
+          teamName: entry.teamName || "-",
+          chassis: entry.chassis || "-",
+          instagram: entry.instagram || "-",
+          paymentMethod: Number(entry.paidTickets || 0) > 0 ? (formatTech1PaymentMethodLabel(entry.paymentMethod) || "-") : "-",
+          entryFee: formatTech1Money(entryFee),
+          paidTickets: String(entry.paidTickets || 0),
+          totalTickets: String(totalTickets),
+          raffleAmountPaid: formatTech1Money(raffleAmountPaid),
+          totalCollected: formatTech1Money(entryFee + raffleAmountPaid),
+        };
+        const rowBg = index % 2 ? [248, 251, 255] : [255, 255, 255];
+        doc.setFillColor(...rowBg);
+        doc.rect(marginX, y, contentWidth, rowHeight, "F");
+        doc.setDrawColor(230, 236, 245);
+        doc.line(marginX, y + rowHeight, marginX + contentWidth, y + rowHeight);
+        doc.setTextColor(18, 25, 36);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        columns.forEach((column) => {
+          const value = String(rowValues[column.key] ?? "-");
+          if (column.align === "right") {
+            doc.text(trunc(value, Math.max(8, column.width - 6)), column.x + column.width - 4, y + 12, { align: "right" });
+            return;
+          }
+          doc.text(trunc(value, Math.max(8, column.width - 8)), column.x + 4, y + 12);
+        });
+        y += rowHeight;
+      };
+
+      drawHeader(false);
+      drawTotals();
+      let tableColumns = drawTableHeader();
+
+      if (!registrations.length) {
+        doc.setTextColor(60, 72, 91);
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(10);
+        doc.text("No registrations are available for export yet.", marginX + 8, y + 14);
+      } else {
+        registrations.forEach((entry, index) => {
+          if (y > footerY - rowHeight - 8) {
+            doc.addPage("letter", "portrait");
+            drawHeader(true);
+            tableColumns = drawTableHeader();
+          }
+          drawRow(entry, index, tableColumns);
+        });
+      }
+
+      const pages = doc.getNumberOfPages();
+      for (let page = 1; page <= pages; page += 1) {
+        doc.setPage(page);
+        doc.setTextColor(105, 116, 134);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.text(`Tech 1 Drift Anniversary | Prodigy RC | Page ${page}/${pages}`, marginX, footerY);
+      }
+      blob = doc.output("blob");
+    } catch (error) {
+      console.warn("Tech 1 PDF generation failed, falling back to text PDF", error);
+    }
+  }
+
+  if (!(blob instanceof Blob) || !blob.size) {
+    const generatedAt = new Date().toLocaleString();
+    const header = [
+      "TECH 1 DRIFT ANNIVERSARY | PRODIGY RC",
+      "Event Staff Raffle + Registration Report",
+      `Generated: ${generatedAt}`,
+      "",
+      `Drivers: ${totals.totalRegistrations} | Free Tickets: ${totals.freeTickets} | Extra Tickets: ${totals.paidTickets} | Total Tickets: ${totals.totalTickets}`,
+      `Entry Fees: ${formatTech1Money(totals.entryFees)} | Raffle Revenue: ${formatTech1Money(totals.raffleAmountPaid)} | Total Collected: ${formatTech1Money(totals.amountPaid)}`,
+      "",
+      "Name | Team | Chassis | Instagram | Payment | Entry | Extra | Tickets | Raffle | Total",
+      "--------------------------------------------------------------------------------------------------------------",
+    ];
+    const lines = registrations.map((entry) => {
+      const entryFee = getTech1EntryFeeForRegistration(entry);
+      const raffleAmountPaid = Number(entry.amountPaid || 0);
+        return [
+          entry.name || entry.displayName || "Unnamed Driver",
+          entry.teamName || "",
+          entry.chassis || "",
+          entry.instagram || "",
+          Number(entry.paidTickets || 0) > 0 ? (formatTech1PaymentMethodLabel(entry.paymentMethod) || "") : "",
+          formatTech1Money(entryFee),
+          String(entry.paidTickets || 0),
+        String(entry.totalTickets || entry.freeTickets || 1),
+        formatTech1Money(raffleAmountPaid),
+        formatTech1Money(entryFee + raffleAmountPaid),
+      ].join(" | ");
+    });
+    const pages = [];
+    const maxLinesPerPage = 48;
+    let currentPage = [...header];
+    lines.forEach((line) => {
+      if (currentPage.length >= maxLinesPerPage) {
+        pages.push(currentPage);
+        currentPage = [
+          "TECH 1 DRIFT ANNIVERSARY | PRODIGY RC (continued)",
+          "",
+          "Name | Team | Chassis | Instagram | Payment | Entry | Extra | Tickets | Raffle | Total",
+          "--------------------------------------------------------------------------------------------------------------",
+        ];
+      }
+      currentPage.push(line);
+    });
+    if (!registrations.length) currentPage.push("No registrations are available for export yet.");
+    pages.push(currentPage);
+    blob = buildPdfFromTextPages(pages);
+  }
+
+  if (!(blob instanceof Blob) || !blob.size) {
+    window.alert("Tech 1 raffle PDF could not be generated.");
+    return;
+  }
+  const downloaded = triggerPdfDownload(blob, "tech1-drift-anniversary-raffle-report.pdf");
+  if (!downloaded) window.alert("Tech 1 raffle PDF export could not start on this browser yet.");
+}
+
+document.addEventListener('click', async (event) => {
   const tech1JumpButton = event.target.closest("[data-tech1-jump]");
   if (tech1JumpButton) {
     event.preventDefault();
@@ -18518,8 +20787,33 @@ document.addEventListener('click', (event) => {
       initializeTech1SpecialEventShell();
       return;
     }
+    if (action === "load-sample-drivers") {
+      loadTech1SampleDrivers();
+      return;
+    }
+    if (action === "save-desk-driver") {
+      const form = tech1ActionButton.closest("#tech1DeskRegistrationForm");
+      if (form) registerTech1DriverAtDesk(form);
+      return;
+    }
     if (action === "check-in") {
       checkInTech1Registration(tech1ActionButton.dataset.registrationId);
+      return;
+    }
+    if (action === "toggle-competing") {
+      setTech1RegistrationCompeting(tech1ActionButton.dataset.registrationId, tech1ActionButton.dataset.nextValue === "true");
+      return;
+    }
+    if (action === "toggle-checked-in") {
+      setTech1RegistrationCheckedIn(tech1ActionButton.dataset.registrationId, tech1ActionButton.dataset.nextValue === "true");
+      return;
+    }
+    if (action === "delete-driver") {
+      await removeTech1Driver(tech1ActionButton.dataset.registrationId);
+      return;
+    }
+    if (action === "edit-driver") {
+      await promptEditTech1Driver(tech1ActionButton.dataset.registrationId);
       return;
     }
     if (action === "generate-bracket") {
@@ -18530,12 +20824,58 @@ document.addEventListener('click', (event) => {
       lockTech1Bracket();
       return;
     }
+    if (action === "unlock-bracket") {
+      unlockTech1Bracket();
+      return;
+    }
+    if (action === "reset-winners") {
+      resetTech1BracketWinners();
+      return;
+    }
     if (action === "record-winner") {
-      recordTech1MatchWinner(tech1ActionButton.dataset.matchId, tech1ActionButton.dataset.winnerId);
+      await recordTech1MatchWinner(tech1ActionButton.dataset.matchId, tech1ActionButton.dataset.winnerId);
+      renderBracket();
+      renderTech1EventControlWorkflow();
+      return;
+    }
+    if (action === "retract-winner") {
+      await retractTech1MatchWinner(tech1ActionButton.dataset.matchId);
+      renderBracket();
+      renderTech1EventControlWorkflow();
+      return;
+    }
+    if (action === "reveal-winner") {
+      revealTech1Winner();
+      return;
+    }
+    if (action === "podium-reveal-place") {
+      await revealTech1PodiumPlace(tech1ActionButton.dataset.place);
+      renderBracket();
+      renderTech1EventControlWorkflow();
+      return;
+    }
+    if (action === "close-podium-reveal") {
+      await closeTech1PodiumReveal();
+      return;
+    }
+    if (action === "open-podium-reveal") {
+      openTech1PodiumRevealFromJudgePhone();
+      return;
+    }
+    if (action === "bracket-page") {
+      setTech1BracketDisplayPage(tech1ActionButton.dataset.pageIndex);
+      return;
+    }
+    if (action === "toggle-vs-presentation") {
+      setTech1VsPresentationEnabled(!tech1VsPresentationEnabled);
       return;
     }
     if (action === "export") {
       exportTech1Csv();
+      return;
+    }
+    if (action === "export-pdf") {
+      exportTech1Pdf();
       return;
     }
   }
@@ -18581,6 +20921,10 @@ document.addEventListener('click', (event) => {
       return;
     }
     if (action === "bracket") {
+      if (isTech1AnniversaryMode(activeEventMeta)) {
+        switchView("bracket");
+        return;
+      }
       if (isTwinTripleMode(activeEventMeta)) {
         syncTwinCompTeamsFromRoster();
         publishState();
@@ -18617,16 +20961,88 @@ document.addEventListener('click', (event) => {
 });
 
 document.addEventListener("submit", (event) => {
+  const tech1DeskRegistrationForm = event.target.closest("#tech1DeskRegistrationForm");
+  if (tech1DeskRegistrationForm) {
+    event.preventDefault();
+    registerTech1DriverAtDesk(tech1DeskRegistrationForm);
+    return;
+  }
+  const tech1DriverUpdateForm = event.target.closest(".tech1-driver-update-form");
+  if (tech1DriverUpdateForm) {
+    event.preventDefault();
+    updateTech1DriverInfo(tech1DriverUpdateForm);
+    return;
+  }
+  const tech1TicketUpdateForm = event.target.closest(".tech1-ticket-update-form");
+  if (tech1TicketUpdateForm) {
+    event.preventDefault();
+    setTech1ExtraTickets(tech1TicketUpdateForm);
+    return;
+  }
   const tech1RegistrationForm = event.target.closest("#tech1RegistrationForm");
   if (tech1RegistrationForm) {
     event.preventDefault();
     submitTech1Registration(tech1RegistrationForm);
     return;
   }
-  const tech1RaffleForm = event.target.closest("#tech1RaffleForm");
-  if (tech1RaffleForm) {
-    event.preventDefault();
-    recordTech1RaffleTickets(tech1RaffleForm);
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) return;
+  const form = event.target.closest?.("#tech1DeskRegistrationForm");
+  if (!form || event.target.matches?.("textarea")) return;
+  event.preventDefault();
+  registerTech1DriverAtDesk(form);
+});
+
+function isTypingInputElement(target) {
+  const element = target instanceof Element ? target : null;
+  if (!element) return false;
+  if (element.isContentEditable) return true;
+  if (element.closest("[contenteditable='true'], [role='textbox']")) return true;
+  return Boolean(element.closest("input, textarea, select"));
+}
+
+async function handleTech1LeadChaseAdvanceHotkey(event) {
+  if (event.defaultPrevented || event.repeat || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) return false;
+  if (isTypingInputElement(event.target)) return false;
+  const key = String(event.key || "");
+  const code = String(event.code || "");
+  const side = (key === "1" || code === "Digit1" || code === "Numpad1")
+    ? "left"
+    : (key === "2" || code === "Digit2" || code === "Numpad2")
+      ? "right"
+      : "";
+  if (!side) return false;
+  if (!isTech1AnniversaryMode(activeEventMeta) || !tech1StaffCanManageSpecialEvent()) return false;
+  const bracketView = document.getElementById("view-bracket");
+  if (!bracketView?.classList.contains("is-active") || getActiveViewName() !== "bracket") return false;
+  const bracket = normalizeTech1ThirdPlaceMatch(tech1SpecialEventState.bracket);
+  const currentMatch = getTech1CurrentJudgeMatch(bracket, bracket?.tech1JudgeControl);
+  if (!currentMatch?.driverA || !currentMatch?.driverB || currentMatch?.winnerId) return false;
+  const winnerId = side === "right" ? currentMatch.driverB.id : currentMatch.driverA.id;
+  if (!winnerId) return false;
+  event.preventDefault();
+  await recordTech1MatchWinner(currentMatch.id, winnerId);
+  renderBracket();
+  renderTech1DriftView();
+  renderTech1EventControlWorkflow();
+  return true;
+}
+
+document.addEventListener("keydown", (event) => {
+  void handleTech1LeadChaseAdvanceHotkey(event);
+});
+
+document.addEventListener("input", (event) => {
+  if (event.target.closest("#tech1DeskPaidTickets") || event.target.closest("#tech1DeskCompeting") || event.target.closest("#tech1DeskTech1Driver")) {
+    updateTech1DeskTicketPreview(event.target.closest("#tech1DeskRegistrationForm") || document);
+  }
+});
+
+document.addEventListener("change", (event) => {
+  if (event.target.closest("#tech1DeskCompeting") || event.target.closest("#tech1DeskTech1Driver")) {
+    updateTech1DeskTicketPreview(event.target.closest("#tech1DeskRegistrationForm") || document);
   }
 });
 
@@ -18687,6 +21103,7 @@ async function toggleBracketFullscreen() {
   if (!bracketView) return;
   const isNativeFullscreen = document.fullscreenElement === bracketView;
   const isFallbackFullscreen = document.body.dataset.bracketFullscreenFallback === "true";
+  const shouldPersistTech1Fullscreen = shouldPersistTech1BracketPresentationFullscreen();
 
   try {
     if (isNativeFullscreen) {
@@ -18694,6 +21111,13 @@ async function toggleBracketFullscreen() {
     } else if (isFallbackFullscreen) {
       delete document.body.dataset.bracketFullscreenFallback;
       syncBracketFullscreenState();
+    } else if (shouldPersistTech1Fullscreen) {
+      if (typeof bracketView.requestFullscreen === "function") {
+        await bracketView.requestFullscreen();
+      } else {
+        delete document.body.dataset.tech1PersistFullscreen;
+        syncBracketFullscreenState();
+      }
     } else if (typeof bracketView.requestFullscreen === "function") {
       await bracketView.requestFullscreen();
     } else {
@@ -18707,10 +21131,28 @@ async function toggleBracketFullscreen() {
   }
 }
 
+function shouldPersistTech1BracketPresentationFullscreen() {
+  return getActiveViewName() === "bracket"
+    && isTech1AnniversaryMode(activeEventMeta)
+    && document.body.dataset.tech1PersistFullscreen === "true"
+    && isTech1PodiumRevealReady?.(tech1SpecialEventState?.bracket);
+}
+
 function syncBracketFullscreenState() {
   const bracketView = document.getElementById("view-bracket");
-  const isFullscreen = document.fullscreenElement === bracketView || document.body.dataset.bracketFullscreenFallback === "true";
+  const hasNativeFullscreen = document.fullscreenElement === bracketView;
+  const hasFallbackFullscreen = document.body.dataset.bracketFullscreenFallback === "true";
+  const shouldPersistTech1Fullscreen = shouldPersistTech1BracketPresentationFullscreen();
+  if (!shouldPersistTech1Fullscreen) {
+    delete document.body.dataset.tech1PersistFullscreen;
+  }
+  const isFullscreen = hasNativeFullscreen || hasFallbackFullscreen || shouldPersistTech1Fullscreen;
   document.body.classList.toggle("bracket-fullscreen", isFullscreen);
+  if (isFullscreen && isTech1AnniversaryMode(activeEventMeta) && getActiveViewName() === "bracket") {
+    document.body.dataset.tech1PersistFullscreen = "true";
+  } else if (!isFullscreen) {
+    delete document.body.dataset.tech1PersistFullscreen;
+  }
   syncBracketFullscreenSizing();
 if (fullscreenBracketBtn) {
   fullscreenBracketBtn.innerHTML = `${isFullscreen ? "Ã¢Â¤Â¢" : "Ã¢â€ºÂ¶"}<span class="icon-label">Fullscreen</span>`;
@@ -18724,7 +21166,7 @@ if (fullscreenBracketBtn) {
     presentationFullscreenBracketBtn.textContent = isFullscreen ? "Exit Fullscreen" : "Full Screen";
     presentationFullscreenBracketBtn.setAttribute("aria-label", isFullscreen ? "Exit bracket fullscreen" : "Open bracket fullscreen");
   }
-  if (document.getElementById("view-bracket")?.classList.contains("is-active") && tournamentState?.mainBracket) {
+  if (document.getElementById("view-bracket")?.classList.contains("is-active")) {
     renderBracket();
   } else {
     requestAnimationFrame(fitAllBracketBoards);
@@ -18737,6 +21179,25 @@ presentationFullscreenBracketBtn?.addEventListener("click", toggleBracketFullscr
 reorderBracketBtn?.addEventListener("click", handleBracketReorderButton);
 inlineReorderBracketBtn?.addEventListener("click", handleBracketReorderButton);
 document.addEventListener("fullscreenchange", syncBracketFullscreenState);
+document.addEventListener("fullscreenchange", () => {
+  if (isTech1AnniversaryMode(activeEventMeta) && getActiveViewName() === "bracket") {
+    requestAnimationFrame(() => syncTech1VsOverlayAnchor());
+  }
+});
+window.addEventListener("resize", () => {
+  if (isTech1AnniversaryMode(activeEventMeta) && getActiveViewName() === "bracket") {
+    syncTech1VsOverlayAnchor();
+  }
+});
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    cancelScheduledBracketRefit();
+    return;
+  }
+  if (getActiveViewName() === "bracket") {
+    scheduleBracketRefit();
+  }
+});
 resultsExportPdfBtn?.addEventListener("click", exportResultsPdf);
 
 async function toggleQualifyingFullscreen() {
@@ -18815,6 +21276,7 @@ randomizeQualifyingBtn?.addEventListener("click", async () => {
 });
 
 function switchView(viewName) {
+  const previousViewName = getActiveViewName();
   syncForcedJudgeRoleFromUnlockedState();
   if (forcedHostContext?.kind === "website-admin") {
     viewName = "website-admin";
@@ -18826,6 +21288,9 @@ function switchView(viewName) {
   if (viewName === "queue" || viewName === "simulation") {
     viewName = normalizeRouteViewForRole(currentRole, viewName);
   }
+  if (isTech1AnniversaryMode(activeEventMeta) && viewName === "qualifying") {
+    viewName = getTech1NoQualifyingFallbackView(currentRole);
+  }
   if (isTeamCompetitionMode() && viewName === "qualifying") {
     if (currentRole === "admin") {
       viewName = isTeamTandemMode() ? (tournamentState?.mainBracket?.rounds?.length ? "bracket" : "registration") : "bracket";
@@ -18836,22 +21301,30 @@ function switchView(viewName) {
     }
   }
   if (viewName === "home" && currentRole !== "spectator") {
-    viewName = currentRole === "admin" ? "registration" : "qualifying";
+    viewName = getDefaultViewForRole(currentRole);
   }
   if (viewName === "privacy" && currentRole !== "spectator") {
-    viewName = currentRole === "admin" ? "registration" : "qualifying";
+    viewName = getDefaultViewForRole(currentRole);
   }
   if (viewName === "live" && currentRole !== "spectator") {
-    viewName = currentRole === "admin" ? "registration" : "qualifying";
+    viewName = getDefaultViewForRole(currentRole);
   }
   if (viewName === "registration" && currentRole !== "admin") {
-    viewName = "qualifying";
+    viewName = getDefaultViewForRole(currentRole);
   }
   if (viewName === "self-register" && currentRole !== "spectator") {
-    viewName = currentRole === "admin" ? "registration" : "qualifying";
+    viewName = getDefaultViewForRole(currentRole);
   }
   if (viewName === "self-register-display" && currentRole !== "admin") {
-    viewName = currentRole === "spectator" ? "self-register" : "qualifying";
+    viewName = currentRole === "spectator" ? "self-register" : getDefaultViewForRole(currentRole);
+  }
+  const shouldPinTech1Presentation = viewName !== "bracket"
+    && getActiveViewName?.() === "bracket"
+    && isTech1AnniversaryMode(activeEventMeta)
+    && (document.body.classList.contains("bracket-fullscreen") || document.body.dataset.tech1PersistFullscreen === "true")
+    && isTech1PodiumRevealReady?.(tech1SpecialEventState?.bracket);
+  if (shouldPinTech1Presentation) {
+    viewName = "bracket";
   }
   syncViewAccessibility(viewName);
   document.body.classList.toggle('competition-page', viewName === 'bracket');
@@ -18859,13 +21332,16 @@ function switchView(viewName) {
   if (viewName !== 'streamer-scene') {
     document.body.removeAttribute('data-streamer-variant');
   }
-  const scenicViews = ["home", "privacy", "tech1", "live", "self-register", "self-register-display", "qualifying", "bracket", "results", "streamer-dashboard", "streamer-library", "streamer-demo"];
+  const scenicViews = ["home", "privacy", "live", "self-register", "self-register-display", "qualifying", "bracket", "results", "streamer-dashboard", "streamer-library", "streamer-demo"];
   document.body.classList.toggle('scenic-page', scenicViews.includes(viewName));
   if (viewName !== 'bracket' && viewName !== 'qualifying' && viewName !== 'self-register-display' && viewName !== 'streamer-scene' && document.fullscreenElement) {
     document.exitFullscreen().catch(() => {});
   }
   if (viewName !== 'bracket') {
+    stopTech1PodiumConfettiLoop();
+    cancelScheduledBracketRefit();
     document.body.classList.remove('bracket-fullscreen');
+    delete document.body.dataset.tech1PersistFullscreen;
   }
   if (viewName !== 'qualifying') {
     document.body.classList.remove('qualifying-fullscreen');
@@ -18884,7 +21360,6 @@ function switchView(viewName) {
   if (viewName === 'bracket') renderBracket();
   if (viewName === 'home') renderLandingView();
   if (viewName === 'privacy') renderPrivacyPage();
-  if (viewName === 'tech1') renderTech1DriftView();
   if (viewName === 'live') renderNativeLiveView();
   if (viewName === 'streamer-dashboard' || viewName === 'streamer-library' || viewName === 'streamer-demo' || viewName === 'streamer-scene') {
     renderStreamerExperience();
@@ -18897,12 +21372,14 @@ function switchView(viewName) {
     }
   }
   updateEventChrome();
+  syncBrandLogoAssetsForTheme();
   syncSeoMetadata(viewName);
   if (!STREAMER_VIEWS.has(viewName)) {
     saveViewForEventRole(activeEventId, currentRole, viewName);
   }
   syncStandaloneDemoSandboxUi();
   syncRouteWithState();
+  playPhaseTransitionMoment(previousViewName, viewName);
 }
 
 function clampJudgeLaneIndex() {
@@ -19110,6 +21587,7 @@ function renderJudgeLaneCard(driver, index, total, r1Avg, r2Avg, runoffEligibleI
 // Driver Table Rendering
 function renderDriversTable() {
   syncForcedJudgeRoleFromUnlockedState();
+  renderTech1EventControlWorkflow();
   // Retain focus for seamless typing during cloud sync
   const activeId = document.activeElement?.closest('tr')?.dataset?.id;
   const activeCol = document.activeElement?.dataset?.col;
@@ -20488,6 +22966,11 @@ bracketModeSelect.addEventListener("change", () => {
 });
 registrationToQualifyingBtn.addEventListener("click", () => {
   if (currentRole.startsWith("j")) return;
+  if (isTech1AnniversaryMode(activeEventMeta)) {
+    renderTech1EventControlWorkflow();
+    document.getElementById("tech1EventControlPanel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    return;
+  }
   if (isTwinTripleMode(activeEventMeta)) {
     syncTwinCompTeamsFromRoster();
     publishState();
@@ -20824,6 +23307,261 @@ function getCompetitionDecisionResolution(controlOrVotes, eventMeta = activeEven
   });
 }
 
+function getTech1JudgeRoles(eventMeta = activeEventMeta) {
+  const specialEventMeta = tech1SpecialEventState?.event || null;
+  const eventIsExplicitTech1 = isTech1AnniversaryMode(eventMeta);
+  const eventHasJudgeCount = eventMeta?.judgeCount !== null && eventMeta?.judgeCount !== undefined;
+  const specialEventHasJudgeCount = specialEventMeta?.judgeCount !== null && specialEventMeta?.judgeCount !== undefined;
+  const specialUpdatedAt = Date.parse(specialEventMeta?.updatedAt || "") || 0;
+  const eventUpdatedAt = Date.parse(eventMeta?.updatedAt || "") || 0;
+  const specialEventIsNewer = specialEventHasJudgeCount && specialUpdatedAt > eventUpdatedAt;
+  const resolvedMeta = eventIsExplicitTech1 && eventHasJudgeCount && !specialEventIsNewer
+    ? eventMeta
+    : specialEventHasJudgeCount
+      ? { ...(eventMeta || {}), ...specialEventMeta }
+      : eventMeta;
+  const activeRoles = getActiveJudgeRoles(resolvedMeta).filter((role) => JUDGE_ROLE_ORDER.includes(role));
+  return activeRoles.length ? activeRoles : [JUDGE_ROLE_ORDER[0]];
+}
+
+function getTech1JudgeRoleSignature(roles = []) {
+  return roles.filter((role) => JUDGE_ROLE_ORDER.includes(role)).join("|");
+}
+
+function getTech1PlayableMatches(bracket = tech1SpecialEventState.bracket) {
+  const normalizedBracket = normalizeTech1ThirdPlaceMatch(bracket);
+  const finalRoundNumber = Math.max(1, ...(normalizedBracket?.rounds || []).map((round) => Number(round.round || 0)));
+  const sortRound = (match) => isTech1ThirdPlaceMatch(match) ? finalRoundNumber - 0.5 : Number(match?.round || 0);
+  const matches = [
+    ...Object.values(normalizedBracket?.matches || {}),
+    normalizedBracket?.thirdPlaceMatch || null,
+  ];
+  return matches
+    .filter((match) => match?.driverA && match?.driverB && !match.winnerId)
+    .sort((left, right) => (sortRound(left) - sortRound(right))
+      || (Number(left.matchNumber || 0) - Number(right.matchNumber || 0)));
+}
+
+function getTech1ActiveRoundNumber(bracket = tech1SpecialEventState.bracket) {
+  return Number(getTech1PlayableMatches(bracket)[0]?.round || 0);
+}
+
+function getTech1ActiveFieldSize(bracket = tech1SpecialEventState.bracket) {
+  const bracketSize = Number(bracket?.bracketSize || 0);
+  const activeRound = getTech1ActiveRoundNumber(bracket);
+  if (!bracketSize || !activeRound) return bracketSize;
+  return Math.max(1, Math.round(bracketSize / (2 ** (Math.max(1, activeRound) - 1))));
+}
+
+function shouldRenderTech1UnifiedTop32Bracket(bracket = tech1SpecialEventState.bracket) {
+  const bracketSize = Number(bracket?.bracketSize || 0);
+  const activeRound = getTech1ActiveRoundNumber(bracket);
+  return Boolean(
+    bracket?.matches
+    && bracketSize > TECH1_BRACKET_DISPLAY_PAGE_SIZE
+    && activeRound
+    && getTech1ActiveFieldSize(bracket) <= TECH1_BRACKET_DISPLAY_PAGE_SIZE
+  );
+}
+
+function getTech1RoundNameForNumber(bracket = tech1SpecialEventState.bracket, roundNumber = 0) {
+  if (String(roundNumber).includes(".5")) return "3rd Place Battle";
+  const match = Object.values(bracket?.matches || {}).find((candidate) => Number(candidate?.round || 0) === Number(roundNumber || 0));
+  return match?.roundName || (roundNumber ? `Round ${roundNumber}` : "Bracket");
+}
+
+function getTech1RoundFlowSummary(bracket = tech1SpecialEventState.bracket) {
+  const playable = getTech1PlayableMatches(bracket);
+  const activeRound = isTech1ThirdPlaceMatch(playable[0]) ? Number(getTech1FinalMatch(bracket)?.round || 0) - 0.5 : Number(playable[0]?.round || 0);
+  if (!activeRound) {
+    return {
+      activeRound: 0,
+      activeRoundName: bracket?.status === "complete" ? "Complete" : "Waiting",
+      remainingInRound: 0,
+      totalInRound: 0,
+      completedInRound: 0,
+      nextRoundName: "",
+    };
+  }
+  const allMatches = [...Object.values(bracket?.matches || {}), normalizeTech1ThirdPlaceMatch(bracket)?.thirdPlaceMatch || null].filter(Boolean);
+  const matchRound = (match) => isTech1ThirdPlaceMatch(match) ? activeRound : Number(match?.round || 0);
+  const totalInRound = allMatches.filter((match) => matchRound(match) === activeRound && match.driverA && match.driverB).length;
+  const remainingInRound = playable.filter((match) => matchRound(match) === activeRound).length;
+  return {
+    activeRound,
+    activeRoundName: getTech1RoundNameForNumber(bracket, activeRound),
+    remainingInRound,
+    totalInRound,
+    completedInRound: Math.max(0, totalInRound - remainingInRound),
+    nextRoundName: getTech1RoundNameForNumber(bracket, activeRound + 1),
+  };
+}
+
+function getTech1RoundFlowGuard(bracket = tech1SpecialEventState.bracket, match = null) {
+  const activeRound = getTech1ActiveRoundNumber(bracket);
+  const matchRound = Number(match?.round || 0);
+  if (activeRound && matchRound > activeRound) {
+    const activeRoundName = getTech1RoundNameForNumber(bracket, activeRound);
+    const matchRoundName = getTech1RoundNameForNumber(bracket, matchRound);
+    return {
+      allowed: false,
+      message: `Finish all ${activeRoundName} battles before advancing ${matchRoundName}.`,
+    };
+  }
+  return { allowed: true, message: "" };
+}
+
+function getTech1MatchEntry(match = null) {
+  if (!match?.driverA || !match?.driverB) return null;
+  const thirdPlace = isTech1ThirdPlaceMatch(match);
+  return {
+    bracketKey: thirdPlace ? "tech1-third" : "tech1",
+    roundIndex: thirdPlace ? -1 : Math.max(0, Number(match.round || 1) - 1),
+    matchIndex: Math.max(0, Number(match.matchNumber || 1) - 1),
+    matchId: match.id,
+    title: match.roundName || `Round ${match.round || ""}`,
+    meta: `Match ${match.matchNumber || ""}`,
+    match: {
+      left: match.driverA,
+      right: match.driverB,
+    },
+  };
+}
+
+function createEmptyTech1JudgeControl() {
+  return {
+    status: "idle",
+    cycle: 1,
+    matchId: "",
+    entry: null,
+    judgeRoles: getTech1JudgeRoles(activeEventMeta),
+    votes: createEmptyCompetitionJudgeVotes(),
+    reason: null,
+    resolvedWinnerSide: null,
+    resolvedAt: null,
+    decisionExpiresAt: null,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+function buildTech1JudgeControlForMatch(match = null, cycle = 1, reason = null) {
+  const entry = getTech1MatchEntry(match);
+  return {
+    ...createEmptyTech1JudgeControl(),
+    status: entry ? "voting" : "idle",
+    cycle: Number.isInteger(cycle) && cycle > 0 ? cycle : 1,
+    matchId: match?.id || "",
+    entry,
+    judgeRoles: getTech1JudgeRoles(activeEventMeta),
+    reason,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+function getTech1CurrentJudgeMatch(bracket = tech1SpecialEventState.bracket, control = bracket?.tech1JudgeControl) {
+  if (!bracket?.matches) return null;
+  const normalizedBracket = normalizeTech1ThirdPlaceMatch(bracket);
+  const playableMatches = getTech1PlayableMatches(normalizedBracket);
+  if (!playableMatches.length) return null;
+  const finalRoundNumber = Math.max(1, ...(normalizedBracket?.rounds || []).map((round) => Number(round.round || 0)));
+  const sortRound = (match) => isTech1ThirdPlaceMatch(match) ? finalRoundNumber - 0.5 : Number(match?.round || 0);
+  const firstPlayableMatch = playableMatches[0];
+  const controlledMatch = control?.matchId === TECH1_THIRD_PLACE_MATCH_ID
+    ? normalizedBracket?.thirdPlaceMatch
+    : control?.matchId ? normalizedBracket?.matches?.[control.matchId] : null;
+  if (controlledMatch?.driverA && controlledMatch?.driverB && !controlledMatch.winnerId) {
+    const controlledRound = sortRound(controlledMatch);
+    const earliestRound = sortRound(firstPlayableMatch);
+    if (controlledRound > earliestRound) {
+      return firstPlayableMatch;
+    }
+    return controlledMatch;
+  }
+  return firstPlayableMatch;
+}
+
+function normalizeTech1JudgeControl(bracket = tech1SpecialEventState.bracket) {
+  if (!bracket?.rounds?.length || bracket.status === "complete") return createEmptyTech1JudgeControl();
+  const existing = bracket.tech1JudgeControl || {};
+  const match = getTech1CurrentJudgeMatch(bracket, existing);
+  if (!match) return createEmptyTech1JudgeControl();
+  const normalizedStatus = ["voting", "admin_decision", "review_hold"].includes(existing.status)
+    ? existing.status
+    : "voting";
+  if (existing.matchId === match.id && ["voting", "admin_decision", "review_hold"].includes(normalizedStatus)) {
+    const shouldKeepResolvedState = normalizedStatus === "admin_decision";
+    return {
+      ...buildTech1JudgeControlForMatch(match, existing.cycle || 1, existing.reason || null),
+      ...existing,
+      status: normalizedStatus,
+      entry: getTech1MatchEntry(match),
+      votes: {
+        ...createEmptyCompetitionJudgeVotes(),
+        ...(existing.votes || {}),
+      },
+      judgeRoles: getTech1JudgeRoles(activeEventMeta),
+      resolvedWinnerSide: shouldKeepResolvedState && ["left", "right"].includes(existing.resolvedWinnerSide)
+        ? existing.resolvedWinnerSide
+        : null,
+      resolvedAt: shouldKeepResolvedState ? existing.resolvedAt || null : null,
+      decisionExpiresAt: (() => {
+        if (!shouldKeepResolvedState) return null;
+        if (existing.decisionExpiresAt) return existing.decisionExpiresAt;
+        const resolvedAtMs = getCompetitionControlTimestampMs(existing.resolvedAt);
+        if (!Number.isFinite(resolvedAtMs)) return null;
+        return new Date(resolvedAtMs + CONTEST_DECISION_SECONDS * 1000).toISOString();
+      })(),
+    };
+  }
+  return buildTech1JudgeControlForMatch(match, 1);
+}
+
+function getTech1JudgeControl(bracket = tech1SpecialEventState.bracket) {
+  return normalizeTech1JudgeControl(bracket);
+}
+
+function getTech1DecisionResolution(controlOrVotes, eventMeta = activeEventMeta) {
+  const configuredRoles = getTech1JudgeRoles(eventMeta);
+  const storedRoles = Array.isArray(controlOrVotes?.judgeRoles)
+    ? controlOrVotes.judgeRoles.filter((role) => JUDGE_ROLE_ORDER.includes(role))
+    : [];
+  const activeRoles = configuredRoles.length ? configuredRoles : storedRoles;
+  return calculateCompetitionDecisionResolution(controlOrVotes, {
+    activeRoles,
+    teamTandemMode: false,
+    hasScoreValue: hasCompetitionScoreValue,
+  });
+}
+
+function buildTech1VoteStatusText(control, resolution, role = currentRole) {
+  if (!control?.entry) return "Waiting for the next Tech 1 battle.";
+  if (control.status === "review_hold") {
+    return control.reason === "omt" || control.reason === "tie"
+      ? "OMT was called. Waiting for the event admin to start the rerun."
+      : "Contest review is active. Waiting for the event admin decision.";
+  }
+  if (control.status === "admin_decision") {
+    const winnerSide = control.resolvedWinnerSide === "right" ? "right" : "left";
+    const winnerDriver = control.entry.match?.[winnerSide];
+    return winnerDriver?.name
+      ? `${winnerDriver.name} is ahead ${resolution.leftVotes}-${resolution.rightVotes}. Contest window is open.`
+      : "Contest window is open before the bracket advances.";
+  }
+  if (control.reason === "omt" && control.status === "voting") {
+    return control.votes?.[role]
+      ? "Your rerun vote is locked in. Waiting for the other judges."
+      : "OMT was called. Vote this rerun battle when the run is complete.";
+  }
+  if (!resolution?.allVoted) {
+    const remaining = Math.max(0, (resolution?.activeRoles?.length || 0) - (resolution?.submittedCount || 0));
+    return control.votes?.[role]
+      ? `Your vote is locked in. Waiting on ${remaining} other judge${remaining === 1 ? "" : "s"}.`
+      : "Choose the driver that should advance, or call OMT. The event admin advances the bracket after judging.";
+  }
+  if (resolution.omtMajority || resolution.tied) return "OMT/tie received. Waiting for the event admin.";
+  return "Votes are ready for event admin review.";
+}
+
 function clearCompetitionMatchDecision(state, entry) {
   const match = getCompetitionMatchRef(entry?.bracketKey, entry?.roundIndex, entry?.matchIndex, state);
   if (!match) return false;
@@ -21097,10 +23835,45 @@ function clearCompetitionContestTimers() {
     contestDecisionTickInterval = null;
   }
   contestDecisionTimerSignature = "";
+  tech1ContestDecisionDeadlineMs = 0;
+  tech1ContestDecisionSignature = "";
+}
+
+function getContestDecisionExpiryMs(control) {
+  const explicitExpiryMs = getCompetitionControlTimestampMs(control?.decisionExpiresAt);
+  if (Number.isFinite(explicitExpiryMs)) return explicitExpiryMs;
+  const resolvedAtMs = getCompetitionControlTimestampMs(control?.resolvedAt);
+  if (Number.isFinite(resolvedAtMs)) return resolvedAtMs + CONTEST_DECISION_SECONDS * 1000;
+  return Date.now() + CONTEST_DECISION_SECONDS * 1000;
 }
 
 function getContestDecisionRemainingSeconds(control) {
-  return Math.max(0, CONTEST_DECISION_SECONDS - getCompetitionControlAgeSeconds(control, "resolvedAt"));
+  const remainingMs = getContestDecisionExpiryMs(control) - Date.now();
+  return Math.max(0, Math.ceil(remainingMs / 1000));
+}
+
+function getTech1ContestDecisionRemainingSeconds(control) {
+  const signature = `tech1|${getCompetitionControlTimerSignature(control)}`;
+  if (tech1ContestDecisionSignature !== signature || !Number.isFinite(tech1ContestDecisionDeadlineMs) || tech1ContestDecisionDeadlineMs <= 0) {
+    tech1ContestDecisionSignature = signature;
+    tech1ContestDecisionDeadlineMs = Date.now() + CONTEST_DECISION_SECONDS * 1000;
+  }
+  const remainingMs = tech1ContestDecisionDeadlineMs - Date.now();
+  return Math.max(0, Math.ceil(remainingMs / 1000));
+}
+
+function setCompetitionContestTimerDisplay(remainingSeconds = 0) {
+  const remaining = Math.max(0, Number.parseInt(remainingSeconds, 10) || 0);
+  document.querySelectorAll("#competitionDecisionPanel .competition-contest-timer").forEach((element) => {
+    element.textContent = String(remaining);
+  });
+  document.querySelectorAll("#competitionDecisionPanel [data-contest-countdown-copy]").forEach((element) => {
+    element.textContent = `Losing driver has ${remaining} second${remaining === 1 ? "" : "s"} to contest.`;
+  });
+}
+
+function updateCompetitionContestTimerDisplay(control) {
+  setCompetitionContestTimerDisplay(getContestDecisionRemainingSeconds(control));
 }
 
 function getCompetitionControlTimerSignature(control) {
@@ -21109,6 +23882,7 @@ function getCompetitionControlTimerSignature(control) {
     buildCompetitionJudgeEntryKey(control?.entry),
     control?.cycle || 1,
     control?.resolvedAt || control?.updatedAt || "",
+    control?.decisionExpiresAt || "",
   ].join("|");
 }
 
@@ -21151,6 +23925,45 @@ function syncContestDecisionTimer(control) {
     }
     renderCompetitionDecisionPanel();
   }, 1000);
+}
+
+function syncTech1ContestDecisionTimer(control) {
+  if (!tech1StaffCanManageSpecialEvent() || control?.status !== "admin_decision" || !control.entry) {
+    clearCompetitionContestTimers();
+    return;
+  }
+  const signature = `tech1|${getCompetitionControlTimerSignature(control)}`;
+  if (contestDecisionTimerSignature === signature) return;
+  clearCompetitionContestTimers();
+  contestDecisionTimerSignature = signature;
+  tech1ContestDecisionSignature = signature;
+  tech1ContestDecisionDeadlineMs = Date.now() + CONTEST_DECISION_SECONDS * 1000;
+  const remainingMs = Math.max(0, tech1ContestDecisionDeadlineMs - Date.now());
+  contestDecisionTimeout = setTimeout(async () => {
+    const latestControl = getTech1JudgeControl(tech1SpecialEventState.bracket);
+    if (
+      latestControl.status === "admin_decision"
+      && `tech1|${getCompetitionControlTimerSignature(latestControl)}` === signature
+    ) {
+      setCompetitionContestTimerDisplay(0);
+      await new Promise((resolve) => setTimeout(resolve, 350));
+      await applyTech1JudgeDecision("advance");
+      renderBracket();
+      renderTech1EventControlWorkflow();
+    }
+  }, remainingMs + 250);
+  contestDecisionTickInterval = setInterval(() => {
+    const latestControl = getTech1JudgeControl(tech1SpecialEventState.bracket);
+    if (
+      latestControl.status !== "admin_decision"
+      || `tech1|${getCompetitionControlTimerSignature(latestControl)}` !== signature
+    ) {
+      clearCompetitionContestTimers();
+      renderTech1CompetitionDecisionPanel();
+      return;
+    }
+    setCompetitionContestTimerDisplay(getTech1ContestDecisionRemainingSeconds(latestControl));
+  }, 250);
 }
 
 function syncCompetitionAutoAdvanceTimer() {
@@ -21229,7 +24042,17 @@ function renderCompetitionOmtOverlay() {
 
 function renderWinnerFocusBox(winnerDriver, options = {}) {
   const fallbackName = options.fallbackName || "Winner Locked";
-  const winnerName = formatDriverDisplayName(winnerDriver) || winnerDriver?.name || fallbackName;
+  const winnerName = getFirstDisplayName(formatDriverDisplayName(winnerDriver) || winnerDriver?.name || fallbackName);
+  const compactName = String(winnerName || "").trim();
+  const winnerNameFitClass = compactName.length >= 34
+    ? "fit-xxs"
+    : compactName.length >= 28
+      ? "fit-xs"
+      : compactName.length >= 22
+      ? "fit-sm"
+      : compactName.length >= 16
+        ? "fit-md"
+        : "fit-lg";
   const seedText = winnerDriver?.seed ? `#${winnerDriver.seed}` : "";
   const metaParts = [
     seedText,
@@ -21238,7 +24061,7 @@ function renderWinnerFocusBox(winnerDriver, options = {}) {
   return `
     <section class="winner-focus-box">
       <span class="winner-focus-kicker">${escapeHtml(options.kicker || "Winner")}</span>
-      <strong class="winner-focus-name">${escapeHtml(winnerName)}</strong>
+      <strong class="winner-focus-name ${winnerNameFitClass}">${escapeHtml(winnerName)}</strong>
       <small class="winner-focus-meta">${escapeHtml(metaParts.join(" | ") || options.emptyMeta || "Result locked")}</small>
     </section>
   `;
@@ -21358,6 +24181,10 @@ function renderCompetitionDecisionPanel() {
 
 function renderCompetitionJudgePanel() {
   if (!competitionJudgePanel) return;
+  if (isTech1AnniversaryMode(activeEventMeta) && currentRole?.startsWith("j")) {
+    renderTech1CompetitionJudgePanel();
+    return;
+  }
   if (!currentRole?.startsWith("j") || !tournamentState?.mainBracket?.rounds?.length) {
     competitionJudgePanel.classList.add("hidden");
     competitionJudgePanel.innerHTML = "";
@@ -21519,6 +24346,283 @@ function renderCompetitionJudgePanel() {
     `;
   }
   competitionJudgePanel.classList.remove("hidden");
+}
+
+function renderTech1CompetitionJudgePanel() {
+  if (!competitionJudgePanel) return;
+  if (!currentRole?.startsWith("j")) {
+    competitionJudgePanel.classList.add("hidden");
+    competitionJudgePanel.innerHTML = "";
+    return;
+  }
+  const activeJudgeRoles = getTech1JudgeRoles(activeEventMeta);
+  if (!activeJudgeRoles.includes(currentRole)) {
+    competitionJudgePanel.classList.add("hidden");
+    competitionJudgePanel.innerHTML = "";
+    return;
+  }
+  const bracket = tech1SpecialEventState.bracket;
+  const control = getTech1JudgeControl(bracket);
+  const entry = control.entry || getTech1MatchEntry(getTech1CurrentJudgeMatch(bracket, control));
+  const judgeCanOpenPodium = tech1JudgeOneCanRevealPodium();
+  const podiumVisible = isTech1PodiumRevealVisible(bracket);
+  const podiumReady = isTech1PodiumRevealReady(bracket);
+  if ((!bracket?.rounds?.length || !entry?.match?.left || !entry?.match?.right) && judgeCanOpenPodium && podiumVisible) {
+    competitionJudgePanel.innerHTML = `
+      <section class="judge-lane-shell competition-judge-card">
+        <div class="judge-lane-toolbar">
+          <div class="judge-lane-meta">
+            <div>
+              <div class="judge-lane-progress">Tech 1 Podium Control</div>
+              <strong>${escapeHtml(podiumReady ? "Podium Ready" : "Podium Pending")}</strong>
+            </div>
+            <div class="mobile-driver-reg">${escapeHtml(podiumReady ? "Judge 1 can reveal the podium from this phone." : "Waiting for both final placements to lock in.")}</div>
+          </div>
+          <div class="judge-lane-status-row">
+            <span class="judge-lane-status-pill is-live">${escapeHtml(getRoleDisplayName(currentRole))}</span>
+            <span class="judge-lane-status-pill ${podiumReady ? "is-live" : "is-pending"}">${escapeHtml(podiumReady ? "Reveal Ready" : "Stand By")}</span>
+          </div>
+          <div class="judge-focus-strip">
+            <div>
+              <span>Focus Mode</span>
+              <strong>${escapeHtml(podiumReady ? "Open Podium Reveal" : "Waiting For Podium")}</strong>
+              <small>${escapeHtml(podiumReady ? "Tap below to move into the Tech 1 podium reveal screen." : "The reveal unlocks once the final and 3rd place winners are both recorded.")}</small>
+            </div>
+            <em>${escapeHtml(isOfflineMode() ? "Offline Safe" : "Sync Ready")}</em>
+          </div>
+        </div>
+        <article class="mobile-driver-card competition-judge-battle-card">
+          <div class="button-row" style="justify-content:center;">
+            <button class="button button-accent" type="button" data-tech1-action="open-podium-reveal" ${podiumReady ? "" : "disabled"}>
+              ${escapeHtml(podiumReady ? "Reveal Podium" : "Podium Pending")}
+            </button>
+          </div>
+        </article>
+      </section>
+    `;
+    competitionJudgePanel.classList.remove("hidden");
+    return;
+  }
+  if (!bracket?.rounds?.length || !entry?.match?.left || !entry?.match?.right) {
+    competitionJudgePanel.innerHTML = `
+      <section class="judge-lane-shell competition-judge-card">
+        <div class="judge-lane-toolbar">
+          <div class="judge-lane-meta">
+            <div>
+              <div class="judge-lane-progress">Tech 1 Judge Flow</div>
+              <strong>Waiting For Bracket</strong>
+            </div>
+            <div class="mobile-driver-reg">No qualifying - randomized single elimination</div>
+          </div>
+          <div class="judge-focus-strip">
+            <div>
+              <span>Focus Mode</span>
+              <strong>Stand By</strong>
+              <small>The event admin will generate the Tech 1 bracket from drivers marked Competing.</small>
+            </div>
+            <em>${escapeHtml(isOfflineMode() ? "Offline Safe" : "Sync Ready")}</em>
+          </div>
+        </div>
+      </section>
+    `;
+    competitionJudgePanel.classList.remove("hidden");
+    return;
+  }
+
+  const resolution = getTech1DecisionResolution(control, activeEventMeta);
+  const myVote = control.votes?.[currentRole] || null;
+  const votingLocked = control.status !== "voting" || Boolean(myVote);
+  const cycleLabel = control.cycle > 1 ? `Review Vote ${control.cycle}` : "Judge Vote";
+  competitionJudgePanel.innerHTML = `
+    <section class="judge-lane-shell competition-judge-card">
+      <div class="judge-lane-toolbar">
+        <div class="judge-lane-meta">
+          <div>
+            <div class="judge-lane-progress">${escapeHtml(cycleLabel)}</div>
+            <strong>${escapeHtml(entry.title || "Current Tech 1 Battle")}</strong>
+          </div>
+          <div class="mobile-driver-reg">${escapeHtml(entry.meta || "Competition")}</div>
+        </div>
+        <div class="judge-lane-status-row">
+          <span class="judge-lane-status-pill ${myVote ? "is-live" : "is-pending"}">${escapeHtml(getRoleDisplayName(currentRole))}</span>
+          <span class="judge-lane-status-pill ${resolution.allVoted ? "is-live" : "is-pending"}">${resolution.submittedCount}/${resolution.activeRoles.length || 0} Votes</span>
+          ${control.reason === "omt" ? `<span class="judge-lane-status-pill is-live">OMT Rerun</span>` : ""}
+        </div>
+        <div class="judge-focus-strip">
+          <div>
+            <span>Focus Mode</span>
+            <strong>${escapeHtml(myVote ? "Vote Submitted" : "Choose Winner Or OMT")}</strong>
+            <small>${escapeHtml(buildTech1VoteStatusText(control, resolution, currentRole))}</small>
+          </div>
+          <em>${escapeHtml(isOfflineMode() ? "Offline Safe" : "Sync Ready")}</em>
+        </div>
+        <div class="judge-lane-note">${escapeHtml(buildTech1VoteStatusText(control, resolution, currentRole))}</div>
+      </div>
+      <article class="mobile-driver-card competition-judge-battle-card">
+        <div class="competition-vote-grid">
+          <button class="button ${myVote === "left" ? "button-accent competition-vote-option selected" : "button-secondary competition-vote-option"}" type="button" data-action="judge-competition-vote" data-tech1-judge-vote="1" data-side="left" ${votingLocked ? "disabled" : ""}>
+            <span>Lead | #${entry.match.left.seed || "-"}</span>
+            <strong>${escapeHtml(entry.match.left.name || "Waiting")}</strong>
+          </button>
+          <button class="button ${myVote === "right" ? "button-accent competition-vote-option selected" : "button-secondary competition-vote-option"}" type="button" data-action="judge-competition-vote" data-tech1-judge-vote="1" data-side="right" ${votingLocked ? "disabled" : ""}>
+            <span>Chase | #${entry.match.right.seed || "-"}</span>
+            <strong>${escapeHtml(entry.match.right.name || "Waiting")}</strong>
+          </button>
+          <button class="button ${myVote === "omt" ? "button-accent competition-vote-option selected" : "button-secondary competition-vote-option"}" type="button" data-action="judge-competition-vote" data-tech1-judge-vote="1" data-side="omt" ${votingLocked ? "disabled" : ""}>
+            <span>Re-run</span>
+            <strong>OMT</strong>
+          </button>
+        </div>
+        <div class="competition-vote-tally">
+          <span class="competition-vote-pill">${escapeHtml(entry.match.left.name || "Lead")} ${resolution.leftVotes}</span>
+          <span class="competition-vote-pill">${escapeHtml(entry.match.right.name || "Chase")} ${resolution.rightVotes}</span>
+          <span class="competition-vote-pill">OMT ${resolution.omtVotes || 0}</span>
+        </div>
+      </article>
+    </section>
+  `;
+  competitionJudgePanel.classList.remove("hidden");
+}
+
+function getFirstDisplayName(name = "") {
+  return String(name || "").trim().split(/\s+/).filter(Boolean)[0] || "Winner";
+}
+
+function renderTech1WinnerDecisionFocusBox(winnerDriver = null, control = {}, options = {}) {
+  const winnerFirstName = getFirstDisplayName(formatDriverDisplayName(winnerDriver) || winnerDriver?.name || "Winner");
+  const compactName = String(winnerFirstName || "").trim();
+  const winnerNameFitClass = compactName.length >= 34
+    ? "fit-xxs"
+    : compactName.length >= 28
+      ? "fit-xs"
+      : compactName.length >= 22
+      ? "fit-sm"
+      : compactName.length >= 16
+        ? "fit-md"
+        : "fit-lg";
+  const showActions = options.showActions !== false;
+  const kickerText = options.kicker || "Winner";
+  const metaText = options.meta || control.entry?.meta || control.entry?.title || "Battle winner locked";
+  return `
+    <section class="winner-focus-box tech1-winner-focus-box">
+      <span class="winner-focus-kicker">${escapeHtml(kickerText)}</span>
+      <strong class="winner-focus-name tech1-winner-name ${winnerNameFitClass}">${escapeHtml(winnerFirstName)}</strong>
+      <small class="winner-focus-meta">${escapeHtml(metaText)}</small>
+      ${showActions ? `
+        <div class="button-row competition-decision-actions tech1-winner-focus-actions">
+          <button class="button button-secondary" type="button" data-action="tech1-admin-decision" data-decision="omt">Call OMT</button>
+          <button class="button button-accent" type="button" data-action="tech1-admin-decision" data-decision="advance">Continue</button>
+        </div>
+      ` : ""}
+    </section>
+  `;
+}
+
+function renderTech1CompetitionDecisionPanel() {
+  if (!competitionDecisionPanel) return;
+  const bracket = tech1SpecialEventState.bracket;
+  const control = getTech1JudgeControl(bracket);
+  if (!tech1StaffCanManageSpecialEvent() || !control.entry || (control.status !== "admin_decision" && control.status !== "review_hold")) {
+    clearCompetitionContestTimers();
+    competitionDecisionPanel.classList.remove("is-contest-overlay");
+    competitionDecisionPanel.classList.add("hidden");
+    competitionDecisionPanel.innerHTML = "";
+    return;
+  }
+
+  const resolution = getTech1DecisionResolution(control, activeEventMeta);
+  const leftDriver = control.entry.match?.left;
+  const rightDriver = control.entry.match?.right;
+  const winnerDriver = control.resolvedWinnerSide ? control.entry.match?.[control.resolvedWinnerSide] : null;
+  const controlledMatch = control.matchId === TECH1_THIRD_PLACE_MATCH_ID
+    ? bracket?.thirdPlaceMatch
+    : bracket?.matches?.[control.matchId];
+  const isPodiumProtectedMatch = isTech1ThirdPlaceMatch(controlledMatch)
+    || Boolean(controlledMatch && getTech1FinalMatch(bracket)?.id === controlledMatch.id);
+  const isOmtDecision = control.status === "review_hold";
+  const contestRemaining = control.status === "admin_decision"
+    ? getTech1ContestDecisionRemainingSeconds(control)
+    : getContestDecisionRemainingSeconds(control);
+  const headline = isOmtDecision ? "OMT?" : "Contest?";
+  const voteTallyMarkup = `
+      <div class="competition-vote-tally">
+        <span class="competition-vote-pill">${escapeHtml(leftDriver?.name || "Lead")} ${resolution.leftVotes}</span>
+        <span class="competition-vote-pill">${escapeHtml(rightDriver?.name || "Chase")} ${resolution.rightVotes}</span>
+        ${isPodiumProtectedMatch ? "" : `<span class="competition-vote-pill">OMT ${resolution.omtVotes || 0}</span>`}
+      </div>
+    `;
+  const copy = isOmtDecision
+    ? `The judges returned ${control.reason === "tie" ? "a split decision" : "an OMT call"}. Start a rerun when the drivers are ready.`
+    : (winnerDriver?.name && !isPodiumProtectedMatch)
+      ? `${getFirstDisplayName(formatDriverDisplayName(winnerDriver) || winnerDriver.name)} won ${formatScore(resolution.leftVotes)}-${formatScore(resolution.rightVotes)}. If the losing driver contests, call OMT. If not, click Continue.`
+      : isPodiumProtectedMatch
+        ? "The judges have finished voting. Result is locked for trophy reveal. If the losing driver contests, call OMT. If not, click Continue."
+        : "The judges have finished voting. If there is no contest, click Continue to advance.";
+
+  if (control.status === "admin_decision") {
+    if (isPodiumProtectedMatch) {
+      clearCompetitionContestTimers();
+      competitionDecisionPanel.innerHTML = `
+        <article class="competition-decision-card competition-contest-card tech1-contest-card">
+          <div class="competition-decision-head">
+            <div>
+              <p class="section-kicker">Podium Reveal Protected Battle</p>
+              <h3 class="competition-contest-title">Winner Locked In</h3>
+            </div>
+            <span class="status-pill active">${escapeHtml(control.entry.title || "Current Battle")}</span>
+          </div>
+          <p class="competition-decision-copy">${escapeHtml(copy)}</p>
+          ${voteTallyMarkup}
+          <div class="button-row competition-decision-actions">
+            <button class="button button-secondary" type="button" data-action="tech1-admin-decision" data-decision="omt">Call OMT</button>
+            <button class="button button-accent" type="button" data-action="tech1-admin-decision" data-decision="advance">Continue</button>
+          </div>
+        </article>
+      `;
+      competitionDecisionPanel.classList.add("is-contest-overlay");
+      competitionDecisionPanel.classList.remove("hidden");
+      return;
+    }
+
+    syncTech1ContestDecisionTimer(control);
+    competitionDecisionPanel.innerHTML = `
+      <div class="winner-reveal-stage tech1-winner-reveal-stage">
+        ${renderTech1WinnerDecisionFocusBox(winnerDriver, control)}
+        <article class="winner-status-box">
+          <strong>${escapeHtml(headline)}</strong>
+          <div class="competition-contest-timer">${contestRemaining}</div>
+          <span data-contest-countdown-copy="1">${escapeHtml(`Losing driver has ${contestRemaining} second${contestRemaining === 1 ? "" : "s"} to contest.`)}</span>
+          <span>${escapeHtml(copy)}</span>
+          <small>${escapeHtml(`${leftDriver?.name || "Lead"} vs ${rightDriver?.name || "Chase"}`)}</small>
+        </article>
+      </div>
+    `;
+    competitionDecisionPanel.classList.add("is-contest-overlay");
+    competitionDecisionPanel.classList.remove("hidden");
+    return;
+  }
+
+  clearCompetitionContestTimers();
+
+  competitionDecisionPanel.innerHTML = `
+    <article class="competition-decision-card competition-contest-card tech1-contest-card">
+      <div class="competition-decision-head">
+        <div>
+          <p class="section-kicker">Event Admin Review Window</p>
+          <h3 class="competition-contest-title">${escapeHtml(headline)}</h3>
+        </div>
+        <span class="status-pill active">${escapeHtml(control.entry.title || "Current Battle")}</span>
+      </div>
+      <p class="competition-decision-copy">${escapeHtml(copy)}</p>
+      ${voteTallyMarkup}
+      <div class="button-row competition-decision-actions">
+        <button class="button button-secondary" type="button" data-action="tech1-admin-decision" data-decision="omt">${isOmtDecision ? "Start OMT" : "Call OMT"}</button>
+        ${isOmtDecision ? "" : `<button class="button button-accent" type="button" data-action="tech1-admin-decision" data-decision="advance">Advance Winner</button>`}
+      </div>
+    </article>
+  `;
+  competitionDecisionPanel.classList.add("is-contest-overlay");
+  competitionDecisionPanel.classList.remove("hidden");
 }
 
 function getBracketParticipantSecondaryLine(driver) {
@@ -22222,6 +25326,36 @@ function getRoundMetrics(sideRoundCount) {
   return metrics;
 }
 
+function getTech1WindowedRoundMetrics(sideRoundCount, sideMatchCount = 1, options = {}) {
+  const cssSlotHeight = Number.isFinite(options.slotHeight)
+    ? options.slotHeight
+    : getBracketCssMetric("--slot-height", 40);
+  const stackGap = Number.isFinite(options.stackGap)
+    ? options.stackGap
+    : getBracketCssMetric("--match-stack-gap", 8);
+  const baseMatchHeight = cssSlotHeight * 2 + stackGap;
+  const firstGap = Math.max(
+    8,
+    Number.isFinite(options.firstGap) ? options.firstGap : getBracketCssMetric("--round-gap", 10)
+  );
+  const firstPitch = Math.max(baseMatchHeight + firstGap, baseMatchHeight * 1.08);
+  const maxPitch = Math.max(firstPitch, Math.max(sideMatchCount, 1) * firstPitch);
+  const metrics = [];
+  let pitch = firstPitch;
+  let offset = 0;
+  for (let stageIndex = 0; stageIndex < sideRoundCount; stageIndex += 1) {
+    if (stageIndex > 0) {
+      offset += pitch / 2;
+      pitch = Math.min(pitch * 2, maxPitch);
+    }
+    metrics.push({
+      gap: Math.max(8, pitch - baseMatchHeight),
+      offset,
+    });
+  }
+  return metrics;
+}
+
 function renderMainSlot(bracketKey, roundIndex, matchIndex, side, driver, winner, canChoose, align) {
   const slotAttrs = buildBracketSlotAttrs(bracketKey, roundIndex, matchIndex, side);
   const canReorder = Boolean(driver) && isBracketSlotReorderable(bracketKey, roundIndex, matchIndex, side);
@@ -22410,6 +25544,43 @@ function fitBracketSlotNames(scope = document) {
   });
 }
 
+function fitTech1CurrentBattleVsText(scope = document) {
+  scope.querySelectorAll(".tech1-vs-overlay-stack .tech1-current-vs-panel.is-compact").forEach((element) => {
+    // Guard against stale cached CSS that can still hide compact cards.
+    element.style.setProperty("display", "grid", "important");
+    element.style.setProperty("visibility", "visible", "important");
+    element.style.setProperty("opacity", "1", "important");
+  });
+  scope.querySelectorAll(".tech1-current-vs-panel .tech1-current-vs-driver").forEach((element) => {
+    const minimumPx = element.closest(".tech1-current-vs-panel.is-compact") ? 8 : 12;
+    fitTextToAvailableWidth(element, minimumPx);
+  });
+}
+
+function measureBracketCanvasContentHeight(canvas) {
+  if (!canvas) return 0;
+  const canvasRect = canvas.getBoundingClientRect();
+  if (!canvasRect.width && !canvasRect.height) return 0;
+  let maxBottom = 0;
+  canvas.querySelectorAll([
+    ".main-board-scale-shell",
+    ".main-board-round-labels",
+    ".main-board-grid",
+    ".main-board-side",
+    ".main-board-round",
+    ".main-board-round-matches",
+    ".main-battle",
+    ".main-battle-slot",
+    ".final-battle-card",
+  ].join(",")).forEach((element) => {
+    if (element.closest(".tech1-sponsor-backdrop")) return;
+    const rect = element.getBoundingClientRect();
+    if (!rect.width && !rect.height) return;
+    maxBottom = Math.max(maxBottom, rect.bottom - canvasRect.top);
+  });
+  return Math.ceil(maxBottom);
+}
+
 function fitBracketBoard(boardId) {
   const board = document.getElementById(boardId);
   if (!board) return;
@@ -22423,6 +25594,13 @@ function fitBracketBoard(boardId) {
   const naturalWidth = Number(canvas.dataset.naturalWidth);
   const naturalHeight = Number(canvas.dataset.naturalHeight);
   const isVisible = board.getClientRects().length > 0;
+  if (!isVisible) {
+    board.classList.remove("is-fitted");
+    board.style.removeProperty("minHeight");
+    board.style.setProperty("--board-zoom", "1");
+    canvas.style.zoom = "1";
+    return;
+  }
   const shouldAutoFit = document.body.classList.contains("bracket-fullscreen") && isVisible;
   board.classList.toggle("is-fitted", shouldAutoFit);
   board.style.removeProperty("minHeight");
@@ -22436,7 +25614,10 @@ function fitBracketBoard(boardId) {
     canvas.style.minWidth = "max-content";
   }
   const requiredCenterStageHeight = layoutBracketCenterStage(canvas);
-  const resolvedHeight = Number.isFinite(naturalHeight) && naturalHeight > 0
+  const isTech1FullscreenBoard = shouldAutoFit
+    && document.body.classList.contains("bracket-fullscreen")
+    && Boolean(board.closest(".tech1-solo-bracket-panel"));
+  let resolvedHeight = Number.isFinite(naturalHeight) && naturalHeight > 0
     ? Math.max(naturalHeight, requiredCenterStageHeight)
     : requiredCenterStageHeight;
   if (resolvedHeight > 0) {
@@ -22446,13 +25627,36 @@ function fitBracketBoard(boardId) {
   } else {
     canvas.style.removeProperty("height");
   }
+  const measuredContentHeight = measureBracketCanvasContentHeight(canvas);
+  if (measuredContentHeight > resolvedHeight) {
+    resolvedHeight = measuredContentHeight;
+    canvas.style.height = `${resolvedHeight}px`;
+  }
+  if (isTech1FullscreenBoard && resolvedHeight > 0) {
+    resolvedHeight += 18;
+    canvas.style.height = `${resolvedHeight}px`;
+  }
   fitBracketSlotNames(board);
   let effectiveZoom = 1;
   if (shouldAutoFit && Number.isFinite(naturalWidth) && naturalWidth > 0 && resolvedHeight > 0) {
-    const availableWidth = Math.max(board.clientWidth - 6, 0);
-    const availableHeight = Math.max(board.clientHeight - 6, 0);
+    const fitContainer = canvas.parentElement?.classList.contains("tech1-bracket-window") ? canvas.parentElement : board;
+    const siblingHeight = Array.from(fitContainer.children || [])
+      .filter((element) => element !== canvas)
+      .filter((element) => !element.classList.contains("tech1-sponsor-backdrop"))
+      .reduce((total, element) => {
+        const styles = getComputedStyle(element);
+        if (styles.position === "absolute" || styles.position === "fixed") return total;
+        const margin = (Number.parseFloat(styles.marginTop) || 0) + (Number.parseFloat(styles.marginBottom) || 0);
+        return total + (element.offsetHeight || 0) + margin;
+      }, 0);
+    const fitSafetyBuffer = isTech1FullscreenBoard ? 18 : document.body.classList.contains("bracket-fullscreen") ? 10 : 6;
+    const availableWidth = Math.max(fitContainer.clientWidth - 6, 0);
+    const availableHeight = Math.max(fitContainer.clientHeight - siblingHeight - fitSafetyBuffer, 0);
     if (availableWidth > 0 && availableHeight > 0) {
-      effectiveZoom = Math.min(1, availableWidth / naturalWidth, availableHeight / resolvedHeight);
+      // Let fullscreen Tech 1 boards grow to the true container limit.
+      // Width/height ratios still cap the final zoom, so this won't overflow.
+      const maxZoom = isTech1FullscreenBoard ? 2.25 : 1;
+      effectiveZoom = Math.min(maxZoom, availableWidth / naturalWidth, availableHeight / resolvedHeight);
     } else {
       effectiveZoom = 1;
     }
@@ -22464,13 +25668,49 @@ function fitBracketBoard(boardId) {
 function fitAllBracketBoards() {
   fitBracketBoard("lowerBracketBoard");
   fitBracketBoard("bracketBoard");
+  fitTech1CurrentBattleVsText(document);
+}
+
+function cancelScheduledBracketRefit() {
+  if (bracketRefitRafPrimary) {
+    cancelAnimationFrame(bracketRefitRafPrimary);
+    bracketRefitRafPrimary = 0;
+  }
+  if (bracketRefitRafSecondary) {
+    cancelAnimationFrame(bracketRefitRafSecondary);
+    bracketRefitRafSecondary = 0;
+  }
+  if (bracketRefitTimeoutId) {
+    clearTimeout(bracketRefitTimeoutId);
+    bracketRefitTimeoutId = 0;
+  }
 }
 
 function scheduleBracketRefit() {
-  requestAnimationFrame(() => {
+  if (document.hidden) return;
+  if (bracketRefitRafPrimary || bracketRefitRafSecondary) return;
+  if (bracketRefitTimeoutId) {
+    clearTimeout(bracketRefitTimeoutId);
+    bracketRefitTimeoutId = 0;
+  }
+  bracketRefitRafPrimary = requestAnimationFrame(() => {
+    bracketRefitRafPrimary = 0;
     fitAllBracketBoards();
-    requestAnimationFrame(fitAllBracketBoards);
+    syncTech1VsOverlayAnchor();
+    bracketRefitRafSecondary = requestAnimationFrame(() => {
+      bracketRefitRafSecondary = 0;
+      fitAllBracketBoards();
+      syncTech1VsOverlayAnchor();
+    });
   });
+  // Fallback for late-loading fonts/images that can shift measurements.
+  bracketRefitTimeoutId = window.setTimeout(() => {
+    bracketRefitTimeoutId = 0;
+    if (!bracketRefitRafPrimary && !bracketRefitRafSecondary) {
+      fitAllBracketBoards();
+      syncTech1VsOverlayAnchor();
+    }
+  }, 180);
 }
 
 function syncCompetitionBracketFlow() {
@@ -22503,6 +25743,10 @@ function renderBracket() {
   renderRaceControlDashboard();
   syncBracketReturnControls();
   syncBracketReorderControls();
+  if (isTech1AnniversaryMode(activeEventMeta)) {
+    renderTech1CompetitionBracketView();
+    return;
+  }
   if (isTwinTripleMode(activeEventMeta)) {
     setBracketReorderUiState({ bracketReorderModeEnabled: false });
     const summaryStrip = document.getElementById("summaryStrip");
@@ -22530,7 +25774,8 @@ function renderBracket() {
       winnerRevealOverlay.classList.add("hidden");
       winnerRevealOverlay.innerHTML = "";
     }
-    document.getElementById("emptyBracketState").classList.remove("hidden");
+    renderCompetitionJudgePanel();
+    document.getElementById("emptyBracketState").classList.toggle("hidden", Boolean(isTech1AnniversaryMode(activeEventMeta) && currentRole?.startsWith("j")));
     return;
   }
 
@@ -22568,12 +25813,1345 @@ function renderBracket() {
     setCompetitionBracketPageState("main");
   }
   document.getElementById("mainBracketPage").classList.toggle("hide-header-battle-flow", bracketHasTop32Round(tournamentState.mainBracket.rounds));
+  document.getElementById("bracketBoard").classList.remove("hidden");
   document.getElementById("bracketBoard").innerHTML = renderBracketBoard("main", tournamentState.mainBracket.rounds, {
     thirdPlaceMatch: tournamentState.mainBracket.thirdPlaceMatch,
     finalTitle: "Final Battle",
   });
   updateCompetitionBracketPage();
   scheduleBracketRefit();
+}
+
+function summarizeTech1RegistrationsForCompetition(registrations = []) {
+  return registrations.reduce((summary, entry) => {
+    const entryFee = getTech1EntryFeeForRegistration(entry);
+    const raffleAmountPaid = Number(entry.amountPaid || 0);
+    summary.registrations += 1;
+    if (entry.checkedIn) summary.checkedIn += 1;
+    if (entry.bracketEligible) summary.competing += 1;
+    summary.freeTickets += Number(entry.freeTickets || 0);
+    summary.paidTickets += Number(entry.paidTickets || 0);
+    summary.totalTickets += Number(entry.totalTickets || entry.freeTickets || 0);
+    summary.amountPaid += entryFee + raffleAmountPaid;
+    return summary;
+  }, {
+    registrations: 0,
+    checkedIn: 0,
+    competing: 0,
+    freeTickets: 0,
+    paidTickets: 0,
+    totalTickets: 0,
+    amountPaid: 0,
+  });
+}
+
+function renderTech1BracketStat(label, value, tone = "") {
+  return `<article class="summary-card ${escapeHtml(tone)}"><span>${escapeHtml(label)}</span><strong>${escapeHtml(String(value))}</strong></article>`;
+}
+
+function getTech1FinalMatch(bracket = tech1SpecialEventState.bracket) {
+  return Object.values(bracket?.matches || {}).find((match) => !match.advancedToMatchId) || null;
+}
+
+function isTech1ThirdPlaceMatch(match = null) {
+  return match?.id === TECH1_THIRD_PLACE_MATCH_ID || match?.bracketKey === "tech1-third";
+}
+
+function cloneTech1Bracket(bracket = {}) {
+  return JSON.parse(JSON.stringify(bracket || {}));
+}
+
+function getTech1MatchLoser(match = null) {
+  if (!match?.winnerId || !match.driverA || !match.driverB) return null;
+  if (match.winnerId === match.driverA.id) return { ...match.driverB };
+  if (match.winnerId === match.driverB.id) return { ...match.driverA };
+  return null;
+}
+
+function buildTech1ThirdPlaceMatch(bracket = tech1SpecialEventState.bracket) {
+  if (!bracket?.rounds?.length || !bracket?.matches) return null;
+  const finalRoundNumber = Math.max(...bracket.rounds.map((round) => Number(round.round || 0)));
+  if (!Number.isFinite(finalRoundNumber) || finalRoundNumber < 2) return null;
+  const semifinalRound = bracket.rounds.find((round) => Number(round.round || 0) === finalRoundNumber - 1);
+  const semifinalMatches = (semifinalRound?.matchIds || [])
+    .map((matchId) => bracket.matches?.[matchId])
+    .filter(Boolean)
+    .sort((left, right) => Number(left.matchNumber || 0) - Number(right.matchNumber || 0));
+  if (semifinalMatches.length < 2) return null;
+  const driverA = getTech1MatchLoser(semifinalMatches[0]);
+  const driverB = getTech1MatchLoser(semifinalMatches[1]);
+  const existing = bracket.thirdPlaceMatch || {};
+  const existingWinnerId = existing.winnerId || "";
+  const contenders = [driverA, driverB].filter(Boolean);
+  const hasHeadToHead = Boolean(driverA && driverB);
+  const existingNotes = String(existing.notes || "");
+  const existingLooksAutoAwarded = Boolean(
+    existingWinnerId
+    && (
+      existing.resultStatus === "bye"
+      || existingNotes.toLowerCase().includes("auto-awarded from semifinal progression")
+    )
+  );
+  const winnerStillValid = Boolean(
+    hasHeadToHead
+    && existingWinnerId
+    && !existingLooksAutoAwarded
+    && contenders.some((driver) => driver.id === existingWinnerId)
+  );
+  const winnerId = winnerStillValid ? existingWinnerId : null;
+  const resultStatus = hasHeadToHead
+    ? (winnerId ? "complete" : "pending")
+    : "waiting";
+  return {
+    id: TECH1_THIRD_PLACE_MATCH_ID,
+    bracketKey: "tech1-third",
+    round: finalRoundNumber - 0.5,
+    roundName: "3rd Place",
+    matchNumber: 1,
+    driverA,
+    driverB,
+    winnerId,
+    resultStatus,
+    notes: hasHeadToHead
+      ? (existingLooksAutoAwarded ? "" : existingNotes)
+      : "",
+    advancedToMatchId: null,
+    advancedToSlot: null,
+  };
+}
+
+function normalizeTech1ThirdPlaceMatch(bracket = tech1SpecialEventState.bracket) {
+  if (!bracket?.rounds?.length || !bracket?.matches) return bracket;
+  const thirdPlaceMatch = buildTech1ThirdPlaceMatch(bracket);
+  if (!thirdPlaceMatch) {
+    if (!bracket.thirdPlaceMatch) return bracket;
+    const nextBracket = cloneTech1Bracket(bracket);
+    nextBracket.thirdPlaceMatch = null;
+    return nextBracket;
+  }
+  const existingSignature = JSON.stringify(bracket.thirdPlaceMatch || null);
+  const nextSignature = JSON.stringify(thirdPlaceMatch);
+  if (existingSignature === nextSignature) return bracket;
+  return {
+    ...bracket,
+    thirdPlaceMatch,
+  };
+}
+
+function getTech1MatchWinnerDriver(match = {}) {
+  if (!match?.winnerId) return null;
+  return [match.driverA, match.driverB].find((driver) => driver?.id === match.winnerId) || null;
+}
+
+function isTech1FinalWinnerVisible(bracket = tech1SpecialEventState.bracket) {
+  const finalMatch = getTech1FinalMatch(bracket);
+  return Boolean(finalMatch?.winnerId && (bracket?.winnerRevealStatus === "revealed" || bracket?.winnerRevealedAt));
+}
+
+function getTech1FinalLoserDriver(bracket = tech1SpecialEventState.bracket) {
+  const finalMatch = getTech1FinalMatch(bracket);
+  const winner = getTech1MatchWinnerDriver(finalMatch);
+  if (!finalMatch?.driverA || !finalMatch?.driverB || !winner?.id) return null;
+  return finalMatch.driverA.id === winner.id ? finalMatch.driverB : finalMatch.driverB.id === winner.id ? finalMatch.driverA : null;
+}
+
+function getTech1ThirdPlaceWinnerDriver(bracket = tech1SpecialEventState.bracket, battleResults = tech1SpecialEventState.battleResults) {
+  const normalizedBracket = normalizeTech1ThirdPlaceMatch(bracket);
+  const bracketWinner = getTech1MatchWinnerDriver(normalizedBracket?.thirdPlaceMatch || null);
+  if (bracketWinner) return bracketWinner;
+
+  const thirdPlaceResult = (battleResults || []).find((entry) => (
+    entry?.matchId === TECH1_THIRD_PLACE_MATCH_ID || entry?.id === TECH1_THIRD_PLACE_MATCH_ID
+  ));
+  if (!thirdPlaceResult?.winnerId) return null;
+
+  const winnerFromResult = [thirdPlaceResult.driverA, thirdPlaceResult.driverB]
+    .find((driver) => driver?.id === thirdPlaceResult.winnerId);
+  if (winnerFromResult) return winnerFromResult;
+
+  return {
+    id: thirdPlaceResult.winnerId,
+    name: thirdPlaceResult.winnerName || "3rd Place Winner",
+    teamName: "",
+    seed: null,
+  };
+}
+
+function isTech1PodiumRevealReady(bracket = tech1SpecialEventState.bracket) {
+  const finalWinner = getTech1MatchWinnerDriver(getTech1FinalMatch(bracket));
+  const thirdWinner = getTech1ThirdPlaceWinnerDriver(bracket, tech1SpecialEventState.battleResults);
+  return Boolean(finalWinner && thirdWinner);
+}
+
+function isTech1PodiumRevealVisible(bracket = tech1SpecialEventState.bracket) {
+  return Boolean(getTech1MatchWinnerDriver(getTech1FinalMatch(bracket)));
+}
+
+function getTech1PodiumRevealState(bracket = tech1SpecialEventState.bracket) {
+  const revealed = bracket?.podiumReveal?.revealed || {};
+  return {
+    1: Boolean(revealed?.[1] || revealed?.["1"]),
+    2: Boolean(revealed?.[2] || revealed?.["2"]),
+    3: Boolean(revealed?.[3] || revealed?.["3"]),
+  };
+}
+
+function getTech1PodiumRevealDisplaySignature(bracket = tech1SpecialEventState.bracket) {
+  const reveal = getTech1PodiumRevealState(bracket);
+  return `${getTech1PodiumRevealSignature(bracket)}|${Number(reveal[1])}${Number(reveal[2])}${Number(reveal[3])}`;
+}
+
+function isTech1PodiumRevealDismissed(bracket = tech1SpecialEventState.bracket) {
+  return Boolean(
+    tech1PodiumRevealDismissedSignature
+    && tech1PodiumRevealDismissedSignature === getTech1PodiumRevealDisplaySignature(bracket)
+  );
+}
+
+function isTech1PodiumFullyRevealed(bracket = tech1SpecialEventState.bracket) {
+  const revealState = getTech1PodiumRevealState(bracket);
+  return Boolean(revealState[1] && revealState[2] && revealState[3]);
+}
+
+function getTech1PodiumDrivers(bracket = tech1SpecialEventState.bracket) {
+  const finalMatch = getTech1FinalMatch(bracket);
+  const first = getTech1MatchWinnerDriver(finalMatch);
+  const second = getTech1FinalLoserDriver(bracket);
+  const third = getTech1ThirdPlaceWinnerDriver(bracket, tech1SpecialEventState.battleResults);
+  return { first, second, third };
+}
+
+function getTech1PodiumRevealSignature(bracket = tech1SpecialEventState.bracket) {
+  const podium = getTech1PodiumDrivers(bracket);
+  return [
+    getActiveTech1SpecialEventId() || "local",
+    podium.first?.id || "",
+    podium.second?.id || "",
+    podium.third?.id || "",
+  ].join("|");
+}
+
+function toTech1SoloBracketParticipant(driver = null) {
+  if (!driver) return null;
+  return {
+    id: driver.id,
+    seed: driver.seed,
+    name: driver.name || "Unnamed Driver",
+    teamName: driver.teamName || "",
+    chassis: driver.chassis || "",
+    instagram: driver.instagram || "",
+  };
+}
+
+function getTech1BracketParticipantSecondaryLine(driver = null) {
+  return driver?.teamName || "";
+}
+
+function getTech1UnifiedTop32StartRound(bracket = null) {
+  const explicitTop32Round = (bracket?.rounds || []).find((round) => String(round?.name || "").trim().toLowerCase() === "top 32");
+  if (explicitTop32Round) {
+    return Math.max(1, Number(explicitTop32Round.round || 1));
+  }
+  const bracketSize = Math.max(1, Number(bracket?.bracketSize || 0));
+  if (!bracketSize) return 1;
+  if (bracketSize <= TECH1_BRACKET_DISPLAY_PAGE_SIZE) return 1;
+  const estimated = Math.round(Math.log2(bracketSize / TECH1_BRACKET_DISPLAY_PAGE_SIZE)) + 1;
+  const roundCount = Math.max(1, Number(bracket?.rounds?.length || 1));
+  return Math.min(roundCount, Math.max(1, estimated));
+}
+
+function getTech1UnifiedTop32DisplayMatches(bracket = null) {
+  if (!bracket?.matches) return [];
+  const startRound = getTech1UnifiedTop32StartRound(bracket);
+  return Object.values(bracket.matches)
+    .filter((match) => Number(match?.round || 0) >= startRound)
+    .sort((left, right) => (Number(left.round || 0) - Number(right.round || 0))
+      || (Number(left.matchNumber || 0) - Number(right.matchNumber || 0)));
+}
+
+function getTech1UnifiedTop32DisplayWindow(bracket = null) {
+  const activeFieldSize = Math.min(TECH1_BRACKET_DISPLAY_PAGE_SIZE, Math.max(1, getTech1ActiveFieldSize(bracket)));
+  return {
+    totalSlots: activeFieldSize,
+    pageSize: TECH1_BRACKET_DISPLAY_PAGE_SIZE,
+    pageIndex: 0,
+    totalPages: 1,
+    startSlot: 1,
+    endSlot: activeFieldSize,
+    visibleSlots: [],
+    visibleMatches: getTech1UnifiedTop32DisplayMatches(bracket),
+    driverCount: activeFieldSize,
+    bracketSize: activeFieldSize,
+    byeCount: 0,
+    unifiedTop32: true,
+  };
+}
+
+function getTech1CurrentDisplayWindow(bracket = null) {
+  if (shouldRenderTech1UnifiedTop32Bracket(bracket)) return getTech1UnifiedTop32DisplayWindow(bracket);
+  return getBracketDisplayWindow(bracket, {
+    pageSize: TECH1_BRACKET_DISPLAY_PAGE_SIZE,
+    pageIndex: tech1BracketDisplayPageIndex,
+    showByes: true,
+  });
+}
+
+function getTech1DisplayMatches(bracket = null) {
+  if (!bracket?.matches) return [];
+  if (shouldRenderTech1UnifiedTop32Bracket(bracket)) {
+    tech1BracketDisplayPageIndex = 0;
+    return getTech1UnifiedTop32DisplayMatches(bracket);
+  }
+  syncTech1BracketPageToActiveBattle(bracket);
+  const displayWindow = getBracketDisplayWindow(bracket, {
+    pageSize: TECH1_BRACKET_DISPLAY_PAGE_SIZE,
+    pageIndex: tech1BracketDisplayPageIndex,
+    showByes: true,
+  });
+  return displayWindow.visibleMatches;
+}
+
+function getTech1MatchSlotRange(match = null) {
+  const round = Math.max(1, Number.parseInt(match?.round, 10) || 1);
+  const matchNumber = Math.max(1, Number.parseInt(match?.matchNumber, 10) || 1);
+  const slotSpan = 2 ** round;
+  const startSlot = ((matchNumber - 1) * slotSpan) + 1;
+  return {
+    startSlot,
+    endSlot: startSlot + slotSpan - 1,
+  };
+}
+
+function getTech1BracketPageIndexForMatch(match = null, pageSize = TECH1_BRACKET_DISPLAY_PAGE_SIZE) {
+  const totalPages = Math.max(1, Math.ceil(Number(tech1SpecialEventState.bracket?.bracketSize || 0) / pageSize));
+  const range = getTech1MatchSlotRange(match);
+  return Math.min(totalPages - 1, Math.max(0, Math.floor((range.startSlot - 1) / pageSize)));
+}
+
+function syncTech1BracketPageToActiveBattle(bracket = tech1SpecialEventState.bracket) {
+  if (!bracket?.rounds?.length || !tech1StaffCanManageSpecialEvent()) return;
+  if (shouldRenderTech1UnifiedTop32Bracket(bracket)) {
+    tech1BracketDisplayPageIndex = 0;
+    return;
+  }
+  const currentMatch = getTech1CurrentJudgeMatch(bracket, bracket.tech1JudgeControl);
+  if (!currentMatch) return;
+  const displayWindow = getBracketDisplayWindow(bracket, {
+    pageSize: TECH1_BRACKET_DISPLAY_PAGE_SIZE,
+    pageIndex: tech1BracketDisplayPageIndex,
+    showByes: true,
+  });
+  const range = getTech1MatchSlotRange(currentMatch);
+  const visible = range.startSlot <= displayWindow.endSlot && range.endSlot >= displayWindow.startSlot;
+  if (!visible) {
+    tech1BracketDisplayPageIndex = getTech1BracketPageIndexForMatch(currentMatch, displayWindow.pageSize || TECH1_BRACKET_DISPLAY_PAGE_SIZE);
+  }
+}
+
+function buildTech1SoloStyleRounds(bracket = null) {
+  if (!bracket?.rounds?.length || !bracket?.matches) return [];
+  const visibleIds = new Set(getTech1DisplayMatches(bracket).map((match) => match.id));
+  return bracket.rounds
+    .map((round) => {
+      const matches = (round.matchIds || [])
+        .map((matchId) => bracket.matches[matchId])
+        .filter((match) => match && visibleIds.has(match.id))
+        .map((match) => ({
+          id: match.id,
+          tech1MatchId: match.id,
+          left: toTech1SoloBracketParticipant(match.driverA),
+          right: toTech1SoloBracketParticipant(match.driverB),
+          winner: toTech1SoloBracketParticipant(getTech1MatchWinnerDriver(match)),
+          resultStatus: match.resultStatus,
+          round: match.round,
+          roundName: match.roundName,
+          matchNumber: match.matchNumber,
+        }));
+      return {
+        name: round.name,
+        matches,
+      };
+    })
+    .filter((round) => round.matches.length);
+}
+
+function renderTech1SoloStyleSlot(match, side, driver, align, options = {}) {
+  const actualWinner = match?.winner || null;
+  const isFinalMatch = Boolean(options.isFinalMatch);
+  const shouldHideWinner = Boolean(options.hideWinnerUntilReveal && actualWinner && !options.winnerRevealed);
+  const finalWinnerHidden = Boolean(isFinalMatch && shouldHideWinner);
+  const visibleWinner = shouldHideWinner ? null : actualWinner;
+  const selected = Boolean(driver && visibleWinner && participantKey(driver) === participantKey(visibleWinner));
+  const loser = Boolean(driver && visibleWinner && !selected);
+  const canChoose = Boolean(options.canChoose && driver && match?.left && match?.right && !actualWinner);
+  const canRetract = Boolean(options.isStaff && selected && actualWinner && match?.tech1MatchId && match?.resultStatus !== "bye" && !shouldHideWinner);
+  const slotClasses = `main-battle-slot tech1-no-seed-slot ${selected ? "selected-slot" : ""}`.trim();
+  const actionAttrs = canRetract
+    ? `data-tech1-action="retract-winner" data-match-id="${escapeAttributeValue(match.tech1MatchId)}" title="Retract winner and rerun this battle"`
+    : canChoose
+    ? `data-tech1-action="record-winner" data-match-id="${escapeAttributeValue(match.tech1MatchId)}" data-winner-id="${escapeAttributeValue(driver.id)}"`
+    : "";
+  const disabledHtml = (canChoose || canRetract) ? "" : "disabled";
+
+  if (!driver) {
+    const isFirstRoundEmpty = Number(match?.round || 1) <= 1;
+    const emptyLabel = options.emptyLabel || (isFirstRoundEmpty ? "Bye" : "Pending");
+    const emptyTitle = options.emptyTitle || (isFirstRoundEmpty ? "First-round bye" : "Awaiting winner from an earlier round");
+    return `
+      <div class="main-battle-slot empty-slot ${isFirstRoundEmpty ? "bye-slot" : "pending-slot"}">
+        <button class="slot-button empty" type="button" disabled title="${escapeAttributeValue(emptyTitle)}"><span class="slot-name">${escapeHtml(emptyLabel)}</span></button>
+      </div>
+    `;
+  }
+
+  const teamMarkup = getTech1BracketParticipantSecondaryLine(driver)
+    ? `<span class="slot-team">${escapeHtml(getTech1BracketParticipantSecondaryLine(driver))}</span>`
+    : "";
+  const button = `
+    <button class="slot-button ${selected ? "selected" : ""} ${loser ? "loser" : ""} ${canRetract ? "retractable-winner" : ""}" type="button" ${actionAttrs} ${disabledHtml}>
+      <span class="slot-name">${escapeHtml(formatDriverDisplayName(driver))}</span>
+      ${teamMarkup}
+    </button>
+  `;
+  return `<div class="${slotClasses}">${button}</div>`;
+}
+
+function renderTech1SoloStyleBattle(match, align, options = {}) {
+  const isActiveRound = !options.activeRound || Number(match?.round || 0) === Number(options.activeRound);
+  const isCurrentMatch = Boolean(options.currentMatchId && match?.tech1MatchId && match.tech1MatchId === options.currentMatchId);
+  const canChoose = Boolean(options.isStaff && isActiveRound && match.left && match.right && !match.winner);
+  return `
+    <article class="main-battle ${align} ${isCurrentMatch ? "current-tech1-battle" : ""}" ${isCurrentMatch ? 'data-current-battle="true"' : ""}>
+      <div class="main-battle-stack">
+        ${renderTech1SoloStyleSlot(match, "left", match.left, align, { ...options, canChoose })}
+        ${renderTech1SoloStyleSlot(match, "right", match.right, align, { ...options, canChoose })}
+      </div>
+    </article>
+  `;
+}
+
+function renderTech1SoloStyleFinalBattle(match, roundIndex, options = {}) {
+  const isActiveRound = !options.activeRound || Number(match?.round || 0) === Number(options.activeRound);
+  const isCurrentMatch = Boolean(options.currentMatchId && match?.tech1MatchId && match.tech1MatchId === options.currentMatchId);
+  const lockFinalForThirdPlace = Boolean(options.lockFinalForThirdPlace && !match?.winner);
+  const canChoose = Boolean(options.isStaff && isActiveRound && !lockFinalForThirdPlace && match?.left && match?.right && !match?.winner);
+  const headLabel = lockFinalForThirdPlace
+    ? "Final Locked (Run 3rd Place First)"
+    : (match?.winner && !options.winnerRevealed ? "Final Reveal Pending" : "Final Battle");
+  return `
+    <article class="main-battle center final-center ${isCurrentMatch ? "current-tech1-battle" : ""}" ${isCurrentMatch ? 'data-current-battle="true"' : ""}>
+      <div class="final-battle-card">
+        <div class="final-battle-head">${headLabel}</div>
+        <div class="final-battle-body">
+          ${renderTech1SoloStyleSlot(match, "left", match?.left, "center", { ...options, canChoose, isFinalMatch: true })}
+          <div class="final-vs">VS</div>
+          ${renderTech1SoloStyleSlot(match, "right", match?.right, "center", { ...options, canChoose, isFinalMatch: true })}
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+function renderTech1SoloStyleThirdPlaceBattle(match = null, options = {}) {
+  const displayMatch = {
+    tech1MatchId: match?.id || TECH1_THIRD_PLACE_MATCH_ID,
+    left: toTech1SoloBracketParticipant(match?.driverA || match?.left),
+    right: toTech1SoloBracketParticipant(match?.driverB || match?.right),
+    winner: toTech1SoloBracketParticipant(getTech1MatchWinnerDriver(match)),
+    round: match?.round || 0,
+    roundName: match?.roundName || "3rd Place",
+    matchNumber: match?.matchNumber || 1,
+  };
+  const isCurrentMatch = Boolean(options.currentMatchId && displayMatch.tech1MatchId && displayMatch.tech1MatchId === options.currentMatchId);
+  const canChoose = Boolean(options.isStaff && displayMatch.left && displayMatch.right && !displayMatch.winner);
+  return `
+    <article class="main-battle center placement-center tech1-third-place-center ${isCurrentMatch ? "current-tech1-battle" : ""}" ${isCurrentMatch ? 'data-current-battle="true"' : ""}>
+      <div class="final-battle-card third-place-card tech1-third-place-card">
+        <div class="final-battle-head">3rd Place Battle</div>
+        <div class="final-battle-body">
+          ${renderTech1SoloStyleSlot(displayMatch, "left", displayMatch.left, "center", { ...options, canChoose, emptyLabel: "Pending", emptyTitle: "Waiting for semifinal loser" })}
+          <div class="final-vs">VS</div>
+          ${renderTech1SoloStyleSlot(displayMatch, "right", displayMatch.right, "center", { ...options, canChoose, emptyLabel: "Pending", emptyTitle: "Waiting for semifinal loser" })}
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+function tech1FinalMatchHasEntrants(match = null) {
+  return Boolean(match?.left || match?.right || match?.winner);
+}
+
+function renderTech1SoloStyleFinalDestination(displayWindow = {}) {
+  const groupNumber = Number(displayWindow.pageIndex || 0) + 1;
+  return `
+    <article class="main-battle center final-center">
+      <div class="final-battle-card tech1-final-destination-card">
+        <div class="final-battle-head">True Final Battle</div>
+        <div class="tech1-final-destination-body">
+          <strong>Not a group final</strong>
+          <span>All groups feed here.</span>
+          <small>Group ${escapeHtml(groupNumber)} only shows slots ${escapeHtml(displayWindow.startSlot)}-${escapeHtml(displayWindow.endSlot)}.</small>
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+function renderTech1SoloStyleBracketBoard(bracket = null, options = {}) {
+  if (!bracket?.rounds?.length || !bracket?.matches) {
+    return `<div class="empty-state">The randomized battle bracket has not been generated yet.</div>`;
+  }
+  bracket = normalizeTech1ThirdPlaceMatch(bracket);
+
+  const rounds = buildTech1SoloStyleRounds(bracket);
+  if (!rounds.length) return `<div class="empty-state">No Tech 1 bracket matches are visible in this group.</div>`;
+
+  const displayWindow = getTech1CurrentDisplayWindow(bracket);
+  const pageTransitionClass = consumeTech1BracketPageTransition(displayWindow, bracket);
+  const bracketMode = displayWindow.unifiedTop32 ? "top32" : "grouped";
+  const winnerRevealed = isTech1FinalWinnerVisible(bracket);
+  const podiumRevealState = getTech1PodiumRevealState(bracket);
+  const activeRound = getTech1ActiveRoundNumber(bracket);
+  const currentMatchId = getTech1CurrentJudgeMatch(bracket, bracket.tech1JudgeControl)?.id || "";
+  const finalRound = rounds[rounds.length - 1];
+  const finalMatch = finalRound?.matches?.[0] || null;
+  const thirdPlaceMatch = bracket.thirdPlaceMatch || buildTech1ThirdPlaceMatch(bracket);
+  const thirdPlaceLockedIn = Boolean(thirdPlaceMatch?.driverA && thirdPlaceMatch?.driverB && !thirdPlaceMatch?.winnerId);
+  const podiumRevealCard = renderTech1PodiumRevealCard(bracket);
+  const shouldShowFinalBattle = displayWindow.totalPages <= 1 || tech1FinalMatchHasEntrants(finalMatch);
+  const sideRounds = rounds.slice(0, -1);
+  const isFullscreen = document.body.classList.contains("bracket-fullscreen");
+  const roundWidth = 170;
+  const finalCardWidth = 210;
+  const slotHeight = isFullscreen ? 36 : 36;
+  const stackGap = isFullscreen ? 6 : 8;
+  const baseMatchHeight = slotHeight * 2 + stackGap;
+  const boardGap = 10;
+
+  if (rounds.length === 1) {
+    const singleFinalTop = 0;
+    const singleThirdTop = singleFinalTop + baseMatchHeight + 28;
+    const singleCenterMinHeight = Math.max(singleThirdTop + baseMatchHeight + 218, 420);
+    const singleBoardHeight = Math.max(360, singleCenterMinHeight);
+    return `
+      <div class="tech1-bracket-window tech1-single-stage-window ${pageTransitionClass}" data-bracket-mode="${escapeAttributeValue(bracketMode)}" data-page-index="${escapeAttributeValue(displayWindow.pageIndex)}">
+        ${renderTech1BracketSponsorBackdrop(bracket, displayWindow)}
+        ${renderTech1BracketModeNotice(bracket, displayWindow)}
+        ${renderTech1SoloStylePager(displayWindow, bracket)}
+        <div class="main-board-canvas" data-natural-width="320" data-natural-height="${singleBoardHeight}" style="width: 320px; min-width: 320px; height: ${singleBoardHeight}px;">
+          <div class="main-board-scale-shell">
+            <div class="main-board-grid" style="grid-template-columns: 1fr;">
+              <div class="center-stage-stack tech1-center-stage-stack" style="--center-stage-min-height:${singleCenterMinHeight}px; --center-stage-final-top:${singleFinalTop}px; --center-stage-third-top:${singleThirdTop}px;">
+                ${renderTech1SoloStyleFinalBattle(finalRound.matches[0], 0, {
+                  ...options,
+                  winnerRevealed: Boolean(podiumRevealState[1]),
+                  hideWinnerUntilReveal: true,
+                  lockFinalForThirdPlace: thirdPlaceLockedIn,
+                  activeRound,
+                  currentMatchId,
+                })}
+                ${renderTech1SoloStyleThirdPlaceBattle(thirdPlaceMatch, {
+                  ...options,
+                  winnerRevealed: Boolean(podiumRevealState[3]),
+                  hideWinnerUntilReveal: true,
+                  activeRound,
+                  currentMatchId,
+                })}
+                ${podiumRevealCard}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  const leftRounds = sideRounds.map((round) => round.matches.slice(0, Math.floor(round.matches.length / 2)));
+  const rightRounds = sideRounds.map((round) => round.matches.slice(Math.floor(round.matches.length / 2)));
+  const rightRoundsReversed = [...rightRounds].reverse();
+  const sideMatchCount = Math.max(leftRounds[0]?.length || 0, rightRounds[0]?.length || 0, 1);
+  const metrics = getTech1WindowedRoundMetrics(sideRounds.length, sideMatchCount, {
+    slotHeight,
+    stackGap,
+    firstGap: 10,
+  });
+  const centerLabel = shouldShowFinalBattle ? "Final" : "True Final";
+  const labelColumns = [...sideRounds.map((round) => round.name), centerLabel, ...[...sideRounds].reverse().map((round) => round.name)];
+  const gridTemplate = `${Array(sideRounds.length).fill(`${roundWidth}px`).join(" ")} ${finalCardWidth}px ${Array(sideRounds.length).fill(`${roundWidth}px`).join(" ")}`;
+  const columnCount = sideRounds.length * 2 + 1;
+  const boardWidth = sideRounds.length * roundWidth * 2 + finalCardWidth + Math.max(columnCount - 1, 0) * boardGap;
+  const boardHeight = sideMatchCount * baseMatchHeight + Math.max(sideMatchCount - 1, 0) * (metrics[0]?.gap || 0);
+  const eliteStageIndex = Math.max(sideRounds.length - 2, 0);
+  const finalTop = (metrics[eliteStageIndex] || { offset: 0 }).offset;
+  const thirdTop = finalTop + baseMatchHeight + Math.min(Math.max(metrics[eliteStageIndex]?.gap || 0, 18), 34);
+  const leftMarkup = leftRounds.map((matches, stageIndex) => `
+    <section class="main-board-round" data-round-number="${escapeAttributeValue(matches[0]?.round || stageIndex + 1)}" style="--round-gap: ${metrics[stageIndex].gap}px; --round-offset: ${metrics[stageIndex].offset}px;">
+      <div class="main-board-round-matches">${matches.map((match) => renderTech1SoloStyleBattle(match, "left", { ...options, winnerRevealed, activeRound, currentMatchId })).join("")}</div>
+    </section>
+  `).join("");
+  const rightMarkup = rightRoundsReversed.map((matches, reverseIndex) => {
+    const stageIndex = sideRounds.length - 1 - reverseIndex;
+    return `
+      <section class="main-board-round" data-round-number="${escapeAttributeValue(matches[0]?.round || stageIndex + 1)}" style="--round-gap: ${metrics[stageIndex].gap}px; --round-offset: ${metrics[stageIndex].offset}px;">
+        <div class="main-board-round-matches">${matches.map((match) => renderTech1SoloStyleBattle(match, "right", { ...options, winnerRevealed, activeRound, currentMatchId })).join("")}</div>
+      </section>
+    `;
+  }).join("");
+
+  return `
+    <div class="tech1-bracket-window ${pageTransitionClass}" data-bracket-mode="${escapeAttributeValue(bracketMode)}" data-page-index="${escapeAttributeValue(displayWindow.pageIndex)}">
+      ${renderTech1BracketSponsorBackdrop(bracket, displayWindow)}
+      ${renderTech1BracketModeNotice(bracket, displayWindow)}
+      ${renderTech1SoloStylePager(displayWindow, bracket)}
+      <div class="main-board-canvas" data-natural-width="${boardWidth}" data-natural-height="${boardHeight}" style="width: ${boardWidth}px; min-width: ${boardWidth}px; height: ${boardHeight}px;">
+        <div class="main-board-scale-shell">
+          <div class="main-board-round-labels" style="grid-template-columns: ${gridTemplate};">${labelColumns.map((label) => `<div class="main-board-label">${escapeHtml(label)}</div>`).join("")}</div>
+          <div class="main-board-grid" style="grid-template-columns: ${gridTemplate};">
+            <div class="main-board-side left" style="grid-column: 1 / span ${sideRounds.length}; grid-template-columns: repeat(${sideRounds.length}, ${roundWidth}px);">${leftMarkup}</div>
+            <div style="grid-column: ${sideRounds.length + 1} / span 1; height: ${boardHeight}px;">
+              <div class="center-stage-stack tech1-center-stage-stack" style="--center-stage-min-height:${boardHeight}px; --center-stage-final-top:${finalTop}px; --center-stage-third-top:${thirdTop}px;">
+                ${shouldShowFinalBattle
+                  ? renderTech1SoloStyleFinalBattle(finalMatch, rounds.length - 1, {
+                    ...options,
+                    winnerRevealed: Boolean(podiumRevealState[1]),
+                    hideWinnerUntilReveal: true,
+                    lockFinalForThirdPlace: thirdPlaceLockedIn,
+                    activeRound,
+                    currentMatchId,
+                  })
+                  : renderTech1SoloStyleFinalDestination(displayWindow)}
+                ${renderTech1SoloStyleThirdPlaceBattle(thirdPlaceMatch, {
+                  ...options,
+                  winnerRevealed: Boolean(podiumRevealState[3]),
+                  hideWinnerUntilReveal: true,
+                  activeRound,
+                  currentMatchId,
+                })}
+                ${podiumRevealCard}
+              </div>
+            </div>
+            <div class="main-board-side right" style="grid-column: ${sideRounds.length + 2} / span ${sideRounds.length}; grid-template-columns: repeat(${sideRounds.length}, ${roundWidth}px);">${rightMarkup}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderTech1BracketSponsorBackdrop(bracket = null, displayWindow = {}) {
+  const activeRoundName = String(getTech1RoundFlowSummary(bracket)?.activeRoundName || "").trim().toLowerCase();
+  const showTop64OrTop32Backdrop = activeRoundName === "top 64" || activeRoundName === "top 32";
+  const shouldShowBackdrop = Boolean(
+    displayWindow?.unifiedTop32
+    || shouldRenderTech1UnifiedTop32Bracket(bracket)
+    || showTop64OrTop32Backdrop
+  );
+  if (!shouldShowBackdrop || !TECH1_BRACKET_SPONSOR_LOGOS.length) return "";
+  const leftClusterLogos = TECH1_BRACKET_SPONSOR_LOGOS.slice(0, 10);
+  const rightClusterLogos = TECH1_BRACKET_SPONSOR_LOGOS.slice(10);
+  const renderSponsorLogoItem = (logo, index, offset = 0) => `
+    <div class="tech1-sponsor-backdrop-item">
+      <img
+        src="${escapeAttributeValue(logo.src)}"
+        alt="${escapeAttributeValue(logo.alt || "Sponsor logo")}"
+        data-sponsor-index="${escapeAttributeValue(offset + index + 1)}"
+        ${logo.key ? `data-sponsor-logo="${escapeAttributeValue(logo.key)}"` : ""}
+        loading="lazy"
+        decoding="async"
+      />
+    </div>
+  `;
+  return `
+    <section class="tech1-sponsor-backdrop" aria-hidden="true">
+      <div class="tech1-sponsor-backdrop-lane tech1-sponsor-backdrop-lane-left">
+        ${leftClusterLogos.map((logo, index) => renderSponsorLogoItem(logo, index, 0)).join("")}
+      </div>
+      <div class="tech1-sponsor-backdrop-lane tech1-sponsor-backdrop-lane-right">
+        ${rightClusterLogos.map((logo, index) => renderSponsorLogoItem(logo, index, leftClusterLogos.length)).join("")}
+      </div>
+    </section>
+  `;
+}
+
+function renderTech1SponsorFooter() {
+  return `
+    <section class="tech1-sponsor-footer" aria-label="Tech 1 event sponsors">
+      <p class="tech1-sponsor-footer-title">Brought to you by</p>
+      <div class="tech1-sponsor-footer-grid">
+        ${TECH1_BRACKET_SPONSOR_LOGOS.map((logo, index) => `
+          <div class="tech1-sponsor-footer-item">
+            <img
+              src="${escapeAttributeValue(logo.src)}"
+              alt="${escapeAttributeValue(logo.alt || "Sponsor logo")}"
+              data-sponsor-index="${escapeAttributeValue(index + 1)}"
+              ${logo.key ? `data-sponsor-logo="${escapeAttributeValue(logo.key)}"` : ""}
+            />
+          </div>
+        `).join("")}
+      </div>
+    </section>
+  `;
+}
+
+function renderTech1BracketModeNotice(bracket = null, displayWindow = {}) {
+  return "";
+}
+
+function renderTech1RoundFlowNotice(bracket = null, displayWindow = {}) {
+  const summary = getTech1RoundFlowSummary(bracket);
+  if (!summary.activeRound) {
+    return `
+      <div class="tech1-round-flow-note">
+        <strong>${summary.activeRoundName === "Complete" ? "Bracket complete" : "Round flow"}</strong>
+        <span>${summary.activeRoundName === "Complete" ? "All battles are finished." : "Generate the bracket to start the first round."}</span>
+      </div>
+    `;
+  }
+  const nextRoundCopy = summary.nextRoundName ? ` before ${summary.nextRoundName} unlocks` : "";
+  const groupCopy = displayWindow.totalPages > 1
+    ? ` Work this round by groups: Group 1 to Group ${displayWindow.totalPages}.`
+    : "";
+  return `
+    <div class="tech1-round-flow-note">
+      <strong>Active round: ${escapeHtml(summary.activeRoundName)}</strong>
+      <span>${escapeHtml(summary.completedInRound)}/${escapeHtml(summary.totalInRound)} complete. Finish all ${escapeHtml(summary.activeRoundName)} battles${escapeHtml(nextRoundCopy)}.${escapeHtml(groupCopy)}</span>
+    </div>
+  `;
+}
+
+function renderTech1SoloStylePager(displayWindow, bracket = null) {
+  if (!displayWindow.totalPages || displayWindow.totalPages <= 1) return renderTech1RoundFlowNotice(bracket, displayWindow);
+  const pageIndex = displayWindow.pageIndex || 0;
+  const previousIndex = Math.max(0, pageIndex - 1);
+  const nextIndex = Math.min(displayWindow.totalPages - 1, pageIndex + 1);
+  return `
+    <div class="tech1-bracket-pager" role="navigation" aria-label="Tech 1 bracket slot groups">
+      ${renderTech1RoundFlowNotice(bracket, displayWindow)}
+      <div class="tech1-bracket-pager-title">
+        <span>Bracket Group</span>
+        <strong>Viewing slots ${escapeHtml(displayWindow.startSlot)}-${escapeHtml(displayWindow.endSlot)} of ${escapeHtml(displayWindow.totalSlots)}</strong>
+      </div>
+      <div class="tech1-bracket-pager-toolbar">
+        <button class="micro-button" type="button" data-tech1-action="bracket-page" data-page-index="${previousIndex}" ${pageIndex === 0 ? "disabled" : ""}>Previous</button>
+        <div class="tech1-bracket-group-buttons">
+          ${Array.from({ length: displayWindow.totalPages }, (_, index) => `
+            <button class="micro-button ${index === pageIndex ? "button-accent" : ""}" type="button" data-tech1-action="bracket-page" data-page-index="${index}" aria-current="${index === pageIndex ? "page" : "false"}">Group ${index + 1}</button>
+          `).join("")}
+        </div>
+        <button class="micro-button" type="button" data-tech1-action="bracket-page" data-page-index="${nextIndex}" ${pageIndex >= displayWindow.totalPages - 1 ? "disabled" : ""}>Next</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderTech1BracketBrandForCompetition() {
+  const branding = TECH1DRIFT_ANNIVERSARY_CONFIG.branding || {};
+  const lightLogo = branding.logoLight || branding.logo || "./assets/tech1drift-vector-transparent-black.svg";
+  const darkLogo = branding.logoDark || branding.logo || "./assets/tech1drift-vector-transparent.svg";
+  const alt = branding.logoAlt || "Tech 1 Drift logo";
+  return `
+    <div class="tech1-bracket-brand">
+      <span>Main Event</span>
+      <img class="tech1-logo-light" src="${escapeAttributeValue(lightLogo)}" alt="${escapeAttributeValue(alt)}" />
+      <img class="tech1-logo-dark" src="${escapeAttributeValue(darkLogo)}" alt="${escapeAttributeValue(alt)}" />
+      <strong>Anniversary</strong>
+    </div>
+  `;
+}
+
+function getTech1BattleFlowMatches(bracket = null) {
+  if (!bracket?.rounds?.length || !bracket?.matches) return [];
+  const normalizedBracket = normalizeTech1ThirdPlaceMatch(bracket);
+  const control = normalizedBracket.tech1JudgeControl || null;
+  const current = getTech1CurrentJudgeMatch(normalizedBracket, control);
+  const playable = getTech1PlayableMatches(normalizedBracket);
+  if (!current) return playable.slice(0, 2);
+  const nextPlayable = playable.find((match) => match.id !== current.id) || null;
+  return [
+    current,
+    nextPlayable,
+  ];
+}
+
+function getTech1BattlePresentationSignature(match = null) {
+  if (!match?.driverA || !match?.driverB) return "";
+  const entry = getTech1MatchEntry(match);
+  return [
+    match.id || "",
+    match.driverA?.id || "",
+    match.driverB?.id || "",
+    entry?.title || "",
+    entry?.meta || "",
+  ].join("|");
+}
+
+function snapshotTech1VsMatch(match = null, options = {}) {
+  const allowPartial = options?.allowPartial === true;
+  if (!match?.driverA && !match?.driverB) return null;
+  if (!allowPartial && (!match?.driverA || !match?.driverB)) return null;
+  const entry = getTech1MatchEntry(match);
+  return {
+    id: match.id || "",
+    driverA: {
+      id: match.driverA?.id || "",
+      name: match.driverA?.name || "",
+      teamName: match.driverA?.teamName || "",
+    },
+    driverB: {
+      id: match.driverB?.id || "",
+      name: match.driverB?.name || "",
+      teamName: match.driverB?.teamName || "",
+    },
+    title: entry?.title || "Current Battle",
+    meta: entry?.meta || "",
+  };
+}
+
+function getTech1VsDisplayMatchData(matchLike = null) {
+  if (!matchLike?.driverA && !matchLike?.driverB) return null;
+  const hasDirectTitle = typeof matchLike.title === "string" || typeof matchLike.meta === "string";
+  if (hasDirectTitle) {
+    return {
+      title: matchLike.title || "Current Battle",
+      meta: matchLike.meta || "",
+      driverA: matchLike.driverA,
+      driverB: matchLike.driverB,
+    };
+  }
+  const entry = getTech1MatchEntry(matchLike);
+  return {
+    title: entry?.title || "Current Battle",
+    meta: entry?.meta || "",
+    driverA: matchLike.driverA,
+    driverB: matchLike.driverB,
+  };
+}
+
+function clearTech1VsBattlePresentationState() {
+  tech1VsOverlaySignature = "";
+  tech1VsCurrentMatchSnapshot = null;
+  tech1VsNextMatchSnapshot = null;
+  tech1VsPreviousCurrentMatchSnapshot = null;
+  tech1VsPromotingMatchSnapshot = null;
+  tech1VsTransitionUntil = 0;
+  tech1VsNextFadeUntil = 0;
+  tech1VsPresentationPhase = "idle";
+  tech1VsPendingPromotion = null;
+  if (tech1VsOverlayHideTimer) {
+    clearTimeout(tech1VsOverlayHideTimer);
+    tech1VsOverlayHideTimer = null;
+  }
+}
+
+function isTech1VsRevealBlocking(bracket = tech1SpecialEventState.bracket) {
+  const control = getTech1JudgeControl(bracket);
+  if (control?.status === "admin_decision" || control?.status === "review_hold") return true;
+  if (competitionDecisionPanel && !competitionDecisionPanel.classList.contains("hidden")) return true;
+  return false;
+}
+
+function beginTech1VsPromotionTransition(fromSnapshot = null, toSnapshot = null) {
+  if (!fromSnapshot?.driverA || !fromSnapshot?.driverB) return false;
+  if (!toSnapshot?.driverA || !toSnapshot?.driverB) return false;
+  tech1VsPreviousCurrentMatchSnapshot = fromSnapshot;
+  tech1VsPromotingMatchSnapshot = toSnapshot;
+  tech1VsTransitionUntil = Date.now() + TECH1_VS_TRANSITION_DURATION_MS;
+  tech1VsNextFadeUntil = tech1VsTransitionUntil + 420;
+  tech1VsPresentationPhase = "promotingNextBattle";
+  if (tech1VsOverlayHideTimer) {
+    clearTimeout(tech1VsOverlayHideTimer);
+    tech1VsOverlayHideTimer = null;
+  }
+  tech1VsOverlayHideTimer = setTimeout(() => {
+    tech1VsOverlayHideTimer = null;
+    if (Date.now() >= tech1VsTransitionUntil) {
+      tech1VsPreviousCurrentMatchSnapshot = null;
+      tech1VsPromotingMatchSnapshot = null;
+      tech1VsTransitionUntil = 0;
+      tech1VsNextFadeUntil = 0;
+      tech1VsPresentationPhase = "ready";
+    }
+    if (isTech1AnniversaryMode(activeEventMeta) && getActiveViewName() === "bracket") {
+      renderBracket();
+    }
+  }, TECH1_VS_TRANSITION_DURATION_MS + 80);
+  return true;
+}
+
+function syncTech1VsBattlePresentation(bracket = tech1SpecialEventState.bracket) {
+  if (!tech1VsPresentationEnabled) {
+    clearTech1VsBattlePresentationState();
+    return;
+  }
+  const [currentMatch, nextMatch] = getTech1BattleFlowMatches(bracket);
+  const signature = getTech1BattlePresentationSignature(currentMatch);
+  if (!signature) {
+    clearTech1VsBattlePresentationState();
+    return;
+  }
+  const revealBlocking = isTech1VsRevealBlocking(bracket);
+  const previousSignature = tech1VsOverlaySignature;
+  const currentSnapshot = snapshotTech1VsMatch(currentMatch);
+  const nextSnapshot = snapshotTech1VsMatch(nextMatch, { allowPartial: true });
+  const changed = previousSignature && previousSignature !== signature;
+  let transitionInProgress = Date.now() < tech1VsTransitionUntil;
+  if (changed) {
+    const promotionFrom = tech1VsCurrentMatchSnapshot || currentSnapshot;
+    const promotionTo = tech1VsNextMatchSnapshot || currentSnapshot;
+    if (revealBlocking || transitionInProgress) {
+      tech1VsPendingPromotion = {
+        signature,
+        fromSnapshot: promotionFrom,
+        toSnapshot: promotionTo,
+      };
+      tech1VsPresentationPhase = "reveal";
+    } else {
+      beginTech1VsPromotionTransition(promotionFrom, promotionTo);
+      transitionInProgress = true;
+      tech1VsPendingPromotion = null;
+    }
+  }
+  tech1VsOverlaySignature = signature;
+  tech1VsCurrentMatchSnapshot = currentSnapshot;
+  tech1VsNextMatchSnapshot = nextSnapshot;
+  if (!revealBlocking && !transitionInProgress && tech1VsPendingPromotion) {
+    const pending = tech1VsPendingPromotion;
+    tech1VsPendingPromotion = null;
+    beginTech1VsPromotionTransition(
+      pending?.fromSnapshot || tech1VsCurrentMatchSnapshot || currentSnapshot,
+      pending?.toSnapshot || tech1VsNextMatchSnapshot || nextSnapshot || currentSnapshot,
+    );
+    transitionInProgress = true;
+  }
+  if (!revealBlocking && !transitionInProgress) {
+    tech1VsPresentationPhase = "ready";
+  }
+}
+
+function setTech1VsPresentationEnabled(nextEnabled, { persist = true, rerender = true } = {}) {
+  tech1VsPresentationEnabled = nextEnabled !== false;
+  if (persist) {
+    try {
+      localStorage.setItem(TECH1_VS_PRESENTATION_STORAGE_KEY, tech1VsPresentationEnabled ? "1" : "0");
+    } catch (_) {}
+  }
+  if (!tech1VsPresentationEnabled) {
+    clearTech1VsBattlePresentationState();
+  } else {
+    syncTech1VsBattlePresentation(tech1SpecialEventState.bracket);
+  }
+  if (rerender) {
+    renderBracket();
+    renderTech1EventControlWorkflow();
+  }
+}
+
+function renderTech1VsPresentationControls(isStaff = false) {
+  if (!isStaff) return "";
+  return "";
+}
+
+function isTech1BracketFullscreenActive() {
+  return document.body.classList.contains("bracket-fullscreen")
+    || document.body.dataset.tech1PersistFullscreen === "true";
+}
+
+function syncTech1VsOverlayAnchor() {
+  if (typeof document === "undefined") return;
+  const root = document.documentElement;
+  if (!isTech1AnniversaryMode(activeEventMeta) || getActiveViewName() !== "bracket") {
+    root.style.removeProperty("--tech1-battle-center-x");
+    root.style.removeProperty("--tech1-battle-current-top");
+    return;
+  }
+  const brand = document.querySelector("#view-bracket .tech1-bracket-brand");
+  if (!brand) return;
+  const logo = Array.from(brand.querySelectorAll("img"))
+    .find((img) => img instanceof HTMLElement && img.getBoundingClientRect().width > 0);
+  const anchorRect = (logo || brand).getBoundingClientRect();
+  const brandRect = brand.getBoundingClientRect();
+  if ((!anchorRect.width && !anchorRect.height) || (!brandRect.width && !brandRect.height)) return;
+  const centerX = anchorRect.left + (anchorRect.width / 2);
+  const spacing = Math.max(4, Math.min(10, Math.round((window.innerHeight || 900) * 0.008)));
+  const topY = brandRect.bottom + spacing;
+  if (Number.isFinite(centerX)) {
+    root.style.setProperty("--tech1-battle-center-x", `${centerX.toFixed(2)}px`);
+  }
+  if (Number.isFinite(topY)) {
+    root.style.setProperty("--tech1-battle-current-top", `${topY.toFixed(2)}px`);
+  }
+}
+
+function shouldRenderTech1PersistentVsPanel() {
+  return false;
+}
+
+function renderTech1CurrentBattleVsPanel(match = null, options = {}) {
+  const compact = options.compact !== false;
+  const extraClass = options.extraClass ? ` ${options.extraClass}` : "";
+  const panelLabel = options.panelLabel || "Current Battle";
+  const roleClass = options.roleClass ? ` ${options.roleClass}` : "";
+  const display = getTech1VsDisplayMatchData(match);
+  const leadName = String(formatDriverDisplayName(display?.driverA) || display?.driverA?.name || "TBD").trim();
+  const chaseName = String(formatDriverDisplayName(display?.driverB) || display?.driverB?.name || "TBD").trim();
+  const viewportWidth = typeof window !== "undefined" ? Math.max(760, window.innerWidth || 1920) : 1920;
+  const viewportPaddingPx = compact ? 64 : 64;
+  const maxPanelWidth = Math.max(compact ? 560 : 720, viewportWidth - viewportPaddingPx);
+  let driverFontPx = compact ? 27 : 38;
+  const driverCharFactor = compact ? 0.61 : 0.64;
+  const sidePaddingPx = compact ? 24 : 32;
+  const dividerGapPx = compact ? 88 : 104;
+  const panelChromePx = compact ? 76 : 108;
+  let leadWidthPx = Math.ceil(leadName.length * driverFontPx * driverCharFactor) + sidePaddingPx;
+  let chaseWidthPx = Math.ceil(chaseName.length * driverFontPx * driverCharFactor) + sidePaddingPx;
+  let desiredPanelWidth = Math.ceil(leadWidthPx + chaseWidthPx + dividerGapPx + panelChromePx);
+  while (desiredPanelWidth > maxPanelWidth && driverFontPx > (compact ? 13 : 18)) {
+    driverFontPx -= 1;
+    leadWidthPx = Math.ceil(leadName.length * driverFontPx * driverCharFactor) + sidePaddingPx;
+    chaseWidthPx = Math.ceil(chaseName.length * driverFontPx * driverCharFactor) + sidePaddingPx;
+    desiredPanelWidth = Math.ceil(leadWidthPx + chaseWidthPx + dividerGapPx + panelChromePx);
+  }
+  const panelWidthPx = Math.min(maxPanelWidth, Math.max(compact ? 560 : 760, desiredPanelWidth));
+  const leadColumnPx = Math.max(compact ? 122 : 156, Math.floor(leadWidthPx));
+  const chaseColumnPx = Math.max(compact ? 122 : 156, Math.floor(chaseWidthPx));
+  const panelStyle = ` style="--tech1-vs-panel-width:${panelWidthPx}px; --tech1-vs-driver-font-size:${driverFontPx}px; --tech1-vs-lead-column-width:${leadColumnPx}px; --tech1-vs-chase-column-width:${chaseColumnPx}px;"`;
+  const classes = `tech1-current-vs-panel battle-card-shell battle-border-beam ${compact ? "is-compact" : ""}${roleClass}${extraClass}`.trim();
+  if (!match?.driverA || !match?.driverB) {
+    return `
+      <article class="${classes}"${panelStyle}>
+        <div class="battle-card-content">
+          <span class="tech1-current-vs-kicker">${escapeHtml(panelLabel)}</span>
+          <strong class="tech1-current-vs-empty">Waiting For Next Match</strong>
+        </div>
+      </article>
+    `;
+  }
+  return `
+    <article class="${classes}"${panelStyle}>
+      <div class="battle-card-content">
+        <span class="tech1-current-vs-kicker">${escapeHtml(panelLabel)}</span>
+        <strong class="tech1-current-vs-title">${escapeHtml(display?.title || "Now Battling")}</strong>
+        <div class="tech1-current-vs-drivers battle-driver-row">
+          <span class="tech1-current-vs-driver battle-driver-name lead">${escapeHtml(leadName || "Lead")}</span>
+          <span class="tech1-current-vs-divider battle-vs">VS</span>
+          <span class="tech1-current-vs-driver battle-driver-name chase">${escapeHtml(chaseName || "Chase")}</span>
+        </div>
+        <small class="tech1-current-vs-meta">${escapeHtml(display?.meta || "")}</small>
+      </div>
+    </article>
+  `;
+}
+
+function renderTech1CurrentBattleVsOverlay(match = null, options = {}) {
+  if (!tech1VsPresentationEnabled) return "";
+  if (!isTech1BracketFullscreenActive()) return "";
+  const [liveCurrentMatch, liveNextMatch] = getTech1BattleFlowMatches(tech1SpecialEventState.bracket);
+  const liveCurrentSnapshot = snapshotTech1VsMatch(liveCurrentMatch || match);
+  const liveNextSnapshot = snapshotTech1VsMatch(liveNextMatch);
+  const currentSnapshot = tech1VsCurrentMatchSnapshot || liveCurrentSnapshot;
+  const nextSnapshot = tech1VsNextMatchSnapshot || liveNextSnapshot;
+  if (!currentSnapshot?.driverA || !currentSnapshot?.driverB) return "";
+  if (tech1VsTransitionUntil && Date.now() >= tech1VsTransitionUntil) {
+    tech1VsPreviousCurrentMatchSnapshot = null;
+    tech1VsPromotingMatchSnapshot = null;
+    tech1VsTransitionUntil = 0;
+    tech1VsNextFadeUntil = 0;
+    if (tech1VsOverlayHideTimer) {
+      clearTimeout(tech1VsOverlayHideTimer);
+      tech1VsOverlayHideTimer = null;
+    }
+  }
+  const transitioning = Date.now() < tech1VsTransitionUntil
+    && tech1VsPreviousCurrentMatchSnapshot
+    && tech1VsPromotingMatchSnapshot;
+  const phaseName = transitioning
+    ? "promotingNextBattle"
+    : (tech1VsPresentationPhase || "ready");
+  if (transitioning) {
+    return `
+      <section class="tech1-current-battle-overlay is-transitioning" data-vs-phase="${escapeAttributeValue(phaseName)}" aria-live="polite" aria-label="Now battling">
+        <div class="tech1-vs-overlay-layer">
+          <div class="tech1-vs-transition-stage">
+            ${renderTech1CurrentBattleVsPanel(tech1VsPreviousCurrentMatchSnapshot, { compact: false, panelLabel: "Current Battle", roleClass: "is-current-card" })}
+            ${renderTech1CurrentBattleVsPanel(tech1VsPromotingMatchSnapshot, { compact: true, panelLabel: "Next Battle", roleClass: "is-next-card" })}
+          </div>
+        </div>
+      </section>
+    `;
+  }
+  const hasNextBattle = Boolean(nextSnapshot?.driverA && nextSnapshot?.driverB);
+  const shouldAnimateNextFade = hasNextBattle && Date.now() < tech1VsNextFadeUntil;
+  const nextBattleMarkup = hasNextBattle
+    ? renderTech1CurrentBattleVsPanel(nextSnapshot, {
+      compact: true,
+      panelLabel: "Next Battle",
+      roleClass: "is-next-card",
+      extraClass: shouldAnimateNextFade ? "is-next-fade-in" : "",
+    })
+    : "";
+  return `
+    <section class="tech1-current-battle-overlay" data-vs-phase="${escapeAttributeValue(phaseName)}" aria-live="polite" aria-label="Now battling">
+      <div class="tech1-vs-overlay-layer">
+        <div class="tech1-vs-overlay-stack ${hasNextBattle ? "has-next-battle" : ""}">
+          ${renderTech1CurrentBattleVsPanel(currentSnapshot, { compact: false, panelLabel: "Current Battle", roleClass: "is-current-card" })}
+          ${nextBattleMarkup}
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function renderTech1SoloStyleBattleFlowCard(match = null, label = "Current Battle", isCurrent = false, options = {}) {
+  if (!match?.driverA || !match?.driverB || match.winnerId) {
+    return `
+      <article class="battle-flow-card ${isCurrent ? "current" : ""} ${isCurrent ? "flow-slot-current" : "flow-slot-next"} tech1-battle-flow-card">
+        <p class="battle-flow-label">${escapeHtml(label)}</p>
+        <div class="battle-flow-empty">No battle queued yet.</div>
+      </article>
+    `;
+  }
+  const entryForMatch = getTech1MatchEntry(match);
+  const control = tech1SpecialEventState.bracket?.tech1JudgeControl || null;
+  const activeJudgeRoles = getTech1JudgeRoles(activeEventMeta);
+  const requiredVoteCount = activeJudgeRoles.length || 1;
+  const submittedVotes = activeJudgeRoles.filter((role) => ["left", "right", "omt"].includes(control?.votes?.[role])).length;
+  const meta = isCurrent
+    ? `${escapeHtml(entryForMatch?.meta || "Match")} | ${submittedVotes}/${requiredVoteCount} judge vote${requiredVoteCount === 1 ? "" : "s"}`
+    : escapeHtml(entryForMatch?.meta || "Match");
+  const canChoose = Boolean(options.isStaff && isCurrent && match.driverA && match.driverB && !match.winnerId);
+  const actionAttrsFor = (driver) => canChoose
+    ? `data-tech1-action="record-winner" data-match-id="${escapeAttributeValue(match.id)}" data-winner-id="${escapeAttributeValue(driver.id)}"`
+    : "";
+  const disabledHtml = canChoose ? "" : "disabled";
+  return `
+    <article class="battle-flow-card ${isCurrent ? "current" : ""} ${isCurrent ? "flow-slot-current" : "flow-slot-next"} tech1-battle-flow-card">
+      <p class="battle-flow-label">${escapeHtml(label)}</p>
+      <div class="battle-flow-title">${escapeHtml(entryForMatch?.title || "Tech 1 Battle")}</div>
+      <div class="battle-flow-meta">${meta}</div>
+      <div class="battle-flow-vs">
+        <button class="battle-flow-option ${isCurrent ? "current" : "preview"}" type="button" ${actionAttrsFor(match.driverA)} ${disabledHtml} aria-label="Advance ${escapeAttributeValue(match.driverA.name || "Driver A")} from current Tech 1 battle">
+          <span>Lead | ${escapeHtml(match.driverA.name || "Driver A")}</span>
+          <small>${escapeHtml(getTech1BracketParticipantSecondaryLine(match.driverA))}</small>
+        </button>
+        <button class="battle-flow-option ${isCurrent ? "current" : "preview"}" type="button" ${actionAttrsFor(match.driverB)} ${disabledHtml} aria-label="Advance ${escapeAttributeValue(match.driverB.name || "Driver B")} from current Tech 1 battle">
+          <span>Chase | ${escapeHtml(match.driverB.name || "Driver B")}</span>
+          <small>${escapeHtml(getTech1BracketParticipantSecondaryLine(match.driverB))}</small>
+        </button>
+      </div>
+    </article>
+  `;
+}
+
+function renderTech1SoloStyleBattleFlowHeader(bracket = null, options = {}) {
+  const [currentMatch] = getTech1BattleFlowMatches(bracket);
+  return `
+    <div class="bracket-header-layout tech1-bracket-header-layout">
+      <div class="bracket-flow-slot left">${renderTech1SoloStyleBattleFlowCard(currentMatch, "Current Battle", true, options)}</div>
+      <div class="bracket-header-center">
+        ${renderTech1BracketBrandForCompetition()}
+        ${shouldRenderTech1PersistentVsPanel() ? renderTech1CurrentBattleVsPanel(currentMatch, { compact: true, isStaff: options.isStaff }) : ""}
+      </div>
+    </div>
+  `;
+}
+
+function renderTech1SoloStyleNextBattleFooter(bracket = null, options = {}) {
+  const [, nextMatch] = getTech1BattleFlowMatches(bracket);
+  return `
+    <div class="tech1-next-battle-footer">
+      <div class="bracket-flow-slot right">${renderTech1SoloStyleBattleFlowCard(nextMatch, "Next Battle", false, options)}</div>
+    </div>
+  `;
+}
+
+function renderTech1WinnerRevealNoticeForCompetition(bracket = null) {
+  return "";
+}
+
+function renderTech1SoloStyleCompetitionPanel(model = {}) {
+  const privateRegistrations = model.privateRegistrations || [];
+  const bracket = model.bracket || null;
+  const isStaff = Boolean(model.isStaff);
+  const [currentMatch] = getTech1BattleFlowMatches(bracket);
+  if (isStaff) syncTech1BracketPageToActiveBattle(bracket);
+  return `
+    <section class="tech1-competition-tab-panel tech1-solo-bracket-panel ${tech1VsPresentationEnabled ? "tech1-vs-presentation-enabled" : ""}">
+      ${renderTech1WinnerRevealNoticeForCompetition(bracket)}
+      <div class="main-bracket-panel tech1-main-bracket-panel">
+        ${renderTech1VsPresentationControls(isStaff)}
+        ${renderTech1SoloStyleBattleFlowHeader(bracket, { isStaff })}
+        ${renderTech1CurrentBattleVsOverlay(currentMatch, { isStaff })}
+        ${renderTech1SoloStyleBracketBoard(bracket, { isStaff })}
+        ${renderTech1SoloStyleNextBattleFooter(bracket, { isStaff })}
+      </div>
+      ${renderTech1FullscreenPodiumRevealOverlay(bracket)}
+      ${isStaff && bracket?.rounds?.length ? `
+        <div class="tech1-bracket-reset-actions">
+          <button class="button button-danger" type="button" data-tech1-action="reset-winners">Reset Bracket</button>
+        </div>
+      ` : ""}
+    </section>
+  `;
+}
+
+function renderTech1PodiumRevealRow(place, label, driver, revealed, canReveal) {
+  const placeText = place === 1 ? "1st Place" : place === 2 ? "2nd Place" : "3rd Place";
+  const revealText = `Click to reveal (${label})`;
+  const prompt = revealed
+    ? `<strong class="tech1-podium-reveal-name">${escapeHtml(driver?.name || "TBD")}</strong>`
+    : `<span class="tech1-podium-reveal-prompt">${escapeHtml(revealText)}</span>`;
+  return `
+    <button
+      class="tech1-podium-reveal-row ${revealed ? "is-revealed" : ""} ${canReveal || revealed ? "" : "is-locked"}"
+      type="button"
+      data-tech1-action="podium-reveal-place"
+      data-place="${place}"
+      ${canReveal || revealed ? "" : "disabled"}
+      aria-label="${escapeAttributeValue(revealText)}"
+    >
+      <span class="tech1-podium-reveal-place">${placeText}</span>
+      <span class="tech1-podium-reveal-body">${prompt}</span>
+    </button>
+  `;
+}
+
+function renderTech1PodiumRevealCard(bracket = null, options = {}) {
+  if (!isTech1PodiumRevealVisible(bracket)) return "";
+  if (isTech1PodiumRevealDismissed(bracket)) return "";
+  const revealState = getTech1PodiumRevealState(bracket);
+  const podium = getTech1PodiumDrivers(bracket);
+  const hasThirdPlaceWinner = Boolean(podium.third?.id);
+  const canRevealThird = hasThirdPlaceWinner;
+  const canRevealFirst = hasThirdPlaceWinner && revealState[3];
+  const canRevealSecond = false;
+  const revealReady = isTech1PodiumRevealReady(bracket);
+  const showCloseButton = canControlTech1PodiumReveal();
+  const extraClass = options.className ? ` ${options.className}` : "";
+  return `
+    <article class="tech1-podium-reveal-card ${isTech1PodiumFullyRevealed(bracket) ? "is-complete" : ""}${extraClass}" data-tech1-podium-signature="${escapeAttributeValue(getTech1PodiumRevealSignature(bracket))}">
+      <div class="tech1-podium-reveal-head">
+        <strong>${revealReady ? "Podium Ready" : "Podium Pending"}</strong>
+        <span>${revealReady ? "Trophy reveal sequence" : "Finish 3rd place result to unlock reveal"}</span>
+      </div>
+      <div class="tech1-podium-reveal-list">
+        ${renderTech1PodiumRevealRow(1, "Winner of bracket", podium.first, revealState[1], canRevealFirst)}
+        ${renderTech1PodiumRevealRow(2, "Runner up (reveals with 1st place)", podium.second, revealState[2], canRevealSecond)}
+        ${renderTech1PodiumRevealRow(3, "3rd place winner", podium.third, revealState[3], canRevealThird)}
+      </div>
+      ${showCloseButton ? `
+        <div class="tech1-podium-reveal-actions">
+          <button class="button button-secondary" type="button" data-tech1-action="close-podium-reveal">Leave Podium Reveal</button>
+        </div>
+      ` : ""}
+    </article>
+  `;
+}
+
+function renderTech1FullscreenPodiumRevealOverlay(bracket = null) {
+  const shouldRenderInFullscreen = document.body.classList.contains("bracket-fullscreen")
+    || document.body.dataset.tech1PersistFullscreen === "true";
+  if (!shouldRenderInFullscreen) return "";
+  if (!isTech1PodiumRevealVisible(bracket)) return "";
+  const cardMarkup = renderTech1PodiumRevealCard(bracket, { className: "tech1-podium-reveal-card-fullscreen" });
+  if (!cardMarkup) return "";
+  const branding = TECH1DRIFT_ANNIVERSARY_CONFIG.branding || {};
+  const lightLogo = branding.logoLight || branding.logo || "./assets/tech1drift-vector-transparent-black.svg";
+  const darkLogo = branding.logoDark || branding.logo || "./assets/tech1drift-vector-transparent.svg";
+  const alt = branding.logoAlt || "Tech 1 Drift logo";
+  return `
+    <div class="tech1-podium-fullscreen-shell" aria-live="polite">
+      <div class="tech1-podium-fullscreen-logo" aria-hidden="true">
+        <img class="tech1-logo-light" src="${escapeAttributeValue(lightLogo)}" alt="${escapeAttributeValue(alt)}" />
+        <img class="tech1-logo-dark" src="${escapeAttributeValue(darkLogo)}" alt="${escapeAttributeValue(alt)}" />
+      </div>
+      ${cardMarkup}
+    </div>
+  `;
+}
+
+function renderTech1CompetitionBracketView() {
+  setBracketReorderUiState({ bracketReorderModeEnabled: false });
+  clearBracketSwapSource();
+  const summaryStrip = document.getElementById("summaryStrip");
+  if (summaryStrip) {
+    summaryStrip.innerHTML = "";
+    summaryStrip.style.display = "none";
+  }
+  document.getElementById("battleFlowPanel")?.classList.add("hidden");
+  const battleFlowContent = document.getElementById("battleFlowContent");
+  if (battleFlowContent) battleFlowContent.innerHTML = "";
+  document.getElementById("competitionBracketTabs")?.classList.add("hidden");
+  document.getElementById("lowerBracketRuleAlert")?.classList.add("hidden");
+  document.getElementById("lowerBracketPage")?.classList.remove("is-active");
+  document.getElementById("mainBracketPage")?.classList.add("is-active");
+  const lowerBracketBoard = document.getElementById("lowerBracketBoard");
+  if (lowerBracketBoard) lowerBracketBoard.innerHTML = "";
+  document.getElementById("championBanner")?.classList.add("hidden");
+  if (winnerRevealOverlay) {
+    winnerRevealOverlay.classList.add("hidden");
+    winnerRevealOverlay.innerHTML = "";
+  }
+  if (competitionDecisionPanel) {
+    competitionDecisionPanel.classList.add("hidden");
+    competitionDecisionPanel.innerHTML = "";
+  }
+  document.getElementById("competitionReviewBanner")?.classList.add("hidden");
+  document.getElementById("competitionOmtOverlay")?.classList.add("hidden");
+  document.getElementById("emptyBracketState")?.classList.add("hidden");
+  const mainBracketTitle = document.getElementById("mainBracketTitle");
+  if (mainBracketTitle) mainBracketTitle.textContent = "Tech 1 Drift Anniversary";
+  const bracketBoard = document.getElementById("bracketBoard");
+  const judgeOnlyView = Boolean(currentRole?.startsWith("j"));
+  syncTech1VsBattlePresentation(tech1SpecialEventState.bracket);
+  if (bracketBoard) {
+    bracketBoard.classList.toggle("hidden", judgeOnlyView);
+    bracketBoard.innerHTML = judgeOnlyView ? "" : renderTech1SoloStyleCompetitionPanel(buildTech1ControlViewModel());
+  }
+  requestAnimationFrame(() => syncTech1VsOverlayAnchor());
+  requestAnimationFrame(() => requestAnimationFrame(() => syncTech1VsOverlayAnchor()));
+  const shouldKeepDecisionPanelVisible = isTech1PodiumRevealVisible(tech1SpecialEventState.bracket);
+  const podiumRevealMarkup = shouldKeepDecisionPanelVisible
+    ? renderTech1PodiumRevealCard(tech1SpecialEventState.bracket)
+    : "";
+  if (shouldKeepDecisionPanelVisible && competitionDecisionPanel) {
+    if (canControlTech1PodiumReveal() && podiumRevealMarkup) {
+      competitionDecisionPanel.innerHTML = `
+        <div class="winner-reveal-stage tech1-winner-reveal-stage">
+          ${podiumRevealMarkup}
+        </div>
+      `;
+      competitionDecisionPanel.classList.add("is-contest-overlay");
+      competitionDecisionPanel.classList.remove("hidden");
+    } else {
+      competitionDecisionPanel.classList.add("hidden");
+      competitionDecisionPanel.innerHTML = "";
+      competitionDecisionPanel.classList.remove("is-contest-overlay");
+    }
+  }
+  renderCompetitionJudgePanel();
+  if (!shouldKeepDecisionPanelVisible || !podiumRevealMarkup) {
+    renderTech1CompetitionDecisionPanel();
+  }
+  scheduleBracketRefit();
+}
+
+function openTech1PodiumRevealFromJudgePhone() {
+  if (!tech1JudgeOneCanRevealPodium()) {
+    showRoleAuthorizationNotice("j1", "open Tech 1 podium reveal");
+    return;
+  }
+  const bracket = normalizeTech1ThirdPlaceMatch(tech1SpecialEventState.bracket);
+  if (!isTech1PodiumRevealVisible(bracket)) {
+    window.alert("Finish the Tech 1 final battle before opening the podium reveal.");
+    return;
+  }
+  tech1PodiumRevealDismissedSignature = "";
+  setCompetitionBracketPageState("main");
+  saveBracketPagePreference(activeEventId, "main");
+  switchView("bracket");
+  renderBracket();
+  renderTech1EventControlWorkflow();
 }
 
 function updateCompetitionBracketPage() {
@@ -22921,6 +27499,22 @@ mainPodiumRevealCloseBtn?.addEventListener("click", () => {
 });
 
 competitionJudgePanel?.addEventListener("click", async (e) => {
+  const tech1VoteButton = e.target.closest("[data-action='tech1-judge-vote'], [data-tech1-judge-vote='1']");
+  if (tech1VoteButton) {
+    if (!tech1VoteButton.disabled) {
+      tech1VoteButton.closest(".competition-vote-grid")?.querySelectorAll("[data-action='tech1-judge-vote'], [data-tech1-judge-vote='1']").forEach((button) => {
+        button.classList.remove("selected", "button-accent");
+        button.classList.add("button-secondary");
+      });
+      tech1VoteButton.classList.remove("button-secondary");
+      tech1VoteButton.classList.add("button-accent", "selected");
+    }
+    await submitTech1JudgeVote(tech1VoteButton.dataset.side, currentRole);
+    renderCompetitionJudgePanel();
+    renderTech1DriftView();
+    renderTech1EventControlWorkflow();
+    return;
+  }
   const deductionButton = e.target.closest("[data-action='judge-competition-deduct']");
   if (deductionButton) {
     const side = deductionButton.dataset.side === "right" ? "right" : "left";
@@ -22943,6 +27537,21 @@ competitionJudgePanel?.addEventListener("click", async (e) => {
   }
   const voteButton = e.target.closest("[data-action='judge-competition-vote']");
   if (!voteButton) return;
+  if (isTech1AnniversaryMode(activeEventMeta) && currentRole?.startsWith("j")) {
+    if (!voteButton.disabled) {
+      voteButton.closest(".competition-vote-grid")?.querySelectorAll("[data-action='judge-competition-vote']").forEach((button) => {
+        button.classList.remove("selected", "button-accent");
+        button.classList.add("button-secondary");
+      });
+      voteButton.classList.remove("button-secondary");
+      voteButton.classList.add("button-accent", "selected");
+    }
+    await submitTech1JudgeVote(voteButton.dataset.side, currentRole);
+    renderCompetitionJudgePanel();
+    renderTech1DriftView();
+    renderTech1EventControlWorkflow();
+    return;
+  }
   if (!voteButton.disabled) {
     voteButton.closest(".competition-vote-grid")?.querySelectorAll("[data-action='judge-competition-vote']").forEach((button) => {
       button.classList.remove("selected", "button-accent");
@@ -22965,6 +27574,14 @@ competitionJudgePanel?.addEventListener("change", (e) => {
 });
 
 competitionDecisionPanel?.addEventListener("click", async (e) => {
+  const tech1DecisionButton = e.target.closest("[data-action='tech1-admin-decision']");
+  if (tech1DecisionButton) {
+    await applyTech1JudgeDecision(tech1DecisionButton.dataset.decision || "advance");
+    renderBracket();
+    renderTech1DriftView();
+    renderTech1EventControlWorkflow();
+    return;
+  }
   const reviewButton = e.target.closest("[data-action='review-competition-decision']");
   if (reviewButton) {
     await requestCompetitionDecisionReview();
@@ -22993,6 +27610,7 @@ async function bootstrapApp() {
   applyClientBranding();
   syncBracketFullscreenSizing();
   syncForcedHostContext();
+  hydrateEventAdminBrowserUnlockFromExistingSessions();
   initializeTheme();
   await initLocalState();
   const initialExplicitRoute = parseRouteFromLocation()

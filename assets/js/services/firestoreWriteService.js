@@ -77,6 +77,16 @@ export function createFirestoreWriteService({ setDoc, deleteDoc, getRefs }) {
       }
       return Promise.all(writes);
     },
+    deleteSpecialEventRegistration(eventId, registrationId, publicId = null) {
+      const refs = getRefs();
+      const writes = [
+        deleteDoc(refs.getSpecialEventRegistrationDocRef(eventId, registrationId)),
+      ];
+      if (publicId) {
+        writes.push(deleteDoc(refs.getSpecialEventPublicRegistrationIndexDocRef(eventId, publicId)));
+      }
+      return Promise.all(writes);
+    },
     publishSpecialEventRaffleTransaction(eventId, transactionDoc, registrationDoc, publicIndexDoc = null) {
       const refs = getRefs();
       const writes = [

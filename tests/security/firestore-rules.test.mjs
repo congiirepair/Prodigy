@@ -53,6 +53,9 @@ const openEventShell = {
   date: "2026-01-01",
   status: "active",
   schemaVersion: 2,
+  judgeCount: 1,
+  judgingMode: "average",
+  competitionMode: "solo",
   registrationStatus: "open",
   liveStatus: "waiting",
   publicFlags: { registrationEnabled: true },
@@ -70,11 +73,17 @@ const tech1Shell = {
   title: "Tech 1 Drift Anniversary Competition",
   date: "2026-05-30",
   dateLabel: "May 30",
-  mode: "tech1drift-anniversary",
+  mode: "tech1-anniversary",
+  legacySpecialEventMode: "tech1drift-anniversary",
+  competitionType: "random-single-elimination",
+  competitionMode: "tech1-anniversary",
   branding: { name: "Tech 1 Drift" },
   registrationOpen: true,
+  registrationEnabled: true,
+  raffleEnabled: true,
   raffleTicketPrice: 5,
   freeTicketsPerRegistration: 1,
+  bracketGeneration: "randomized-from-competing-drivers",
   bracketStatus: "not_generated",
   expectedDrivers: 60,
   qualifyingEnabled: false,
@@ -239,13 +248,15 @@ function tech1RegistrationDoc(overrides = {}) {
   return {
     id: "tech1-reg-1",
     eventId: tech1EventId,
-    mode: "tech1drift-anniversary",
+    mode: "tech1-anniversary",
     name: "Tech Driver",
     teamName: "Tech Team",
     chassis: "RDX",
     instagram: "@techdriver",
     checkedIn: false,
     bracketEligible: false,
+    tech1Driver: false,
+    entryFee: 40,
     bracketSeed: null,
     freeTickets: 1,
     paidTickets: 0,
@@ -266,7 +277,7 @@ function tech1PublicIndexDoc(overrides = {}) {
     publicId: "tech1-reg-1",
     registrationId: "tech1-reg-1",
     eventId: tech1EventId,
-    mode: "tech1drift-anniversary",
+    mode: "tech1-anniversary",
     displayName: "Tech Driver",
     teamName: "Tech Team",
     chassis: "RDX",
@@ -531,6 +542,14 @@ test("Tech 1 public can read shell and public registration index only", async ()
   await assertFails(getDoc(doc(unauthDb(), tech1RafflePath)));
 });
 
+test("Tech 1 event shell accepts the legacy special-event mode for existing data", async () => {
+  await assertSucceeds(setDoc(doc(eventAdminDb(tech1EventId), tech1Path), {
+    ...tech1Shell,
+    mode: "tech1drift-anniversary",
+    competitionMode: "tech1-anniversary",
+  }));
+});
+
 test("Tech 1 anonymous driver can self-register with only the free raffle ticket", async () => {
   await assertSucceeds(setDoc(doc(anonDb("tech-driver"), tech1RegistrationPath), tech1RegistrationDoc()));
   await assertSucceeds(setDoc(doc(anonDb("tech-driver"), tech1PublicIndexPath), tech1PublicIndexDoc()));
@@ -553,6 +572,38 @@ test("Tech 1 public user cannot self-check-in or alter public bracket eligibilit
     bracketSeed: 1,
     publicStatus: "checked-in",
   })));
+});
+
+test("Tech 1 public user cannot write bracket or battle winner data", async () => {
+  await assertFails(setDoc(doc(anonDb("tech-driver"), tech1BracketPath), {
+    status: "generated",
+    generatedAt: "2026-05-30T00:03:00.000Z",
+    lockedAt: null,
+    driverCount: 2,
+    bracketSize: 2,
+    source: "bracketEligible",
+    rounds: [],
+    matches: {},
+    randomizedSeedOrder: [],
+    byes: [],
+    createdBy: "public",
+    updatedAt: "2026-05-30T00:03:00.000Z",
+  }));
+  await assertFails(setDoc(doc(anonDb("tech-driver"), `${tech1Path}/battleResults/r1m1`), {
+    matchId: "r1m1",
+    eventId: tech1EventId,
+    round: 1,
+    matchNumber: 1,
+    driverA: { id: "driver-a" },
+    driverB: { id: "driver-b" },
+    winnerId: "driver-a",
+    winnerName: "Driver A",
+    resultStatus: "complete",
+    notes: "",
+    advancedToMatchId: null,
+    updatedBy: "public",
+    updatedAt: "2026-05-30T00:04:00.000Z",
+  }));
 });
 
 test("Tech 1 event admin can manage raffle tickets and bracket", async () => {
@@ -580,15 +631,24 @@ test("Tech 1 event admin can manage raffle tickets and bracket", async () => {
     status: "generated",
     generatedAt: "2026-05-30T00:03:00.000Z",
     lockedAt: null,
+    winnerRevealStatus: "hidden",
+    winnerRevealedAt: null,
+    winnerRevealUpdatedBy: "",
     driverCount: 60,
     bracketSize: 64,
-    source: "checkedIn",
+    source: "bracketEligible",
     rounds: [],
     matches: {},
     randomizedSeedOrder: [],
     byes: [],
     createdBy: "staff",
     updatedAt: "2026-05-30T00:03:00.000Z",
+  }));
+  await assertSucceeds(updateDoc(doc(admin, tech1BracketPath), {
+    winnerRevealStatus: "revealed",
+    winnerRevealedAt: "2026-05-30T00:05:00.000Z",
+    winnerRevealUpdatedBy: "staff",
+    updatedAt: "2026-05-30T00:05:00.000Z",
   }));
 });
 
@@ -609,7 +669,7 @@ test("Tech 1 judge and stream roles cannot manage raffle or bracket data", async
     lockedAt: null,
     driverCount: 2,
     bracketSize: 2,
-    source: "checkedIn",
+    source: "bracketEligible",
     rounds: [],
     matches: {},
     randomizedSeedOrder: [],

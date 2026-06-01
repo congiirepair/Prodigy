@@ -31,29 +31,29 @@ function getContrastInkColor(hexColor, darkInk = "#17130f", lightInk = "#ffffff"
 function getDefaultClientTheme(themeName) {
   if (themeName === "dark") {
     return {
-      accent: "#d0a06b",
-      accentDark: "#6f553c",
-      buttonAccent: "#b88a59",
-      buttonAccentDark: "#5c4735",
-      accentCyan: "#87a6b2",
-      accentGreen: "#8fa083",
-      accentGreenDark: "#5b684f",
-      panelHighlight: "#d3a36d",
-      accentWarm: "#f3d3aa",
-      wordmarkColor: "#f3e8db",
+      accent: "#f7f7f4",
+      accentDark: "#bdbdb8",
+      buttonAccent: "#111111",
+      buttonAccentDark: "#333333",
+      accentCyan: "#e6e6e0",
+      accentGreen: "#f7f7f4",
+      accentGreenDark: "#a8a8a3",
+      panelHighlight: "#f7f7f4",
+      accentWarm: "#f7f7f4",
+      wordmarkColor: "#f7f7f4",
     };
   }
   return {
-    accent: "#2c241d",
-    accentDark: "#8a7358",
-    buttonAccent: "#2b241d",
-    buttonAccentDark: "#7a634b",
-    accentCyan: "#6e8792",
-    accentGreen: "#6f7d62",
-    accentGreenDark: "#4d5847",
-    panelHighlight: "#b48b5a",
-    accentWarm: "#d3a36d",
-    wordmarkColor: "#17130f",
+    accent: "#111111",
+    accentDark: "#333333",
+    buttonAccent: "#ffffff",
+    buttonAccentDark: "#e5e5e5",
+    accentCyan: "#222222",
+    accentGreen: "#111111",
+    accentGreenDark: "#444444",
+    panelHighlight: "#111111",
+    accentWarm: "#333333",
+    wordmarkColor: "#111111",
   };
 }
 
