@@ -20625,16 +20625,28 @@ async function exportTech1Pdf() {
     return;
   }
   const registrations = sortTech1RegistrationsForDisplay(tech1SpecialEventState.privateRegistrations || []);
+  const paymentMethodOrder = [
+    { key: "zelle", label: "Zelle" },
+    { key: "paypal", label: "Paypal" },
+    { key: "cash", label: "Cash" },
+    { key: "unknown", label: "Unknown" },
+  ];
   const totals = registrations.reduce((summary, entry) => {
     const entryFee = getTech1EntryFeeForRegistration(entry);
     const raffleAmountPaid = Number(entry.amountPaid || 0);
+    const normalizedPaymentMethod = normalizeTech1PaymentMethodValue(entry.paymentMethod, "");
+    const paymentKey = (normalizedPaymentMethod === "zelle" || normalizedPaymentMethod === "paypal" || normalizedPaymentMethod === "cash")
+      ? normalizedPaymentMethod
+      : "unknown";
+    const collectedAmount = entryFee + raffleAmountPaid;
     summary.totalRegistrations += 1;
     summary.entryFees += entryFee;
     summary.freeTickets += Number(entry.freeTickets || 0);
     summary.paidTickets += Number(entry.paidTickets || 0);
     summary.totalTickets += Number(entry.totalTickets || entry.freeTickets || 0);
     summary.raffleAmountPaid += raffleAmountPaid;
-    summary.amountPaid += entryFee + raffleAmountPaid;
+    summary.amountPaid += collectedAmount;
+    summary.paymentMethodTotals[paymentKey] += collectedAmount;
     return summary;
   }, {
     totalRegistrations: 0,
@@ -20644,7 +20656,17 @@ async function exportTech1Pdf() {
     totalTickets: 0,
     raffleAmountPaid: 0,
     amountPaid: 0,
+    paymentMethodTotals: {
+      zelle: 0,
+      paypal: 0,
+      cash: 0,
+      unknown: 0,
+    },
   });
+  const paymentMethodSummary = paymentMethodOrder.map((entry) => ({
+    ...entry,
+    amount: Number(totals.paymentMethodTotals?.[entry.key] || 0),
+  }));
   const JsPdfCtor = window?.jspdf?.jsPDF;
   let blob = null;
   if (JsPdfCtor) {
@@ -20679,10 +20701,11 @@ async function exportTech1Pdf() {
       };
 
       const drawTotals = () => {
+        const totalsHeight = 132;
         doc.setFillColor(240, 246, 255);
-        doc.roundedRect(marginX, y, contentWidth, 78, 10, 10, "F");
+        doc.roundedRect(marginX, y, contentWidth, totalsHeight, 10, 10, "F");
         doc.setDrawColor(205, 218, 237);
-        doc.roundedRect(marginX, y, contentWidth, 78, 10, 10);
+        doc.roundedRect(marginX, y, contentWidth, totalsHeight, 10, 10);
         doc.setTextColor(20, 28, 39);
         doc.setFont("helvetica", "bold");
         doc.setFontSize(10);
@@ -20695,7 +20718,12 @@ async function exportTech1Pdf() {
         doc.text(`Total Tickets: ${totals.totalTickets}`, marginX + 230, y + 50);
         const bracket = tech1SpecialEventState.bracket || null;
         doc.text(`Bracket: ${bracket?.status || "not_generated"}`, marginX + 230, y + 66);
-        y += 92;
+        doc.text("Payment Totals (sorted):", marginX + 12, y + 90);
+        paymentMethodSummary.forEach((methodEntry, index) => {
+          const rowY = y + 106 + (index * 12);
+          doc.text(`${methodEntry.label}: ${formatTech1Money(methodEntry.amount)}`, marginX + 26, rowY);
+        });
+        y += totalsHeight + 14;
       };
 
       const drawTableHeader = () => {
@@ -20819,6 +20847,7 @@ async function exportTech1Pdf() {
       "",
       `Drivers: ${totals.totalRegistrations} | Free Tickets: ${totals.freeTickets} | Extra Tickets: ${totals.paidTickets} | Total Tickets: ${totals.totalTickets}`,
       `Entry Fees: ${formatTech1Money(totals.entryFees)} | Raffle Revenue: ${formatTech1Money(totals.raffleAmountPaid)} | Total Collected: ${formatTech1Money(totals.amountPaid)}`,
+      `Payment Totals (sorted): Zelle ${formatTech1Money(totals.paymentMethodTotals.zelle)} | Paypal ${formatTech1Money(totals.paymentMethodTotals.paypal)} | Cash ${formatTech1Money(totals.paymentMethodTotals.cash)} | Unknown ${formatTech1Money(totals.paymentMethodTotals.unknown)}`,
       "",
       "Name | Team | Chassis | Instagram | Payment | Entry | Extra | Tickets | Raffle | Total",
       "--------------------------------------------------------------------------------------------------------------",
