@@ -1,0 +1,105 @@
+export const DEFAULT_CLIENT_CONFIG = Object.freeze({
+  platform: {
+    productName: "Prodigy Event Control",
+    buildLabel: "Template Build 2026.04.16.1",
+    browserTitle: "Prodigy Event Control",
+    demoWindowName: "prodigy-live-demo-window",
+  },
+  branding: {
+    venueName: "Prodigy RC Drift Arena",
+    venueLabelPlaceholder: "Prodigy RC Drift Arena",
+    eventNamePlaceholder: "Prodigy RC Drift Arena",
+    logoPrimary: "./assets/prodigy-rc-logo-transparent.png",
+    logoInverted: "./assets/prodigy-rc-logo-white-transparent.png",
+    logoTreatment: {
+      invertLight: false,
+      invertDark: false,
+    },
+    logoAlt: "Prodigy RC logo",
+    backgroundImage: "./assets/track-background.png",
+    homeHeroImage: "./assets/track-background.png",
+    shopUrl: "https://www.prodigydrift.com/",
+    shopLabel: "Shop Prodigy RC Here",
+    pdfHeaderTitle: "PRODIGY RC",
+    demoVenueLabel: "Prodigy Demo Arena",
+    demoShowcaseName: "Prodigy Showcase",
+  },
+  typography: {
+    displayFont: "'Ethnocentric', 'Orbitron', 'Inter', sans-serif",
+    bodyFont: "'Inter', sans-serif",
+    fontImports: [],
+    customFonts: {},
+  },
+  theme: {
+    light: {
+      accent: "#111111",
+      accentDark: "#333333",
+      buttonAccent: "#ffffff",
+      buttonAccentDark: "#e5e5e5",
+      accentCyan: "#222222",
+      accentGreen: "#111111",
+      accentGreenDark: "#444444",
+      panelHighlight: "#111111",
+      accentWarm: "#333333",
+      wordmarkColor: "#111111",
+    },
+    dark: {
+      accent: "#f7f7f4",
+      accentDark: "#bdbdb8",
+      buttonAccent: "#111111",
+      buttonAccentDark: "#333333",
+      accentCyan: "#e6e6e0",
+      accentGreen: "#f7f7f4",
+      accentGreenDark: "#a8a8a3",
+      panelHighlight: "#f7f7f4",
+      accentWarm: "#f7f7f4",
+      wordmarkColor: "#f7f7f4",
+    },
+  },
+  layout: {
+    centerAllText: true,
+  },
+  landing: {
+    whySectionKicker: "Built For Event Day",
+    heroCopy:
+      "Follow {eventName} live with qualifying, competition brackets, and results from one Prodigy RC Drift Arena event hub.",
+    emptyHeroCopy:
+      "Check in, follow standings, and keep Prodigy RC Drift Arena event days moving from one live event home.",
+    whySectionCopy:
+      "Prodigy RC Drift Arena uses Prodigy Event Control to keep check-in, live scoring, bracket control, and results connected in one smoother event-day flow.",
+    benefits: [
+      ["3-Judge Cloud Sync", "Judge phones and tablets feed the same live scoring state without needing separate systems."],
+      ["QR Check-In", "Drivers can scan a venue QR code and jump straight into the public registration flow."],
+      ["Geofenced Registration", "Pre-register from home, then validate arrival at the venue before event admin approves the roster."],
+      ["Live Qualifying Boards", "Show current driver, run averages, and standings in a clear public display."],
+      ["Fullscreen Bracket Displays", "Broadcast-friendly qualifying and competition screens work for TVs, projectors, and venue monitors."],
+      ["Archive And PDF Exports", "Completed events save into the results archive and can be exported as shareable PDF summaries."],
+    ],
+  },
+  routing: {
+    spectatorHost: "",
+    spectatorAliases: [],
+    streamerHost: "",
+    streamerAliases: [],
+    websiteAdminHost: "",
+    adminHost: "",
+    judgeHosts: {
+      j1: "",
+      j2: "",
+      j3: "",
+    },
+  },
+  firebase: {
+    appId: "",
+    config: null,
+    spectatorAliases: [],
+  },
+  security: {
+    legacyPasswords: {
+      admin: "changeme-admin",
+      j1: "changeme-j1",
+      j2: "changeme-j2",
+      j3: "changeme-j3",
+    },
+  },
+});

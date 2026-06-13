@@ -1,0 +1,12 @@
+{
+  "name": "prodigy-event-control-functions",
+  "private": true,
+  "version": "0.0.0",
+  "main": "index.js",
+  "engines": {
+    "node": "22"
+  },
+  "dependencies": {
+    "firebase-functions": "^5.1.1"
+  }
+}

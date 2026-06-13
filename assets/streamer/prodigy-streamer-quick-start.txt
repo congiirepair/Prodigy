@@ -1,0 +1,41 @@
+PRODIGY RC COMP STREAMER QUICK START
+====================================
+
+Recommended scene size
+- 1920x1080 canvas
+- 1920x1080 output
+- 60 FPS preferred
+
+Fast setup
+1. Open streamer.prodigyrccomp.com
+2. Select the active event in the Streamer Dashboard
+3. Copy the OBS URL for the overlay or scene you want
+4. In OBS add a Browser Source
+5. Paste the URL and set width=1920 and height=1080
+6. Enable transparency for overlay variants
+7. Keep the browser source active so live event data stays synced
+
+Suggested live flow
+1. Starting Soon
+2. Qualifying
+3. Battle
+4. Standings
+5. Intermission
+6. Results
+7. Event Complete
+
+Overlay notes
+- Fullscreen scene routes are designed for direct display or clean capture
+- Overlay routes are designed to layer over live camera feeds
+- Demo mode is safe for rehearsals before an event is live
+- Battle overlay supports OMT status when the live event triggers a rerun
+
+Starter pack contents
+- lower third
+- starting soon screen
+- intermission screen
+- event complete screen
+- this quick-start guide
+
+Prodigy Streamer Suite
+streamer.prodigyrccomp.com

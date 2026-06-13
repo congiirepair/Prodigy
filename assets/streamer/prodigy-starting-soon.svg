@@ -1,0 +1,25 @@
+<svg width="1920" height="1080" viewBox="0 0 1920 1080" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="180" y1="120" x2="1760" y2="980" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#050B14" />
+      <stop offset="0.55" stop-color="#0A1728" />
+      <stop offset="1" stop-color="#12263D" />
+    </linearGradient>
+    <linearGradient id="glow" x1="390" y1="318" x2="1120" y2="318" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7EE7FF" />
+      <stop offset="1" stop-color="#FFFFFF" />
+    </linearGradient>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#bg)"/>
+  <circle cx="1600" cy="210" r="180" fill="#7EE7FF" fill-opacity="0.08"/>
+  <circle cx="310" cy="880" r="240" fill="#7EE7FF" fill-opacity="0.05"/>
+  <rect x="220" y="174" width="320" height="8" rx="4" fill="url(#glow)"/>
+  <text x="220" y="244" fill="#86A4C0" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" letter-spacing="4">PRODIGY RC COMP</text>
+  <text x="220" y="420" fill="#FFFFFF" font-family="Arial, Helvetica, sans-serif" font-size="136" font-weight="800">STARTING</text>
+  <text x="220" y="542" fill="#FFFFFF" font-family="Arial, Helvetica, sans-serif" font-size="136" font-weight="800">SOON</text>
+  <text x="220" y="632" fill="#C7D8EA" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="500">Live RC drift competition coverage will begin shortly.</text>
+  <rect x="220" y="706" width="770" height="120" rx="28" fill="#091524" stroke="#7EE7FF" stroke-opacity="0.38"/>
+  <text x="270" y="760" fill="#7EE7FF" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700" letter-spacing="2">EVENT</text>
+  <text x="270" y="807" fill="#FFFFFF" font-family="Arial, Helvetica, sans-serif" font-size="46" font-weight="700">EVENT NAME / VENUE / DATE</text>
+  <text x="220" y="994" fill="#89A4BE" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="600">Ready for OBS at 1920×1080 • Add a countdown source or sponsor footer if needed.</text>
+</svg>

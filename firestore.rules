@@ -1,0 +1,813 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function eventDayOpenAccess() {
+      return isSignedIn();
+    }
+
+    function tokenRoles() {
+      return isSignedIn() && request.auth.token.keys().hasAny(['roles']) && request.auth.token.roles is list
+        ? request.auth.token.roles
+        : [];
+    }
+
+    function hasRole(role) {
+      return isSignedIn()
+        && (
+          (request.auth.token.keys().hasAny(['role']) && request.auth.token.role == role)
+          || tokenRoles().hasAny([role])
+          || (request.auth.token.keys().hasAny([role]) && request.auth.token[role] == true)
+        );
+    }
+
+    function hasEventRole(eventId, role) {
+      return hasRole(role)
+        || (
+          isSignedIn()
+          && request.auth.token.keys().hasAny(['eventRoles'])
+          && request.auth.token.eventRoles is map
+          && request.auth.token.eventRoles.keys().hasAny([eventId])
+          && request.auth.token.eventRoles[eventId] is list
+          && request.auth.token.eventRoles[eventId].hasAny([role])
+        );
+    }
+
+    function isOwner() {
+      return hasRole('owner') || hasRole('websiteAdmin') || (request.auth.token.keys().hasAny(['owner']) && request.auth.token.owner == true);
+    }
+
+    function isEventAdmin(eventId) {
+      return isOwner() || hasEventRole(eventId, 'eventAdmin') || hasEventRole(eventId, 'admin');
+    }
+
+    function isJudgeSlot(eventId, judgeSlot) {
+      return judgeSlot in ['j1', 'j2', 'j3']
+        && hasEventRole(eventId, judgeSlot);
+    }
+
+    function isStreamOperator(eventId) {
+      return isOwner() || isEventAdmin(eventId) || hasEventRole(eventId, 'stream') || hasEventRole(eventId, 'streamOperator') || hasEventRole(eventId, 'streamer');
+    }
+
+    function isValidSyncStamp() {
+      return !request.resource.data.keys().hasAny(['syncStamp']) || request.resource.data.syncStamp is number;
+    }
+
+    function eventDoc(appId, eventId) {
+      return get(/databases/$(database)/documents/artifacts/$(appId)/public/data/events/$(eventId));
+    }
+
+    function eventRegistrationOpen(appId, eventId) {
+      return eventDoc(appId, eventId).data.registrationStatus == 'open'
+        && eventDoc(appId, eventId).data.status == 'active';
+    }
+
+    function specialEventDoc(appId, eventId) {
+      return get(/databases/$(database)/documents/artifacts/$(appId)/public/data/specialEvents/$(eventId));
+    }
+
+    function specialEventRegistrationOpen(appId, eventId) {
+      return specialEventDoc(appId, eventId).data.registrationOpen == true
+        && isTech1AnniversaryMode(specialEventDoc(appId, eventId).data.mode);
+    }
+
+    function isTech1AnniversaryMode(mode) {
+      return mode == 'tech1-anniversary' || mode == 'tech1drift-anniversary';
+    }
+
+    function validShortString(value, maxLen) {
+      return value is string && value.size() > 0 && value.size() <= maxLen;
+    }
+
+    function optionalString(value, maxLen) {
+      return value == null || (value is string && value.size() <= maxLen);
+    }
+
+    function validScore(value) {
+      return value is number && value >= 0 && value <= 100;
+    }
+
+    function validPublicEventShell(eventId) {
+      return request.resource.data.keys().hasOnly([
+          'id',
+          'name',
+          'date',
+          'status',
+          'schemaVersion',
+          'judgeCount',
+          'judgingMode',
+          'competitionMode',
+          'modeSettings',
+          'specialEventId',
+          'registrationStatus',
+          'liveStatus',
+          'publicFlags',
+          'updatedAt',
+          'syncStamp'
+        ])
+        && request.resource.data.id == eventId
+        && validShortString(request.resource.data.name, 120)
+        && request.resource.data.status in ['active', 'completed', 'archived']
+        && request.resource.data.schemaVersion == 2
+        && request.resource.data.judgeCount in [1, 2, 3]
+        && request.resource.data.judgingMode in ['average', 'line-angle-style']
+        && request.resource.data.competitionMode in ['solo', 'team-tandem', 'twin-triple', 'twin-double', 'tech1-anniversary']
+        && (
+          !request.resource.data.keys().hasAny(['modeSettings'])
+          || request.resource.data.modeSettings == null
+          || (
+            request.resource.data.modeSettings is map
+            && request.resource.data.modeSettings.keys().hasOnly([
+              'mode',
+              'competitionType',
+              'qualifyingEnabled',
+              'registrationEnabled',
+              'raffleEnabled',
+              'raffleTicketPrice',
+              'freeTicketsPerRegistration',
+              'bracketGeneration',
+              'defaultBracketSource',
+              'specialEventId'
+            ])
+            && request.resource.data.modeSettings.mode == 'tech1-anniversary'
+            && request.resource.data.modeSettings.competitionType == 'random-single-elimination'
+            && request.resource.data.modeSettings.qualifyingEnabled == false
+            && request.resource.data.modeSettings.registrationEnabled == true
+            && request.resource.data.modeSettings.raffleEnabled == true
+            && request.resource.data.modeSettings.raffleTicketPrice == 5
+            && request.resource.data.modeSettings.freeTicketsPerRegistration == 1
+            && request.resource.data.modeSettings.bracketGeneration in ['randomized-from-checked-in-drivers', 'randomized-from-competing-drivers']
+            && request.resource.data.modeSettings.defaultBracketSource in ['checkedIn', 'bracketEligible']
+            && request.resource.data.modeSettings.specialEventId == 'tech1drift-anniversary-may-30'
+          )
+        )
+        && (
+          !request.resource.data.keys().hasAny(['specialEventId'])
+          || request.resource.data.specialEventId == null
+          || request.resource.data.specialEventId == 'tech1drift-anniversary-may-30'
+        )
+        && request.resource.data.registrationStatus in ['open', 'closed', 'disabled']
+        && request.resource.data.liveStatus is string
+        && request.resource.data.updatedAt is string
+        && isValidSyncStamp();
+    }
+
+    function validRegistrationBase(eventId) {
+      return request.resource.data.keys().hasOnly([
+          'id',
+          'eventId',
+          'schemaVersion',
+          'status',
+          'name',
+          'driverNumber',
+          'teamName',
+          'chassis',
+          'teamRegistrationId',
+          'teamMemberOrder',
+          'teamMemberCount',
+          'deviceToken',
+          'ownerUid',
+          'selfRegisteredAt',
+          'arrivedAt',
+          'checkedInAt',
+          'arrivalSource',
+          'approvalRequired',
+          'paidAt',
+          'selfRegisteredDistanceMeters',
+          'checkedInDistanceMeters',
+          'needsReviewAt',
+          'reviewReason',
+          'rejectedAt',
+          'rejectedReason',
+          'adminUpdatedAt',
+          'approvedAt',
+          'approvedDriverIds',
+          'updatedAt'
+        ])
+        && request.resource.data.eventId == eventId
+        && request.resource.data.schemaVersion == 2
+        && validShortString(request.resource.data.name, 80)
+        && optionalString(request.resource.data.driverNumber, 32)
+        && optionalString(request.resource.data.teamName, 80)
+        && optionalString(request.resource.data.chassis, 80)
+        && request.resource.data.updatedAt is string;
+    }
+
+    function validDriverRegistrationCreate(appId, eventId) {
+      return isSignedIn()
+        && eventRegistrationOpen(appId, eventId)
+        && validRegistrationBase(eventId)
+        && request.resource.data.status == 'pending'
+        && request.resource.data.keys().hasAll(['id', 'eventId', 'schemaVersion', 'status', 'name', 'deviceToken', 'selfRegisteredAt', 'updatedAt'])
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.paidAt == null
+        && request.resource.data.needsReviewAt == null
+        && request.resource.data.rejectedAt == null
+        && (!request.resource.data.keys().hasAny(['approvedAt']) || request.resource.data.approvedAt == null)
+        && !request.resource.data.keys().hasAny(['approvedDriverIds']);
+    }
+
+    function validDriverRegistrationUpdate(appId, eventId) {
+      return isSignedIn()
+        && eventRegistrationOpen(appId, eventId)
+        && validRegistrationBase(eventId)
+        && resource.data.ownerUid == request.auth.uid
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && resource.data.deviceToken == request.resource.data.deviceToken
+        && request.resource.data.status in ['pending', 'checkedIn']
+        && request.resource.data.paidAt == resource.data.paidAt
+        && request.resource.data.needsReviewAt == resource.data.needsReviewAt
+        && request.resource.data.rejectedAt == resource.data.rejectedAt
+        && (
+          (!request.resource.data.keys().hasAny(['approvedAt']) && !resource.data.keys().hasAny(['approvedAt']))
+          || (
+            request.resource.data.keys().hasAny(['approvedAt'])
+            && resource.data.keys().hasAny(['approvedAt'])
+            && request.resource.data.approvedAt == resource.data.approvedAt
+          )
+        )
+        && !request.resource.data.keys().hasAny(['approvedDriverIds']);
+    }
+
+    function validJudgeSubmission(eventId) {
+      return eventDayOpenAccess()
+        && request.resource.data.keys().hasOnly([
+          'eventId',
+          'runId',
+          'driverId',
+          'runKey',
+          'judgeSlot',
+          'score',
+          'submittedScore',
+          'schemaVersion',
+          'submittedAt',
+          'updatedAt'
+        ])
+        && request.resource.data.eventId == eventId
+        && request.resource.data.schemaVersion == 2
+        && request.resource.data.judgeSlot in ['j1', 'j2', 'j3']
+        && request.resource.data.runKey in ['run1', 'run2', 'runoff']
+        && validShortString(request.resource.data.driverId, 120)
+        && validShortString(request.resource.data.runId, 180)
+        && validScore(request.resource.data.score)
+        && validScore(request.resource.data.submittedScore)
+        && request.resource.data.submittedAt is string
+        && request.resource.data.updatedAt is string;
+    }
+
+    function validBattleVote(eventId) {
+      return eventDayOpenAccess()
+        && request.resource.data.keys().hasOnly([
+          'eventId',
+          'battleId',
+          'judgeSlot',
+          'side',
+          'scorecard',
+          'cycle',
+          'schemaVersion',
+          'submittedAt',
+          'updatedAt'
+        ])
+        && request.resource.data.eventId == eventId
+        && request.resource.data.schemaVersion == 2
+        && request.resource.data.judgeSlot in ['j1', 'j2', 'j3']
+        && request.resource.data.side in ['left', 'right', 'omt', null]
+        && validShortString(request.resource.data.battleId, 180)
+        && request.resource.data.cycle is number
+        && request.resource.data.submittedAt is string
+        && request.resource.data.updatedAt is string;
+    }
+
+    function validPublicRegistrationIndex(eventId) {
+      return request.resource.data.keys().hasOnly([
+          'publicId',
+          'registrationId',
+          'eventId',
+          'schemaVersion',
+          'displayName',
+          'driverNumber',
+          'teamName',
+          'chassis',
+          'teamRegistrationId',
+          'teamMemberOrder',
+          'teamMemberCount',
+          'status',
+          'checkedIn',
+          'updatedAt'
+        ])
+        && request.resource.data.eventId == eventId
+        && request.resource.data.schemaVersion == 2
+        && validShortString(request.resource.data.publicId, 120)
+        && request.resource.data.registrationId == request.resource.data.publicId
+        && validShortString(request.resource.data.displayName, 80)
+        && optionalString(request.resource.data.driverNumber, 32)
+        && optionalString(request.resource.data.teamName, 80)
+        && optionalString(request.resource.data.chassis, 80)
+        && request.resource.data.status in ['pending', 'checkedIn', 'approved', 'rejected']
+        && request.resource.data.checkedIn is bool
+        && request.resource.data.updatedAt is string;
+    }
+
+    function validSpecialEventShell() {
+      return request.resource.data.keys().hasOnly([
+          'title',
+          'date',
+          'dateLabel',
+          'mode',
+          'legacySpecialEventMode',
+          'competitionType',
+          'competitionMode',
+          'judgeCount',
+          'judgingMode',
+          'branding',
+          'registrationOpen',
+          'registrationEnabled',
+          'raffleEnabled',
+          'raffleTicketPrice',
+          'freeTicketsPerRegistration',
+          'entryFee',
+          'tech1DriverEntryFee',
+          'bracketGeneration',
+          'bracketStatus',
+          'expectedDrivers',
+          'qualifyingEnabled',
+          'updatedAt'
+        ])
+        && validShortString(request.resource.data.title, 140)
+        && isTech1AnniversaryMode(request.resource.data.mode)
+        && (!request.resource.data.keys().hasAny(['legacySpecialEventMode']) || request.resource.data.legacySpecialEventMode == 'tech1drift-anniversary')
+        && (!request.resource.data.keys().hasAny(['competitionType']) || request.resource.data.competitionType == 'random-single-elimination')
+        && (!request.resource.data.keys().hasAny(['competitionMode']) || request.resource.data.competitionMode == 'tech1-anniversary')
+        && (!request.resource.data.keys().hasAny(['judgeCount']) || request.resource.data.judgeCount in [1, 2, 3])
+        && (!request.resource.data.keys().hasAny(['judgingMode']) || request.resource.data.judgingMode in ['average', 'line-angle-style'])
+        && (!request.resource.data.keys().hasAny(['registrationEnabled']) || request.resource.data.registrationEnabled == true)
+        && (!request.resource.data.keys().hasAny(['raffleEnabled']) || request.resource.data.raffleEnabled == true)
+        && request.resource.data.registrationOpen is bool
+        && request.resource.data.raffleTicketPrice == 5
+        && request.resource.data.freeTicketsPerRegistration == 1
+        && (!request.resource.data.keys().hasAny(['entryFee']) || request.resource.data.entryFee == 40)
+        && (!request.resource.data.keys().hasAny(['tech1DriverEntryFee']) || request.resource.data.tech1DriverEntryFee == 30)
+        && (!request.resource.data.keys().hasAny(['bracketGeneration']) || request.resource.data.bracketGeneration in ['randomized-from-checked-in-drivers', 'randomized-from-competing-drivers'])
+        && request.resource.data.bracketStatus in ['not_generated', 'generated', 'locked', 'in_progress', 'complete']
+        && request.resource.data.expectedDrivers is number
+        && request.resource.data.expectedDrivers >= 0
+        && request.resource.data.qualifyingEnabled == false
+        && request.resource.data.updatedAt is string;
+    }
+
+    function validTech1RegistrationBase(eventId) {
+      return request.resource.data.keys().hasOnly([
+          'id',
+          'eventId',
+          'mode',
+          'name',
+          'teamName',
+          'chassis',
+          'instagram',
+          'checkedIn',
+          'bracketEligible',
+          'tech1Driver',
+          'entryFee',
+          'bracketSeed',
+          'freeTickets',
+          'paidTickets',
+          'totalTickets',
+          'amountPaid',
+          'paymentStatus',
+          'paymentMethod',
+          'staffNotes',
+          'ownerUid',
+          'createdAt',
+          'updatedAt'
+        ])
+        && request.resource.data.eventId == eventId
+        && isTech1AnniversaryMode(request.resource.data.mode)
+        && validShortString(request.resource.data.id, 120)
+        && validShortString(request.resource.data.name, 80)
+        && optionalString(request.resource.data.teamName, 80)
+        && optionalString(request.resource.data.chassis, 80)
+        && optionalString(request.resource.data.instagram, 40)
+        && request.resource.data.checkedIn is bool
+        && request.resource.data.bracketEligible is bool
+        && request.resource.data.tech1Driver is bool
+        && request.resource.data.entryFee is number
+        && ((request.resource.data.tech1Driver == true && request.resource.data.entryFee == 30)
+          || (request.resource.data.tech1Driver == false && request.resource.data.entryFee == 40))
+        && (request.resource.data.bracketSeed == null || request.resource.data.bracketSeed is number)
+        && request.resource.data.freeTickets == 1
+        && request.resource.data.paidTickets is number
+        && request.resource.data.paidTickets >= 0
+        && request.resource.data.totalTickets == request.resource.data.freeTickets + request.resource.data.paidTickets
+        && request.resource.data.amountPaid == request.resource.data.paidTickets * 5
+        && request.resource.data.paymentStatus in ['free-only', 'unpaid', 'paid', 'partial', 'comped']
+        && optionalString(request.resource.data.paymentMethod, 40)
+        && optionalString(request.resource.data.staffNotes, 240)
+        && request.resource.data.ownerUid is string
+        && request.resource.data.createdAt is string
+        && request.resource.data.updatedAt is string;
+    }
+
+    function validTech1PublicRegistrationCreate(appId, eventId) {
+      return isSignedIn()
+        && specialEventRegistrationOpen(appId, eventId)
+        && validTech1RegistrationBase(eventId)
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.checkedIn == false
+        && request.resource.data.bracketEligible == false
+        && request.resource.data.tech1Driver == false
+        && request.resource.data.entryFee == 40
+        && request.resource.data.bracketSeed == null
+        && request.resource.data.paidTickets == 0
+        && request.resource.data.totalTickets == 1
+        && request.resource.data.amountPaid == 0
+        && request.resource.data.paymentStatus == 'free-only'
+        && request.resource.data.paymentMethod == ''
+        && request.resource.data.staffNotes == '';
+    }
+
+    function validTech1PublicRegistrationUpdate(appId, eventId) {
+      return isSignedIn()
+        && specialEventRegistrationOpen(appId, eventId)
+        && validTech1RegistrationBase(eventId)
+        && resource.data.ownerUid == request.auth.uid
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.checkedIn == resource.data.checkedIn
+        && request.resource.data.bracketEligible == resource.data.bracketEligible
+        && request.resource.data.tech1Driver == resource.data.tech1Driver
+        && request.resource.data.entryFee == resource.data.entryFee
+        && request.resource.data.bracketSeed == resource.data.bracketSeed
+        && request.resource.data.freeTickets == resource.data.freeTickets
+        && request.resource.data.paidTickets == resource.data.paidTickets
+        && request.resource.data.totalTickets == resource.data.totalTickets
+        && request.resource.data.amountPaid == resource.data.amountPaid
+        && request.resource.data.paymentStatus == resource.data.paymentStatus
+        && request.resource.data.paymentMethod == resource.data.paymentMethod
+        && request.resource.data.staffNotes == resource.data.staffNotes;
+    }
+
+    function validTech1PublicRegistrationIndex(eventId) {
+      return request.resource.data.keys().hasOnly([
+          'publicId',
+          'registrationId',
+          'eventId',
+          'mode',
+          'displayName',
+          'teamName',
+          'chassis',
+          'instagram',
+          'checkedIn',
+          'bracketEligible',
+          'bracketSeed',
+          'publicStatus',
+          'createdAt',
+          'updatedAt'
+        ])
+        && request.resource.data.eventId == eventId
+        && isTech1AnniversaryMode(request.resource.data.mode)
+        && validShortString(request.resource.data.publicId, 120)
+        && request.resource.data.registrationId == request.resource.data.publicId
+        && validShortString(request.resource.data.displayName, 80)
+        && optionalString(request.resource.data.teamName, 80)
+        && optionalString(request.resource.data.chassis, 80)
+        && optionalString(request.resource.data.instagram, 40)
+        && request.resource.data.checkedIn is bool
+        && request.resource.data.bracketEligible is bool
+        && (request.resource.data.bracketSeed == null || request.resource.data.bracketSeed is number)
+        && request.resource.data.publicStatus in ['registered', 'checked-in']
+        && request.resource.data.createdAt is string
+        && request.resource.data.updatedAt is string;
+    }
+
+    function validTech1RaffleTransaction(eventId) {
+      return request.resource.data.keys().hasOnly([
+          'id',
+          'eventId',
+          'registrationId',
+          'paidTicketsAdded',
+          'amountPaid',
+          'paymentMethod',
+          'confirmedBy',
+          'createdAt'
+        ])
+        && request.resource.data.eventId == eventId
+        && validShortString(request.resource.data.id, 120)
+        && validShortString(request.resource.data.registrationId, 120)
+        && request.resource.data.paidTicketsAdded is number
+        && request.resource.data.paidTicketsAdded > 0
+        && request.resource.data.amountPaid == request.resource.data.paidTicketsAdded * 5
+        && optionalString(request.resource.data.paymentMethod, 40)
+        && optionalString(request.resource.data.confirmedBy, 120)
+        && request.resource.data.createdAt is string;
+    }
+
+    function validTech1Bracket() {
+      return request.resource.data.keys().hasOnly([
+          'status',
+          'generatedAt',
+          'lockedAt',
+          'winnerRevealStatus',
+          'winnerRevealedAt',
+          'winnerRevealUpdatedBy',
+          'driverCount',
+          'bracketSize',
+          'source',
+          'rounds',
+          'matches',
+          'randomizedSeedOrder',
+          'byes',
+          'createdBy',
+          'updatedAt'
+        ])
+        && request.resource.data.status in ['not_generated', 'generated', 'locked', 'in_progress', 'complete']
+        && request.resource.data.driverCount is number
+        && request.resource.data.driverCount >= 0
+        && request.resource.data.bracketSize is number
+        && request.resource.data.bracketSize >= 2
+        && request.resource.data.source in ['checkedIn', 'allRegistered', 'bracketEligible']
+        && request.resource.data.rounds is list
+        && request.resource.data.matches is map
+        && request.resource.data.randomizedSeedOrder is list
+        && request.resource.data.byes is list
+        && (
+          !request.resource.data.keys().hasAny(['winnerRevealStatus'])
+          || request.resource.data.winnerRevealStatus in ['hidden', 'revealed']
+        )
+        && (
+          !request.resource.data.keys().hasAny(['winnerRevealedAt'])
+          || optionalString(request.resource.data.winnerRevealedAt, 40)
+        )
+        && (
+          !request.resource.data.keys().hasAny(['winnerRevealUpdatedBy'])
+          || optionalString(request.resource.data.winnerRevealUpdatedBy, 120)
+        )
+        && optionalString(request.resource.data.createdBy, 120)
+        && request.resource.data.updatedAt is string;
+    }
+
+    function validTech1BattleResult(eventId) {
+      return request.resource.data.keys().hasOnly([
+          'matchId',
+          'eventId',
+          'round',
+          'matchNumber',
+          'driverA',
+          'driverB',
+          'winnerId',
+          'winnerName',
+          'resultStatus',
+          'notes',
+          'advancedToMatchId',
+          'updatedBy',
+          'updatedAt'
+        ])
+        && request.resource.data.eventId == eventId
+        && validShortString(request.resource.data.matchId, 120)
+        && request.resource.data.round is number
+        && request.resource.data.matchNumber is number
+        && validShortString(request.resource.data.winnerId, 120)
+        && optionalString(request.resource.data.winnerName, 120)
+        && request.resource.data.resultStatus in ['pending', 'complete', 'bye']
+        && optionalString(request.resource.data.notes, 240)
+        && optionalString(request.resource.data.advancedToMatchId, 120)
+        && optionalString(request.resource.data.updatedBy, 120)
+        && request.resource.data.updatedAt is string;
+    }
+
+    function validStreamState(eventId) {
+      return isStreamOperator(eventId)
+        && request.resource.data.keys().hasOnly([
+          'active',
+          'eventId',
+          'sessionId',
+          'layoutKey',
+          'phaseLabel',
+          'eventName',
+          'transportMode',
+          'audioMuted',
+          'cameraEnabled',
+          'hasVideoTrack',
+          'hasAudioTrack',
+          'startedAt',
+          'heartbeatAt',
+          'updatedAt'
+        ])
+        && (!request.resource.data.keys().hasAny(['active']) || request.resource.data.active is bool)
+        && (!request.resource.data.keys().hasAny(['eventId']) || request.resource.data.eventId == eventId)
+        && (!request.resource.data.keys().hasAny(['updatedAt']) || request.resource.data.updatedAt is number);
+    }
+
+    function validViewerSignal(eventId, sessionId) {
+      return isSignedIn()
+        && request.resource.data.keys().hasOnly([
+          'status',
+          'eventId',
+          'sessionId',
+          'createdAt',
+          'updatedAt',
+          'viewerIce',
+          'broadcasterIce',
+          'offer',
+          'answer',
+          'layoutKey'
+        ])
+        && (!request.resource.data.keys().hasAny(['eventId']) || request.resource.data.eventId == eventId)
+        && (!request.resource.data.keys().hasAny(['sessionId']) || request.resource.data.sessionId == sessionId)
+        && (!request.resource.data.keys().hasAny(['updatedAt']) || request.resource.data.updatedAt is number);
+    }
+
+    match /artifacts/{appId}/public/testData/{document=**} {
+      allow read: if true;
+      allow write: if isOwner() || (isSignedIn() && appId.matches('.*test.*'));
+    }
+
+    // RGRC-style sync model: any signed-in app session can read/write shared event state.
+    // Role/password workflow is enforced in-app per host route.
+    match /artifacts/{appId}/public/data/{document=**} {
+      allow read, write: if eventDayOpenAccess();
+    }
+
+    match /artifacts/{appId}/public/data/meta/eventDirectory {
+      allow read: if true;
+      allow create, update: if eventDayOpenAccess()
+        && request.resource.data.keys().hasOnly(['events', 'activeEventId', 'deletedEventIds', 'syncStamp'])
+        && isValidSyncStamp();
+      allow delete: if eventDayOpenAccess();
+    }
+
+    match /artifacts/{appId}/public/data/meta/activeEventSelection {
+      allow read: if true;
+      allow create, update: if eventDayOpenAccess()
+        && request.resource.data.keys().hasOnly(['activeEventId', 'eventMeta', 'syncStamp'])
+        && isValidSyncStamp();
+      allow delete: if eventDayOpenAccess();
+    }
+
+    match /artifacts/{appId}/public/data/meta/resultsArchive {
+      allow read: if true;
+      allow create, update: if eventDayOpenAccess()
+        && request.resource.data.keys().hasOnly(['events', 'syncStamp'])
+        && isValidSyncStamp();
+      allow delete: if eventDayOpenAccess();
+    }
+
+    match /artifacts/{appId}/public/data/access/{uid} {
+      allow read: if isOwner() || (isSignedIn() && request.auth.uid == uid);
+      allow create, update, delete: if isOwner()
+        && request.resource.data.keys().hasOnly(['roles', 'eventIds', 'createdAt', 'updatedAt', 'disabled']);
+    }
+
+    match /artifacts/{appId}/public/data/events/{eventId} {
+      allow read: if true;
+      allow create, update: if eventDayOpenAccess() && validPublicEventShell(eventId);
+      allow delete: if isOwner();
+
+      match /private/{docId} {
+        allow read, write: if eventDayOpenAccess();
+      }
+
+      match /registrations/{registrationId} {
+        allow read: if isEventAdmin(eventId) || (isSignedIn() && resource.data.ownerUid == request.auth.uid);
+        allow create: if validDriverRegistrationCreate(appId, eventId) || (eventDayOpenAccess() && validRegistrationBase(eventId));
+        allow update: if validDriverRegistrationUpdate(appId, eventId) || (eventDayOpenAccess() && validRegistrationBase(eventId));
+        allow delete: if eventDayOpenAccess();
+      }
+
+      match /publicRegistrationIndex/{publicId} {
+        allow read: if true;
+        allow create, update: if validPublicRegistrationIndex(eventId)
+          && (
+            eventDayOpenAccess()
+            || (isSignedIn() && eventRegistrationOpen(appId, eventId))
+          );
+        allow delete: if eventDayOpenAccess();
+      }
+
+      match /drivers/{driverId} {
+        allow read: if true;
+        allow create, update, delete: if eventDayOpenAccess()
+          && request.resource.data.eventId == eventId
+          && request.resource.data.id == driverId
+          && request.resource.data.schemaVersion == 2;
+      }
+
+      match /qualifyingRuns/{runId} {
+        allow read: if true;
+        allow create, update, delete: if eventDayOpenAccess();
+      }
+
+      match /judgeSubmissions/{submissionId} {
+        allow read: if true;
+        allow create: if validJudgeSubmission(eventId);
+        allow update: if validJudgeSubmission(eventId)
+          && resource.data.judgeSlot == request.resource.data.judgeSlot;
+        allow delete: if eventDayOpenAccess();
+      }
+
+      match /battleVotes/{voteId} {
+        allow read: if true;
+        allow create: if validBattleVote(eventId);
+        allow update: if validBattleVote(eventId)
+          && resource.data.judgeSlot == request.resource.data.judgeSlot;
+        allow delete: if eventDayOpenAccess();
+      }
+
+      match /brackets/{bracketId} {
+        allow read: if true;
+        allow create, update, delete: if eventDayOpenAccess();
+      }
+
+      match /publicAggregates/{aggregateId} {
+        allow read: if true;
+        allow create, update, delete: if eventDayOpenAccess();
+      }
+
+      match /{document=**} {
+        allow read, write: if false;
+      }
+    }
+
+    match /artifacts/{appId}/public/data/demoEvents/{eventId} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /artifacts/{appId}/public/data/specialEvents/{eventId} {
+      allow read: if true;
+      allow create, update: if isEventAdmin(eventId) && validSpecialEventShell();
+      allow delete: if isOwner();
+
+      match /registrations/{registrationId} {
+        allow read: if isEventAdmin(eventId) || (isSignedIn() && resource.data.ownerUid == request.auth.uid);
+        allow create: if (isEventAdmin(eventId) && validTech1RegistrationBase(eventId))
+          || validTech1PublicRegistrationCreate(appId, eventId);
+        allow update: if (isEventAdmin(eventId) && validTech1RegistrationBase(eventId))
+          || validTech1PublicRegistrationUpdate(appId, eventId);
+        allow delete: if isEventAdmin(eventId);
+      }
+
+      match /publicRegistrationIndex/{publicId} {
+        allow read: if true;
+        allow create, update: if validTech1PublicRegistrationIndex(eventId)
+          && (
+            isEventAdmin(eventId)
+            || (
+              isSignedIn()
+              && specialEventRegistrationOpen(appId, eventId)
+              && request.resource.data.checkedIn == false
+              && request.resource.data.bracketEligible == false
+              && request.resource.data.bracketSeed == null
+              && request.resource.data.publicStatus == 'registered'
+            )
+          );
+        allow delete: if isEventAdmin(eventId);
+      }
+
+      match /raffleTransactions/{transactionId} {
+        allow read: if isEventAdmin(eventId);
+        allow create, update: if isEventAdmin(eventId) && validTech1RaffleTransaction(eventId);
+        allow delete: if isEventAdmin(eventId);
+      }
+
+      match /brackets/{bracketId} {
+        allow read: if true;
+        allow create: if isEventAdmin(eventId) && validTech1Bracket();
+        allow update: if (isEventAdmin(eventId) || isJudgeSlot(eventId, 'j1')) && validTech1Bracket();
+        allow delete: if isEventAdmin(eventId);
+      }
+
+      match /battleResults/{matchId} {
+        allow read: if true;
+        allow create, update: if isEventAdmin(eventId) && validTech1BattleResult(eventId);
+        allow delete: if isEventAdmin(eventId);
+      }
+
+      match /{document=**} {
+        allow read, write: if false;
+      }
+    }
+
+    match /artifacts/{appId}/public/data/liveStreams/{eventId} {
+      allow read: if true;
+      allow create, update: if validStreamState(eventId);
+      allow delete: if isStreamOperator(eventId);
+
+      match /sessions/{sessionId}/viewers/{viewerId} {
+        allow read: if true;
+        allow create, update: if validViewerSignal(eventId, sessionId);
+        allow delete: if isSignedIn();
+      }
+    }
+
+    match /artifacts/{appId}/public/{scope}/{document=**} {
+      allow read, write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
