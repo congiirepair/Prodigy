@@ -1,4 +1,8 @@
 function getRegistrationPublicStatus(normalized = {}) {
+  if (normalized.status === "approved") return "approved";
+  if (normalized.status === "checkedIn") return "checkedIn";
+  if (normalized.status === "rejected") return "rejected";
+  if (normalized.status === "pending") return "pending";
   return normalized.rejectedAt
     ? "rejected"
     : normalized.paidAt
@@ -59,20 +63,25 @@ export function buildPendingRegistrationsFromPublicIndexDocs(docs = [], {
   normalizePendingRegistrationList,
   nowIso = new Date().toISOString(),
 } = {}) {
-  return normalizePendingRegistrationList(docs.map((entry) => {
-    const data = entry.data || {};
-    return {
-      id: data.registrationId || data.publicId || data.id,
-      name: data.name || data.displayName || "",
-      driverNumber: data.driverNumber || "",
-      teamName: data.teamName || "",
-      chassis: data.chassis || "",
-      teamRegistrationId: data.teamRegistrationId || "",
-      teamMemberOrder: data.teamMemberOrder || null,
-      teamMemberCount: data.teamMemberCount || null,
-      checkedInAt: data.checkedIn ? (data.updatedAt || nowIso) : null,
-      rejectedAt: data.status === "rejected" ? (data.updatedAt || nowIso) : null,
-      paidAt: data.status === "approved" ? (data.updatedAt || nowIso) : null,
-    };
-  }));
+  return normalizePendingRegistrationList(
+    docs
+      .map((entry) => {
+        const data = entry.data || {};
+        if (data.status === "approved") return null;
+        return {
+          id: data.registrationId || data.publicId || data.id,
+          name: data.name || data.displayName || "",
+          driverNumber: data.driverNumber || "",
+          teamName: data.teamName || "",
+          chassis: data.chassis || "",
+          teamRegistrationId: data.teamRegistrationId || "",
+          teamMemberOrder: data.teamMemberOrder || null,
+          teamMemberCount: data.teamMemberCount || null,
+          checkedInAt: data.checkedIn ? (data.updatedAt || nowIso) : null,
+          rejectedAt: data.status === "rejected" ? (data.updatedAt || nowIso) : null,
+          paidAt: data.status === "approved" ? (data.updatedAt || nowIso) : null,
+        };
+      })
+      .filter(Boolean)
+  );
 }

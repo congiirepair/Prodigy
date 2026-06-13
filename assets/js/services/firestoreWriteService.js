@@ -27,6 +27,16 @@ export function createFirestoreWriteService({ setDoc, deleteDoc, getRefs }) {
       }
       return Promise.all(writes);
     },
+    deleteRegistration(eventId, registrationId, publicId = null) {
+      const refs = getRefs();
+      const writes = [
+        deleteDoc(refs.getEventRegistrationDocRef(eventId, registrationId)),
+      ];
+      if (publicId) {
+        writes.push(deleteDoc(refs.getPublicRegistrationIndexDocRef(eventId, publicId)));
+      }
+      return Promise.all(writes);
+    },
     publishDriver(eventId, driverDoc) {
       return setDoc(getRefs().getEventDriverDocRef(eventId, driverDoc.id), driverDoc, { merge: true });
     },

@@ -6,6 +6,11 @@
   "scripts": {
     "serve": "firebase emulators:start --only hosting,auth,firestore --project prodigy-rc-competitions",
     "serve:hosting": "firebase emulators:start --only hosting --project prodigy-rc-competitions",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier . --write",
+    "format:check": "prettier . --check",
+    "deps:graph": "madge --extensions js,mjs,cjs --warning --circular assets/js/app.js",
     "test:url": "node scripts/test-mode-url.mjs",
     "test:url:qualifying": "node scripts/test-mode-url.mjs qualifying",
     "test:url:bracket": "node scripts/test-mode-url.mjs bracket",
@@ -24,6 +29,7 @@
     "test:mobile": "playwright test --project=iphone-judge-webkit --project=android-judge-chromium",
     "test:judge-mobile": "playwright test tests/e2e/judge-mobile.spec.js --project=iphone-judge-webkit --project=android-judge-chromium",
     "test:visual": "playwright test tests/e2e/visual.spec.js",
+    "playwright:install": "playwright install chromium firefox webkit",
     "test:rules": "npx firebase-tools emulators:exec --only firestore \"node tests/security/firestore-rules.test.mjs\" --project prodigy-rc-competitions",
     "claims:list": "node scripts/manage-claims.mjs list",
     "claims:set": "node scripts/manage-claims.mjs set",
@@ -36,12 +42,19 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.3",
+    "@eslint/js": "^10.0.1",
     "@firebase/rules-unit-testing": "^5.0.1",
     "@lhci/cli": "^0.15.1",
     "@playwright/test": "^1.59.1",
+    "eslint": "^10.4.1",
     "firebase": "^12.13.0",
     "firebase-admin": "^13.10.0",
+    "firebase-tools": "^15.19.1",
+    "globals": "^17.6.0",
     "lighthouse": "^13.2.0",
-    "start-server-and-test": "^3.0.2"
+    "madge": "^8.0.0",
+    "prettier": "^3.8.3",
+    "start-server-and-test": "^3.0.2",
+    "tsx": "^4.22.4"
   }
 }

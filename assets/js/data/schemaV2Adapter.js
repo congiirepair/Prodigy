@@ -30,6 +30,8 @@ export function buildPublicEventShellPayload({
     competitionMode,
     modeSettings,
     specialEventId: source.specialEventId || modeSettings?.specialEventId || null,
+    formatMode: source.formatMode || "classic",
+    lowerCount: String(source.lowerCount || "0"),
     registrationStatus: registrationClosed ? "closed" : hasValidVenue ? "open" : "disabled",
     liveStatus: bracketLive ? "bracket" : qualifyingPhase,
     publicFlags: {

@@ -210,6 +210,8 @@ function runEventModePersistenceChecks() {
     judgeCount: 1,
     judgingMode: "average",
     competitionMode: "tech1-anniversary",
+    formatMode: "sdc-top-16",
+    lowerCount: "8",
     modeSettings: {
       ...TECH1_ANNIVERSARY_COMPETITION_MODE,
     },
@@ -220,6 +222,8 @@ function runEventModePersistenceChecks() {
   assert.equal(publicShell.competitionMode, "tech1-anniversary");
   assert.equal(publicShell.modeSettings?.mode, "tech1-anniversary");
   assert.equal(publicShell.modeSettings?.specialEventId, "tech1drift-anniversary-may-30");
+  assert.equal(publicShell.formatMode, "sdc-top-16");
+  assert.equal(publicShell.lowerCount, "8");
   const privateConfig = buildPrivateEventConfigPayload({
     eventMeta,
     activeEventId: eventMeta.id,

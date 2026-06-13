@@ -1,0 +1,12 @@
+.firebase
+.github
+.qa-streamer
+.tmp
+node_modules
+qa-artifacts
+functions/lib
+index.backup.*.html
+index.revert-safety.*.html
+client-config.backup.*.js
+client-config.revert-safety.*.js
+firestore-debug.log

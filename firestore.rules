@@ -235,7 +235,8 @@ service cloud.firestore {
     }
 
     function validJudgeSubmission(eventId) {
-      return request.resource.data.keys().hasOnly([
+      return eventDayOpenAccess()
+        && request.resource.data.keys().hasOnly([
           'eventId',
           'runId',
           'driverId',
@@ -250,7 +251,6 @@ service cloud.firestore {
         && request.resource.data.eventId == eventId
         && request.resource.data.schemaVersion == 2
         && request.resource.data.judgeSlot in ['j1', 'j2', 'j3']
-        && isJudgeSlot(eventId, request.resource.data.judgeSlot)
         && request.resource.data.runKey in ['run1', 'run2', 'runoff']
         && validShortString(request.resource.data.driverId, 120)
         && validShortString(request.resource.data.runId, 180)
@@ -261,7 +261,8 @@ service cloud.firestore {
     }
 
     function validBattleVote(eventId) {
-      return request.resource.data.keys().hasOnly([
+      return eventDayOpenAccess()
+        && request.resource.data.keys().hasOnly([
           'eventId',
           'battleId',
           'judgeSlot',
@@ -275,7 +276,6 @@ service cloud.firestore {
         && request.resource.data.eventId == eventId
         && request.resource.data.schemaVersion == 2
         && request.resource.data.judgeSlot in ['j1', 'j2', 'j3']
-        && isJudgeSlot(eventId, request.resource.data.judgeSlot)
         && request.resource.data.side in ['left', 'right', 'omt', null]
         && validShortString(request.resource.data.battleId, 180)
         && request.resource.data.cycle is number
@@ -633,26 +633,26 @@ service cloud.firestore {
 
     match /artifacts/{appId}/public/data/meta/eventDirectory {
       allow read: if true;
-      allow create, update: if isOwner()
+      allow create, update: if eventDayOpenAccess()
         && request.resource.data.keys().hasOnly(['events', 'activeEventId', 'deletedEventIds', 'syncStamp'])
         && isValidSyncStamp();
-      allow delete: if isOwner();
+      allow delete: if eventDayOpenAccess();
     }
 
     match /artifacts/{appId}/public/data/meta/activeEventSelection {
       allow read: if true;
-      allow create, update: if isOwner()
+      allow create, update: if eventDayOpenAccess()
         && request.resource.data.keys().hasOnly(['activeEventId', 'eventMeta', 'syncStamp'])
         && isValidSyncStamp();
-      allow delete: if isOwner();
+      allow delete: if eventDayOpenAccess();
     }
 
     match /artifacts/{appId}/public/data/meta/resultsArchive {
       allow read: if true;
-      allow create, update: if isEventAdmin('global')
+      allow create, update: if eventDayOpenAccess()
         && request.resource.data.keys().hasOnly(['events', 'syncStamp'])
         && isValidSyncStamp();
-      allow delete: if isOwner();
+      allow delete: if eventDayOpenAccess();
     }
 
     match /artifacts/{appId}/public/data/access/{uid} {
@@ -663,33 +663,33 @@ service cloud.firestore {
 
     match /artifacts/{appId}/public/data/events/{eventId} {
       allow read: if true;
-      allow create, update: if isEventAdmin(eventId) && validPublicEventShell(eventId);
+      allow create, update: if eventDayOpenAccess() && validPublicEventShell(eventId);
       allow delete: if isOwner();
 
       match /private/{docId} {
-        allow read, write: if isEventAdmin(eventId);
+        allow read, write: if eventDayOpenAccess();
       }
 
       match /registrations/{registrationId} {
         allow read: if isEventAdmin(eventId) || (isSignedIn() && resource.data.ownerUid == request.auth.uid);
-        allow create: if validDriverRegistrationCreate(appId, eventId) || (isEventAdmin(eventId) && validRegistrationBase(eventId));
-        allow update: if validDriverRegistrationUpdate(appId, eventId) || (isEventAdmin(eventId) && validRegistrationBase(eventId));
-        allow delete: if isEventAdmin(eventId);
+        allow create: if validDriverRegistrationCreate(appId, eventId) || (eventDayOpenAccess() && validRegistrationBase(eventId));
+        allow update: if validDriverRegistrationUpdate(appId, eventId) || (eventDayOpenAccess() && validRegistrationBase(eventId));
+        allow delete: if eventDayOpenAccess();
       }
 
       match /publicRegistrationIndex/{publicId} {
         allow read: if true;
         allow create, update: if validPublicRegistrationIndex(eventId)
           && (
-            isEventAdmin(eventId)
+            eventDayOpenAccess()
             || (isSignedIn() && eventRegistrationOpen(appId, eventId))
           );
-        allow delete: if isEventAdmin(eventId);
+        allow delete: if eventDayOpenAccess();
       }
 
       match /drivers/{driverId} {
         allow read: if true;
-        allow create, update, delete: if isEventAdmin(eventId)
+        allow create, update, delete: if eventDayOpenAccess()
           && request.resource.data.eventId == eventId
           && request.resource.data.id == driverId
           && request.resource.data.schemaVersion == 2;
@@ -697,7 +697,7 @@ service cloud.firestore {
 
       match /qualifyingRuns/{runId} {
         allow read: if true;
-        allow create, update, delete: if isEventAdmin(eventId);
+        allow create, update, delete: if eventDayOpenAccess();
       }
 
       match /judgeSubmissions/{submissionId} {
@@ -705,7 +705,7 @@ service cloud.firestore {
         allow create: if validJudgeSubmission(eventId);
         allow update: if validJudgeSubmission(eventId)
           && resource.data.judgeSlot == request.resource.data.judgeSlot;
-        allow delete: if isEventAdmin(eventId);
+        allow delete: if eventDayOpenAccess();
       }
 
       match /battleVotes/{voteId} {
@@ -713,17 +713,17 @@ service cloud.firestore {
         allow create: if validBattleVote(eventId);
         allow update: if validBattleVote(eventId)
           && resource.data.judgeSlot == request.resource.data.judgeSlot;
-        allow delete: if isEventAdmin(eventId);
+        allow delete: if eventDayOpenAccess();
       }
 
       match /brackets/{bracketId} {
         allow read: if true;
-        allow create, update, delete: if isEventAdmin(eventId);
+        allow create, update, delete: if eventDayOpenAccess();
       }
 
       match /publicAggregates/{aggregateId} {
         allow read: if true;
-        allow create, update, delete: if isEventAdmin(eventId);
+        allow create, update, delete: if eventDayOpenAccess();
       }
 
       match /{document=**} {

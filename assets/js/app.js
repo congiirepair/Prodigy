@@ -139,7 +139,6 @@ const SELF_REGISTER_DEVICE_ID_KEY = `rc-drift-self-register-device-v${EVENT_STOR
 const SELF_REGISTER_LAST_SUBMIT_KEY = `rc-drift-self-register-last-submit-v${EVENT_STORAGE_VERSION}`;
 const THEME_STORAGE_KEY = `rc-drift-theme-v${EVENT_STORAGE_VERSION}`;
 const SELF_REGISTER_PROFILE_STORAGE_KEY = `rc-drift-self-register-profile-v${EVENT_STORAGE_VERSION}`;
-const SELF_REGISTER_PROFILES_STORAGE_KEY = `rc-drift-self-register-profiles-v${EVENT_STORAGE_VERSION}`;
 const JUDGE_ROLE_CLAIM_TTL_MS = 1000 * 60 * 5;
 const JUDGE_ROLE_CLAIM_HEARTBEAT_MS = 1000 * 30;
 const AUTO_EVENT_SWITCH_CHECK_MS = 1000 * 60;
@@ -887,7 +886,7 @@ function isEventCompleted(eventMeta = activeEventMeta) {
 
 function isJudgeAccessLocked(eventMeta = activeEventMeta) {
   const status = getEventStatus(eventMeta);
-  return status === EVENT_STATUS_ARCHIVED || status === EVENT_STATUS_COMPLETED;
+  return status === EVENT_STATUS_ARCHIVED;
 }
 
 function isArchivedOrCompleted(eventMeta = activeEventMeta) {
@@ -1065,6 +1064,7 @@ function normalizePendingRegistrationList(entries) {
         driverNumber: normalized.driverNumber == null ? "" : String(normalized.driverNumber),
         teamName: typeof normalized.teamName === "string" ? normalized.teamName : "",
         chassis: typeof normalized.chassis === "string" ? normalized.chassis : "",
+        chassisWeight: normalized.chassisWeight == null ? "" : String(normalized.chassisWeight),
         teamRegistrationId: typeof normalized.teamRegistrationId === "string" ? normalized.teamRegistrationId : "",
         teamMemberOrder: Number.isInteger(Number(normalized.teamMemberOrder)) ? Number(normalized.teamMemberOrder) : 0,
         teamMemberCount: Number.isInteger(Number(normalized.teamMemberCount)) ? Number(normalized.teamMemberCount) : 0,
@@ -1663,6 +1663,7 @@ function createEmptyDriver(position = null) {
     driverNumber: "",
     teamName: "",
     chassis: "",
+    chassisWeight: "",
     registrationNumber: normalizedPosition,
     reg: normalizedPosition,
     signUpPosition: normalizedPosition,
@@ -1745,6 +1746,7 @@ function normalizeDriverState(driver, index) {
   normalized.teamName = typeof normalized.teamName === "string" ? normalized.teamName : "";
   normalized.driverNumber = normalized.driverNumber == null ? "" : String(normalized.driverNumber);
   normalized.chassis = typeof normalized.chassis === "string" ? normalized.chassis : "";
+  normalized.chassisWeight = normalized.chassisWeight == null ? "" : String(normalized.chassisWeight);
   normalized.teamRegistrationId = typeof normalized.teamRegistrationId === "string" ? normalized.teamRegistrationId : "";
   normalized.teamMemberOrder = Number.isInteger(Number(normalized.teamMemberOrder)) ? Number(normalized.teamMemberOrder) : 0;
   normalized.teamMemberCount = Number.isInteger(Number(normalized.teamMemberCount)) ? Number(normalized.teamMemberCount) : 0;
@@ -1827,6 +1829,10 @@ function hasValidVenueConfig(eventMeta = activeEventMeta) {
     && Number.isFinite(Number(venueConfig.radiusMeters))
     && Number(venueConfig.radiusMeters) > 0
   );
+}
+
+function isSelfRegistrationEnabled(eventMeta = activeEventMeta) {
+  return Boolean(getVenueConfig(eventMeta).enabled);
 }
 
 function toRadians(value) {
@@ -2089,6 +2095,45 @@ function haveAllActiveJudgesSubmittedRun(driver, runRef) {
   return activeJudgeRoles.length > 0 && activeJudgeRoles.every((role) => getSubmittedScoreValue(driver, role, runKey) !== null);
 }
 
+function deriveScopedQualifyingProgressSync(drivers = appDrivers, flow = qualifyingFlow, eventMeta = activeEventMeta) {
+  if (isTwinTripleMode(eventMeta)) return null;
+  if (!flow?.started || flow?.completed || !flow?.currentDriverId) return null;
+
+  const queue = getQualifyingDriverQueue(drivers);
+  if (!queue.length) return null;
+
+  const currentIndex = queue.findIndex((driver) => driver.id === flow.currentDriverId);
+  if (currentIndex < 0) return null;
+
+  let nextIndex = currentIndex;
+  while (nextIndex < queue.length && haveAllActiveJudgesSubmittedRun(queue[nextIndex], "run2")) {
+    nextIndex += 1;
+  }
+
+  if (nextIndex === currentIndex) return null;
+  if (nextIndex >= queue.length) {
+    return {
+      flow: {
+        currentDriverId: null,
+        readyRoles: {},
+        started: true,
+        completed: true,
+      },
+      judgeLaneIndex: Math.max(0, queue.length - 1),
+    };
+  }
+
+  return {
+    flow: {
+      currentDriverId: queue[nextIndex]?.id || null,
+      readyRoles: {},
+      started: true,
+      completed: false,
+    },
+    judgeLaneIndex: nextIndex,
+  };
+}
+
 function maybeAdvanceQualifyingAfterSubmit(driverId) {
   if (!driverId || qualifyingFlow.currentDriverId !== driverId) return false;
   const driver = appDrivers.find((entry) => entry.id === driverId);
@@ -2144,7 +2189,7 @@ async function syncJudgeSubmission(driverId, role = currentRole, runRef = null) 
   setJudgeSubmissionInFlightState(true);
 
   try {
-    if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE) {
+    if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE && !isTwinTripleMode(activeEventMeta)) {
       const scopedRunKeys = runKey ? [runKey] : ["run1", "run2", "runoff"];
       const writes = scopedRunKeys
         .filter((key) => localRoleScores?.submitted?.[key] !== null && localRoleScores?.submitted?.[key] !== undefined)
@@ -2156,8 +2201,9 @@ async function syncJudgeSubmission(driverId, role = currentRole, runRef = null) 
           score: localRoleScores?.[key],
           submittedScore: localRoleScores?.submitted?.[key],
         }));
-      await Promise.all(writes);
-      return writes.length > 0;
+      if (!writes.length) return false;
+      const results = await Promise.all(writes);
+      return results.every(Boolean);
     }
 
     await runTransaction(db, async (transaction) => {
@@ -2193,10 +2239,20 @@ async function syncJudgeSubmission(driverId, role = currentRole, runRef = null) 
       }
 
       const activeJudgeRoles = getActiveJudgeRoles(remoteMeta);
-      const nextQualifyingFlow = remotePayload.qualifyingFlow || createEmptyQualifyingFlow();
-      const remoteTwinComp = isTwinTripleMode(remoteMeta) ? normalizeTwinCompState(twinCompState) : normalizeTwinCompState(remotePayload.twinComp);
+      const nextQualifyingFlow = JSON.parse(JSON.stringify(remotePayload.qualifyingFlow || createEmptyQualifyingFlow()));
+      let remoteTwinComp = normalizeTwinCompState(remotePayload.twinComp);
       if (isTwinTripleMode(remoteMeta)) {
-        Object.assign(nextQualifyingFlow, JSON.parse(JSON.stringify(qualifyingFlow || createEmptyQualifyingFlow())));
+        const capturedTwinCompState = buildTwinCompCapturedRunState({
+          state: remoteTwinComp,
+          drivers: remoteDrivers,
+          flow: nextQualifyingFlow,
+          driverId,
+          eventMeta: remoteMeta,
+        });
+        if (capturedTwinCompState) {
+          remoteTwinComp = capturedTwinCompState.twinComp;
+          Object.assign(nextQualifyingFlow, capturedTwinCompState.qualifyingFlow);
+        }
       } else if (nextQualifyingFlow.currentDriverId === driverId) {
         const shouldAdvanceAfterAllRuns = !runKey && driverHasAllSubmittedRunsForRoles(remoteDriver, activeJudgeRoles, ["run1", "run2"]);
         const shouldAdvanceAfterRun2 = runKey === "run2" && driverHasAllSubmittedRunsForRoles(remoteDriver, activeJudgeRoles, ["run2"]);
@@ -2324,13 +2380,14 @@ async function submitCompetitionJudgeVote(side, role = currentRole) {
     if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE) {
       const result = recordCompetitionJudgeVote(tournamentState, activeEventMeta, role, side);
       if (!result.changed || result.blocked) return false;
-      await publishScopedBattleVote({
+      const didPublishVote = await publishScopedBattleVote({
         eventId: activeEventId,
         battleId: getBattleScopedId(result.entry, result.control?.cycle || 1),
         judgeSlot: role,
         side,
         cycle: result.control?.cycle || 1,
       });
+      if (!didPublishVote) return false;
       renderBracket();
       return true;
     }
@@ -2483,7 +2540,7 @@ async function submitCompetitionJudgeScorecard(scoreSubmission, role = currentRo
     if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE) {
       const result = recordCompetitionJudgeScorecard(tournamentState, activeEventMeta, role, normalizedSubmission);
       if (!result.changed || result.blocked) return false;
-      await publishScopedBattleVote({
+      const didPublishVote = await publishScopedBattleVote({
         eventId: activeEventId,
         battleId: getBattleScopedId(result.entry, result.control?.cycle || 1),
         judgeSlot: role,
@@ -2494,6 +2551,7 @@ async function submitCompetitionJudgeScorecard(scoreSubmission, role = currentRo
         },
         cycle: result.control?.cycle || 1,
       });
+      if (!didPublishVote) return false;
       renderBracket();
       return true;
     }
@@ -3296,6 +3354,11 @@ function createEmptyTwinCompState() {
     winnerId: null,
     winnerName: null,
     completedAt: null,
+    podiumReveal: {
+      revealed: {},
+      updatedAt: null,
+      updatedBy: "",
+    },
   };
 }
 
@@ -3354,6 +3417,11 @@ function normalizeTwinCompState(state) {
     winnerId: state.winnerId || null,
     winnerName: state.winnerName || null,
     completedAt: state.completedAt || null,
+    podiumReveal: {
+      revealed: { ...((state?.podiumReveal && typeof state.podiumReveal === "object" && state.podiumReveal.revealed) || {}) },
+      updatedAt: state?.podiumReveal?.updatedAt || null,
+      updatedBy: state?.podiumReveal?.updatedBy || "",
+    },
   };
 }
 
@@ -3411,16 +3479,14 @@ function resetDriverQualifyingScores(driver) {
   }
 }
 
-function startTwinCompRound(options = {}) {
-  if (!adminCanEdit() || !isTwinTripleMode(activeEventMeta)) return false;
-  syncTwinCompTeamsFromRoster();
-  const state = getTwinCompState();
-  const currentRound = getTwinCompCurrentRound(state);
-  if (currentRound && currentRound.status !== "finalized") return false;
-  const activeTeams = getTwinCompActiveTeams(state);
-  if (activeTeams.length <= 1) return false;
+function buildTwinCompRoundStartState(state = twinCompState, options = {}) {
+  const normalizedState = getTwinCompState(state);
+  const currentRound = getTwinCompCurrentRound(normalizedState);
+  if (currentRound && currentRound.status !== "finalized") return null;
+  const activeTeams = getTwinCompActiveTeams(normalizedState);
+  if (activeTeams.length <= 1) return null;
   const orderedTeams = options.randomizeOrder ? shuffleEntries(activeTeams) : activeTeams;
-  const roundNumber = (state.roundNumber || state.rounds.length || 0) + 1;
+  const roundNumber = (normalizedState.roundNumber || normalizedState.rounds.length || 0) + 1;
   orderedTeams.forEach((team) => resetDriverQualifyingScores(appDrivers.find((driver) => driver.id === team.id)));
   const round = {
     id: `twin-round-${roundNumber}-${Date.now()}`,
@@ -3433,19 +3499,30 @@ function startTwinCompRound(options = {}) {
     tieReviewRequired: false,
     finalizedAt: null,
   };
-  setTwinCompStateState({
-    ...state,
-    status: "live",
-    roundNumber,
-    currentRoundId: round.id,
-    rounds: [...state.rounds, round],
-  }, { syncQualifying: false });
-  setQualifyingFlowState({
-    currentDriverId: round.currentTeamId,
-    readyRoles: {},
-    started: true,
-    completed: false,
-  }, { syncQualifying: false });
+  return {
+    twinComp: {
+      ...normalizedState,
+      status: "live",
+      roundNumber,
+      currentRoundId: round.id,
+      rounds: [...normalizedState.rounds, round],
+    },
+    qualifyingFlow: {
+      currentDriverId: round.currentTeamId,
+      readyRoles: {},
+      started: true,
+      completed: false,
+    },
+  };
+}
+
+function startTwinCompRound(options = {}) {
+  if (!adminCanEdit() || !isTwinTripleMode(activeEventMeta)) return false;
+  syncTwinCompTeamsFromRoster();
+  const nextState = buildTwinCompRoundStartState(getTwinCompState(), options);
+  if (!nextState) return false;
+  setTwinCompStateState(nextState.twinComp, { syncQualifying: false });
+  setQualifyingFlowState(nextState.qualifyingFlow, { syncQualifying: false });
   setJudgeLaneIndexState(0);
   return true;
 }
@@ -3494,16 +3571,38 @@ function getTwinCompTeamRoundScore(teamId, round = getTwinCompCurrentRound()) {
 }
 
 function captureTwinCompCurrentRun(driverId = qualifyingFlow?.currentDriverId) {
-  if (!isTwinTripleMode(activeEventMeta) || !driverId) return false;
-  const state = getTwinCompState();
-  const round = getTwinCompCurrentRound(state);
-  if (!round || round.status !== "live" || !round.teamIds.includes(driverId)) return false;
-  const driver = appDrivers.find((entry) => entry.id === driverId);
-  if (!driver || !haveAllActiveJudgesSubmittedRun(driver, "run1")) return false;
+  const nextState = buildTwinCompCapturedRunState({
+    state: twinCompState,
+    drivers: appDrivers,
+    flow: qualifyingFlow,
+    driverId,
+    eventMeta: activeEventMeta,
+  });
+  if (!nextState) return false;
+  setTwinCompStateState(nextState.twinComp, { syncQualifying: false });
+  setQualifyingFlowState(nextState.qualifyingFlow, { syncQualifying: false });
+  return true;
+}
+
+function buildTwinCompCapturedRunState({
+  state = twinCompState,
+  drivers = appDrivers,
+  flow = qualifyingFlow,
+  driverId = flow?.currentDriverId,
+  eventMeta = activeEventMeta,
+} = {}) {
+  if (!isTwinTripleMode(eventMeta) || !driverId) return null;
+  const normalizedState = getTwinCompState(state);
+  const round = getTwinCompCurrentRound(normalizedState);
+  if (!round || round.status !== "live" || !round.teamIds.includes(driverId)) return null;
+  const driver = (Array.isArray(drivers) ? drivers : []).find((entry) => entry.id === driverId);
+  if (!driver) return null;
+  const activeJudgeRoles = getActiveJudgeRoles(eventMeta);
+  if (!driverHasAllSubmittedRunsForRoles(driver, activeJudgeRoles, ["run1"])) return null;
   const run1 = getRunAverage(driver, 1);
   const run2 = null;
   const score = run1;
-  if (!Number.isFinite(Number(score))) return false;
+  if (!Number.isFinite(Number(score))) return null;
   const scoredAt = new Date().toISOString();
   const nextRound = {
     ...round,
@@ -3511,12 +3610,13 @@ function captureTwinCompCurrentRun(driverId = qualifyingFlow?.currentDriverId) {
       ...(round.scores || {}),
       [driverId]: { teamId: driverId, run1, run2, score, scoredAt },
     },
+    currentTeamId: null,
   };
   const scoredCount = nextRound.teamIds.filter((teamId) => getTwinCompTeamRoundScore(teamId, nextRound)).length;
   if (scoredCount >= nextRound.teamIds.length) {
     nextRound.status = "scored";
   }
-  const nextTeams = state.teams.map((team) => {
+  const nextTeams = normalizedState.teams.map((team) => {
     if (team.id !== driverId) return team;
     const filteredScores = (team.roundScores || []).filter((entry) => entry.round !== round.number);
     return {
@@ -3524,14 +3624,26 @@ function captureTwinCompCurrentRun(driverId = qualifyingFlow?.currentDriverId) {
       roundScores: [...filteredScores, { round: round.number, run1, run2, score, scoredAt }],
     };
   });
-  setTwinCompStateState({
-    ...state,
-    status: nextRound.status === "scored" ? "round_complete" : "live",
-    latestScore: { teamId: driverId, teamName: driver.name, round: round.number, run1, run2, score, scoredAt },
-    rounds: state.rounds.map((entry) => entry.id === round.id ? nextRound : entry),
-    teams: nextTeams,
-  }, { syncQualifying: false });
-  return true;
+  const currentIndex = Math.max(0, nextRound.teamIds.indexOf(driverId));
+  const nextDriverId = currentIndex + 1 < nextRound.teamIds.length ? (nextRound.teamIds[currentIndex + 1] || null) : null;
+  if (nextRound.status !== "scored") {
+    nextRound.currentTeamId = nextDriverId;
+  }
+  return {
+    twinComp: {
+      ...normalizedState,
+      status: nextRound.status === "scored" ? "round_complete" : "live",
+      latestScore: { teamId: driverId, teamName: driver.teamName || driver.name, round: round.number, run1, run2, score, scoredAt },
+      rounds: normalizedState.rounds.map((entry) => entry.id === round.id ? nextRound : entry),
+      teams: nextTeams,
+    },
+    qualifyingFlow: {
+      currentDriverId: nextRound.status === "scored" ? null : nextDriverId,
+      readyRoles: {},
+      started: true,
+      completed: nextRound.status === "scored",
+    },
+  };
 }
 
 function getTwinCompPointCandidates(round) {
@@ -3546,6 +3658,101 @@ function getTwinCompPointCandidates(round) {
   return { baseTeamIds: base.map((entry) => entry.teamId), tieReviewRequired, cutoff };
 }
 
+function getTwinCompCutoffTeamIds(state = twinCompState, round = getTwinCompCurrentRound(state)) {
+  const normalizedState = getTwinCompState(state);
+  const pointCount = getTwinCompRoundPointCount(round);
+  if (!round || !pointCount) return [];
+  return [...(round.teamIds || [])]
+    .map((teamId) => {
+      const scoreEntry = round.scores?.[teamId] || null;
+      const team = normalizedState.teams.find((entry) => entry.id === teamId) || null;
+      const roundScore = Number(scoreEntry?.score);
+      const averageScore = getTwinCompTeamAverageScore(team);
+      const latestScore = team?.roundScores?.length ? Number(team.roundScores[team.roundScores.length - 1]?.score) : -Infinity;
+      return {
+        teamId,
+        roundScore: Number.isFinite(roundScore) ? roundScore : Infinity,
+        averageScore: Number.isFinite(averageScore) ? averageScore : -Infinity,
+        latestScore: Number.isFinite(latestScore) ? latestScore : -Infinity,
+        seed: Number(team?.seed || 0) || 0,
+      };
+    })
+    .sort((left, right) => {
+      if (left.roundScore !== right.roundScore) return left.roundScore - right.roundScore;
+      if (left.averageScore !== right.averageScore) return left.averageScore - right.averageScore;
+      if (left.latestScore !== right.latestScore) return left.latestScore - right.latestScore;
+      return left.seed - right.seed;
+    })
+    .slice(0, pointCount)
+    .map((entry) => entry.teamId);
+}
+
+function buildTwinCompAutoProgressState(state = twinCompState, options = {}) {
+  const normalizedState = getTwinCompState(state);
+  const round = getTwinCompCurrentRound(normalizedState);
+  if (!round || !["scored", "review"].includes(round.status)) return null;
+  const missing = (round.teamIds || []).filter((teamId) => !getTwinCompTeamRoundScore(teamId, round));
+  if (missing.length) return null;
+  const candidates = getTwinCompPointCandidates(round);
+  const selectedIds = getTwinCompCutoffTeamIds(normalizedState, round);
+  const finalizedRoundNumber = round.number;
+  let activeCount = 0;
+  let winner = null;
+  const nextTeams = normalizedState.teams.map((team) => {
+    if (!selectedIds.includes(team.id) || !team.active) {
+      if (team.active) {
+        activeCount += 1;
+        winner = team;
+      }
+      return team;
+    }
+    const eliminationLimit = getTwinCompEliminationLimit();
+    const nextPoints = Math.min(eliminationLimit, Number(team.eliminationPoints || 0) + 1);
+    const active = nextPoints < eliminationLimit;
+    if (active) {
+      activeCount += 1;
+      winner = { ...team, eliminationPoints: nextPoints, active };
+    }
+    return {
+      ...team,
+      eliminationPoints: nextPoints,
+      active,
+      roundEliminated: active ? team.roundEliminated : (team.roundEliminated || finalizedRoundNumber),
+    };
+  });
+  const finalizedAt = new Date().toISOString();
+  const completedAt = activeCount <= 1 ? finalizedAt : null;
+  const finalizedState = {
+    ...normalizedState,
+    status: completedAt ? "complete" : "setup",
+    teams: nextTeams,
+    rounds: normalizedState.rounds.map((entry) => entry.id === round.id ? {
+      ...round,
+      status: "finalized",
+      pointAssignments: selectedIds,
+      tieReviewRequired: candidates.tieReviewRequired,
+      finalizedAt,
+    } : entry),
+    winnerId: completedAt ? winner?.id || null : null,
+    winnerName: completedAt ? winner?.name || null : null,
+    completedAt,
+  };
+  if (completedAt) {
+    return {
+      twinComp: finalizedState,
+      qualifyingFlow: { currentDriverId: null, readyRoles: {}, started: true, completed: true },
+    };
+  }
+  const nextRoundState = buildTwinCompRoundStartState(finalizedState, { randomizeOrder: Boolean(options.randomizeOrder) });
+  if (!nextRoundState) {
+    return {
+      twinComp: finalizedState,
+      qualifyingFlow: { currentDriverId: null, readyRoles: {}, started: true, completed: true },
+    };
+  }
+  return nextRoundState;
+}
+
 function finalizeTwinCompRound(overrideTeamIds = null) {
   if (!adminCanEdit() || !isTwinTripleMode(activeEventMeta)) return false;
   const state = getTwinCompState();
@@ -3558,7 +3765,9 @@ function finalizeTwinCompRound(overrideTeamIds = null) {
   }
   const candidates = getTwinCompPointCandidates(round);
   const pointCount = getTwinCompRoundPointCount(round);
-  const selectedIds = Array.isArray(overrideTeamIds) ? overrideTeamIds.map(String).filter((teamId) => round.teamIds.includes(teamId)).slice(0, pointCount) : candidates.baseTeamIds;
+  const selectedIds = Array.isArray(overrideTeamIds)
+    ? overrideTeamIds.map(String).filter((teamId) => round.teamIds.includes(teamId)).slice(0, pointCount)
+    : getTwinCompCutoffTeamIds(state, round);
   if (candidates.tieReviewRequired && !Array.isArray(overrideTeamIds)) {
     const names = round.teamIds
       .filter((teamId) => Number(round.scores?.[teamId]?.score) === candidates.cutoff)
@@ -3649,22 +3858,34 @@ function getTwinCompTeamAverageScore(team) {
 }
 
 function getTwinCompPodiumTeams(state = twinCompState) {
-  return [...getTwinCompState(state).teams]
+  const normalized = getTwinCompState(state);
+  const teams = [...normalized.teams];
+  const compareWithinEliminationStage = (left, right) => {
+    const leftAverage = getTwinCompTeamAverageScore(left);
+    const rightAverage = getTwinCompTeamAverageScore(right);
+    const leftAverageSort = leftAverage === null ? -Infinity : leftAverage;
+    const rightAverageSort = rightAverage === null ? -Infinity : rightAverage;
+    if (leftAverageSort !== rightAverageSort) return rightAverageSort - leftAverageSort;
+    const leftLatest = left.roundScores?.length ? Number(left.roundScores[left.roundScores.length - 1].score) : -Infinity;
+    const rightLatest = right.roundScores?.length ? Number(right.roundScores[right.roundScores.length - 1].score) : -Infinity;
+    if (leftLatest !== rightLatest) return rightLatest - leftLatest;
+    return Number(left.seed || 0) - Number(right.seed || 0);
+  };
+
+  const winner = teams.find((team) => team?.id && normalized.winnerId && team.id === normalized.winnerId)
+    || teams.find((team) => team?.active)
+    || null;
+  const eliminated = teams
+    .filter((team) => !winner || team.id !== winner.id)
+    .filter((team) => !team?.active || Number.isFinite(Number(team?.roundEliminated)))
     .sort((left, right) => {
-      const leftPoints = Number(left?.eliminationPoints || 0);
-      const rightPoints = Number(right?.eliminationPoints || 0);
-      if (leftPoints !== rightPoints) return leftPoints - rightPoints;
-      const leftAverage = getTwinCompTeamAverageScore(left);
-      const rightAverage = getTwinCompTeamAverageScore(right);
-      const leftAverageSort = leftAverage === null ? -Infinity : leftAverage;
-      const rightAverageSort = rightAverage === null ? -Infinity : rightAverage;
-      if (leftAverageSort !== rightAverageSort) return rightAverageSort - leftAverageSort;
-      const leftLatest = left.roundScores?.length ? Number(left.roundScores[left.roundScores.length - 1].score) : -Infinity;
-      const rightLatest = right.roundScores?.length ? Number(right.roundScores[right.roundScores.length - 1].score) : -Infinity;
-      if (leftLatest !== rightLatest) return rightLatest - leftLatest;
-      return Number(left.seed || 0) - Number(right.seed || 0);
-    })
-    .slice(0, 3);
+      const leftRound = Number(left?.roundEliminated || 0);
+      const rightRound = Number(right?.roundEliminated || 0);
+      if (leftRound !== rightRound) return rightRound - leftRound;
+      return compareWithinEliminationStage(left, right);
+    });
+
+  return [winner, eliminated[0] || null, eliminated[1] || null].filter(Boolean).slice(0, 3);
 }
 
 let twinPodiumRevealState = {
@@ -3678,6 +3899,30 @@ let mainPodiumRevealState = {
   revealed: {},
 };
 
+function cloneMainPodiumRevealRemoteState(source = null) {
+  return {
+    revealed: { ...((source && typeof source === "object" && source.revealed) || {}) },
+    updatedAt: source?.updatedAt || null,
+    updatedBy: source?.updatedBy || "",
+  };
+}
+
+function cloneTwinCompPodiumRevealRemoteState(source = null) {
+  return {
+    revealed: { ...((source && typeof source === "object" && source.revealed) || {}) },
+    updatedAt: source?.updatedAt || null,
+    updatedBy: source?.updatedBy || "",
+  };
+}
+
+function getMainPodiumRevealRemoteState(bracket = tournamentState?.mainBracket) {
+  return cloneMainPodiumRevealRemoteState(bracket?.podiumReveal);
+}
+
+function getTwinCompPodiumRevealRemoteState(state = twinCompState) {
+  return cloneTwinCompPodiumRevealRemoteState(getTwinCompState(state)?.podiumReveal);
+}
+
 function getTwinCompPodiumSignature(state = twinCompState) {
   const normalized = getTwinCompState(state);
   const podiumTeams = getTwinCompPodiumTeams(normalized);
@@ -3689,9 +3934,12 @@ function getTwinCompPodiumSignature(state = twinCompState) {
 }
 
 function renderTwinCompPodiumRevealButton(placeNumber, team) {
+  syncTwinCompPodiumRevealStateFromState();
   const revealed = Boolean(twinPodiumRevealState.revealed?.[placeNumber]);
-  const canReveal = placeNumber === 3
-    || Boolean(twinPodiumRevealState.revealed?.[placeNumber + 1]);
+  const canReveal = canControlTwinCompPodiumReveal() && (
+    placeNumber === 3
+    || (placeNumber === 1 && Boolean(twinPodiumRevealState.revealed?.[3]))
+  );
   const average = getTwinCompTeamAverageScore(team);
   return `
     <button class="podium-reveal-button ${revealed ? "is-revealed" : ""}" type="button" data-action="twin-podium-reveal" data-place="${placeNumber}" ${canReveal || revealed ? "" : "disabled"}>
@@ -3700,7 +3948,7 @@ function renderTwinCompPodiumRevealButton(placeNumber, team) {
         <strong class="podium-reveal-team">${escapeHtml(team?.name || "Team")}</strong>
         <small class="podium-reveal-meta">${team?.active ? `${team.eliminationPoints || 0}/${getTwinCompEliminationLimit()} Elim` : `Eliminated R${team?.roundEliminated || "-"}`} | Avg ${formatScore(average)}</small>
       ` : `
-        <strong class="podium-reveal-prompt">${canReveal ? "Click To Reveal Winner" : "Reveal Previous Place First"}</strong>
+        <strong class="podium-reveal-prompt">${placeNumber === 2 ? "Reveals With 1st Place" : canReveal ? "Click To Reveal" : "Reveal 3rd Place First"}</strong>
       `}
     </button>
   `;
@@ -3710,27 +3958,16 @@ function renderTwinCompPodiumRevealModal(state = twinCompState) {
   const modal = document.getElementById("twinPodiumRevealModal");
   const stage = document.getElementById("twinPodiumRevealStage");
   if (!modal || !stage) return;
-  const podiumTeams = getTwinCompPodiumTeams(state);
-  stage.innerHTML = [
-    renderTwinCompPodiumRevealButton(1, podiumTeams[0]),
-    renderTwinCompPodiumRevealButton(2, podiumTeams[1]),
-    renderTwinCompPodiumRevealButton(3, podiumTeams[2]),
-  ].join("");
+  stage.innerHTML = renderTwinCompPodiumRevealCard(state, { showCloseButton: true, className: "tech1-podium-reveal-card-fullscreen" });
 }
 
 function maybeOpenTwinCompPodiumReveal(state = twinCompState) {
-  if (!adminCanEdit() || !isTwinTripleMode(activeEventMeta)) return;
+  if (!canViewTwinCompPodiumReveal()) return;
   const normalized = getTwinCompState(state);
-  if (normalized.status !== "complete" || !normalized.winnerId) return;
+  if (!isTwinCompPodiumRevealReady(normalized)) return;
   const signature = getTwinCompPodiumSignature(normalized);
   if (twinPodiumRevealState.dismissedSignature === signature) return;
-  if (twinPodiumRevealState.signature !== signature) {
-    twinPodiumRevealState = {
-      signature,
-      dismissedSignature: twinPodiumRevealState.dismissedSignature,
-      revealed: {},
-    };
-  }
+  syncTwinCompPodiumRevealStateFromState(normalized);
   renderTwinCompPodiumRevealModal(normalized);
   openModal(document.getElementById("twinPodiumRevealModal"));
 }
@@ -3758,6 +3995,103 @@ function renderTwinCompPodiumCard(placeLabel, team, fallbackText, revealDelay = 
       <small>${escapeHtml(status)} | Avg ${formatScore(average)}</small>
     </article>
   `;
+}
+
+function renderTwinCompPodiumRevealRow(place, label, team, revealed, canReveal) {
+  const placeText = place === 1 ? "1st Place" : place === 2 ? "2nd Place" : "3rd Place";
+  const average = getTwinCompTeamAverageScore(team);
+  const meta = team
+    ? `${team?.active ? `${team.eliminationPoints || 0}/${getTwinCompEliminationLimit()} Elim` : `Eliminated R${team?.roundEliminated || "-"}`} | Avg ${formatScore(average)}`
+    : "Waiting for result";
+  const revealText = `Click to reveal (${label})`;
+  const interactive = canControlTwinCompPodiumReveal();
+  const prompt = revealed
+    ? `
+      <strong class="tech1-podium-reveal-name">${escapeHtml(team?.name || "TBD")}</strong>
+      <small class="podium-reveal-meta">${escapeHtml(meta)}</small>
+    `
+    : `<span class="tech1-podium-reveal-prompt">${escapeHtml(place === 2 ? "Reveals with 1st place" : revealText)}</span>`;
+  if (!interactive) {
+    return `
+      <div class="tech1-podium-reveal-row ${revealed ? "is-revealed" : ""} ${revealed ? "" : "is-locked"}" aria-label="${escapeAttributeValue(placeText)}">
+        <span class="tech1-podium-reveal-place">${placeText}</span>
+        <span class="tech1-podium-reveal-body">${prompt}</span>
+      </div>
+    `;
+  }
+  return `
+    <button
+      class="tech1-podium-reveal-row ${revealed ? "is-revealed" : ""} ${canReveal || revealed ? "" : "is-locked"}"
+      type="button"
+      data-action="twin-inline-podium-reveal"
+      data-place="${place}"
+      ${canReveal || revealed ? "" : "disabled"}
+      aria-label="${escapeAttributeValue(revealText)}"
+    >
+      <span class="tech1-podium-reveal-place">${placeText}</span>
+      <span class="tech1-podium-reveal-body">${prompt}</span>
+    </button>
+  `;
+}
+
+function renderTwinCompPodiumRevealCard(state = twinCompState, options = {}) {
+  if (!isTwinCompPodiumRevealReady(state)) return "";
+  syncTwinCompPodiumRevealStateFromState(state);
+  const podium = getTwinCompPodiumTeams(state);
+  const canRevealThird = canControlTwinCompPodiumReveal();
+  const canRevealFirst = canControlTwinCompPodiumReveal() && Boolean(twinPodiumRevealState.revealed?.[3]);
+  const extraClass = options.className ? ` ${options.className}` : "";
+  const showCloseButton = Boolean(options.showCloseButton) && canControlTwinCompPodiumReveal();
+  return `
+    <article class="tech1-podium-reveal-card ${isTwinCompPodiumFullyRevealed() ? "is-complete" : ""}${extraClass}" data-twin-podium-signature="${escapeAttributeValue(getTwinCompPodiumSignature(state))}">
+      <div class="tech1-podium-reveal-head">
+        <strong>Podium Ready</strong>
+        <span>${canControlTwinCompPodiumReveal() ? "Twin Comp trophy reveal sequence" : "Follow the live podium reveal"}</span>
+      </div>
+      <div class="tech1-podium-reveal-list">
+        ${renderTwinCompPodiumRevealRow(1, "Twin Comp winner", podium[0], Boolean(twinPodiumRevealState.revealed?.[1]), canRevealFirst)}
+        ${renderTwinCompPodiumRevealRow(2, "Twin Comp runner up", podium[1], Boolean(twinPodiumRevealState.revealed?.[2]), false)}
+        ${renderTwinCompPodiumRevealRow(3, "Twin Comp 3rd place", podium[2], Boolean(twinPodiumRevealState.revealed?.[3]), canRevealThird)}
+      </div>
+      ${showCloseButton ? `
+        <div class="tech1-podium-reveal-actions">
+          <button class="button button-secondary" type="button" data-action="twin-close-podium-reveal">Leave Podium Reveal</button>
+        </div>
+      ` : ""}
+    </article>
+  `;
+}
+
+async function revealTwinCompPodiumPlace(place = 0) {
+  if (!canControlTwinCompPodiumReveal()) return false;
+  if (place !== 1 && place !== 3) return false;
+  const state = getTwinCompState();
+  if (!isTwinCompPodiumRevealReady(state)) return false;
+  syncTwinCompPodiumRevealStateFromState(state);
+  if (place === 1 && !twinPodiumRevealState.revealed?.[3]) return false;
+  const nextRevealState = {
+    ...(getTwinCompPodiumRevealRemoteState(state).revealed || {}),
+    [place]: true,
+  };
+  if (place === 1) {
+    nextRevealState[2] = true;
+  }
+  setTwinCompStateState({
+    ...state,
+    podiumReveal: {
+      ...getTwinCompPodiumRevealRemoteState(state),
+      revealed: nextRevealState,
+      updatedAt: new Date().toISOString(),
+      updatedBy: auth?.currentUser?.uid || "event-staff",
+    },
+  }, { syncQualifying: false });
+  syncTwinCompPodiumRevealStateFromState();
+  renderBracket();
+  await publishStateImmediately();
+  if (isTwinCompPodiumFullyRevealed()) {
+    await autoCompleteEventAfterPodiumReveal("Twin Comp podium");
+  }
+  return true;
 }
 
 function renderTwinCompStandingsList(state = twinCompState, options = {}) {
@@ -3851,12 +4185,13 @@ function renderTwinCompBoard() {
     const score = getTwinCompTeamRoundScore(teamId, round);
     return { team, score };
   }) || [];
+  const activeTeamId = round?.currentTeamId || currentDriver?.id || null;
   const scoreRows = roundScores.map(({ team, score }) => `
-    <tr>
+    <tr class="${team?.id === activeTeamId ? "twin-active-team-row" : ""}" ${team?.id === activeTeamId ? 'data-current-team="true"' : ""}>
       <td>${escapeHtml(team?.name || "Team")}</td>
       <td><strong>${formatScore(score?.score ?? null)}</strong></td>
       <td>${team?.eliminationPoints ?? 0}/${eliminationLimit}</td>
-      <td>${score ? "Locked" : "Waiting"}${team?.memberCount ? ` | ${team.memberCount} drivers` : ""}</td>
+      <td>${team?.id === activeTeamId ? "Live Now" : score ? "Locked" : "Waiting"}${team?.memberCount ? ` | ${team.memberCount} drivers` : ""}</td>
     </tr>
   `).join("");
   const pointCount = getTwinCompRoundPointCount(round || activeTeams.length);
@@ -3934,9 +4269,14 @@ function renderTwinCompBoard() {
     </div>
   `;
   const championBanner = document.getElementById("championBanner");
-  championBanner.classList.toggle("hidden", !showTwinPodium && !winner);
+  const showTwinPodiumRevealCard = isTwinCompPodiumRevealReady(state);
+  championBanner.classList.toggle("hidden", !showTwinPodium && !winner && !showTwinPodiumRevealCard);
   championBanner.classList.toggle("is-revealing", shouldRevealPodium);
-  championBanner.innerHTML = showTwinPodium ? `
+  championBanner.innerHTML = showTwinPodiumRevealCard ? `
+    <span>${canControlTwinCompPodiumReveal() ? "Podium Locked" : "Podium Live"}</span>
+    <strong>${canControlTwinCompPodiumReveal() ? "Twin Comp podium reveal ready" : "Follow the live Twin Comp podium reveal"}</strong>
+    <div style="margin-top:16px;">${renderTwinCompPodiumRevealCard(state)}</div>
+  ` : showTwinPodium ? `
     <span>${winner ? "Final Podium" : "Podium Watch"}</span>
     <strong>${winner ? `Winner: ${escapeHtml(winner)}` : "Last 3 Teams"}</strong>
     <div class="podium-grid">
@@ -3947,7 +4287,6 @@ function renderTwinCompBoard() {
     <small>Ranked by fewest elimination points. Ties use average score from completed rounds.</small>
     ${winner && adminCanEdit() ? `<div class="button-row" style="justify-content:center; margin-top:16px;"><button class="button button-accent" type="button" data-action="twin-show-podium-reveal">Reveal Podium</button></div>` : ""}
   ` : winner ? `<strong>${escapeHtml(winner)}</strong><span>Twin Comp Winner</span>` : "";
-  maybeOpenTwinCompPodiumReveal(state);
   document.getElementById("emptyBracketState").classList.add("hidden");
 }
 
@@ -5146,6 +5485,7 @@ function createTournamentState(qualifiedDrivers, preferredFormat = FORMAT_CLASSI
       title: getRoundName(plan.mainBracketSize),
       rounds: mainRounds || createRoundsFromOpeningMatches(plan.mainBracketSize, mainOpeningMatches),
       thirdPlaceMatch: plan.mainBracketSize >= 4 ? createEmptyMatch() : null,
+      podiumReveal: cloneMainPodiumRevealRemoteState(),
     },
     competitionJudgeControl: createEmptyCompetitionJudgeControl(),
   };
@@ -5938,6 +6278,16 @@ async function refreshCloudClaims(force = false) {
 
 function showRoleAuthorizationNotice(role = currentRole, context = "") {
   const locallyUnlocked = Boolean(activeEventId && role && role !== "spectator" && isRoleUnlockedForEvent(activeEventId, role));
+  const normalizedRole = normalizeCloudRoleName(role);
+  const passiveSpectatorSurface = currentRole === "spectator"
+    && !isWebsiteAdmin
+    && forcedHostContext?.kind !== "website-admin"
+    && normalizedRole !== "spectator"
+    && normalizedRole !== "streamOperator";
+  if (passiveSpectatorSurface) {
+    console.warn("Suppressed protected-role auth notice on spectator surface.", { role, context, activeEventId });
+    return;
+  }
   const message = getRoleAuthorizationMessage(role);
   const key = `${activeEventId || "global"}:${role || "role"}:${context || "write"}`;
   const statusEl = document.getElementById("syncStatus");
@@ -6029,6 +6379,19 @@ function adminCanEdit() {
   return currentRole === "admin" && !isEventReadOnly() && roleCanUseProductionWrites("eventAdmin");
 }
 
+function adminCanControlCompletedEventReveal() {
+  if (currentRole !== "admin" || !roleCanUseProductionWrites("eventAdmin")) return false;
+  return getEventStatus(activeEventMeta) !== EVENT_STATUS_ARCHIVED;
+}
+
+function canEditCompetitionFormat(eventMeta = activeEventMeta) {
+  if (isEventReadOnly()) return false;
+  if (isTech1AnniversaryMode(eventMeta) || isTeamTandemMode(eventMeta) || isTwinTripleMode(eventMeta)) {
+    return false;
+  }
+  return adminCanEdit() || websiteAdminCanUseProductionWrites();
+}
+
 function websiteAdminCanEditVenueSettings() {
   return websiteAdminCanUseProductionWrites();
 }
@@ -6046,6 +6409,11 @@ function cloneEventMeta(meta) {
 }
 
 function extractEventMeta(payload, fallbackId = activeEventId) {
+  const existingMeta = cloneEventMeta(
+    (activeEventMeta?.id === fallbackId ? activeEventMeta : null)
+      || (fallbackId && eventDirectory?.[fallbackId])
+      || null
+  );
   const normalizedMeta = normalizeLegacyEventPayload(payload, {
     activeEventId: fallbackId,
     normalizeJudgingMode,
@@ -6062,6 +6430,28 @@ function extractEventMeta(payload, fallbackId = activeEventId) {
     completedStatus: EVENT_STATUS_COMPLETED,
     archivedStatus: EVENT_STATUS_ARCHIVED,
   });
+  if (existingMeta) {
+    if (!Object.prototype.hasOwnProperty.call(payload || {}, "pendingRegistrations")) {
+      normalizedMeta.pendingRegistrations = normalizePendingRegistrationList(
+        existingMeta.pendingRegistrations || normalizedMeta.pendingRegistrations || []
+      );
+    }
+    if (!Object.prototype.hasOwnProperty.call(payload || {}, "venueConfig")) {
+      normalizedMeta.venueConfig = createDefaultVenueConfig(existingMeta.venueConfig || normalizedMeta.venueConfig || {});
+    }
+    if (!Object.prototype.hasOwnProperty.call(payload || {}, "venueProfiles")) {
+      normalizedMeta.venueProfiles = normalizeVenueProfileList(existingMeta.venueProfiles || normalizedMeta.venueProfiles || []);
+    }
+    if (!Object.prototype.hasOwnProperty.call(payload || {}, "roleAccess")) {
+      normalizedMeta.roleAccess = existingMeta.roleAccess || normalizedMeta.roleAccess || {};
+    }
+    if (!Object.prototype.hasOwnProperty.call(payload || {}, "judgeRoleClaims")) {
+      normalizedMeta.judgeRoleClaims = getSanitizedJudgeRoleClaims(existingMeta) || normalizedMeta.judgeRoleClaims || {};
+    }
+    if (!Object.prototype.hasOwnProperty.call(payload || {}, "latestApprovalToast")) {
+      normalizedMeta.latestApprovalToast = existingMeta.latestApprovalToast || normalizedMeta.latestApprovalToast || null;
+    }
+  }
   return normalizeEventCompetitionModeState(normalizedMeta);
 }
 
@@ -6243,6 +6633,10 @@ function getQualifyingDriverQueue(drivers = appDrivers) {
 function getQualifyingFlowPhase(flow = qualifyingFlow, drivers = appDrivers) {
   const queue = getQualifyingDriverQueue(drivers);
   if (!queue.length) return "empty";
+  if (isTwinTripleMode(activeEventMeta)) {
+    const round = getTwinCompCurrentRound();
+    if (round?.status === "live" && round?.currentTeamId) return "live";
+  }
   if (flow?.completed) return "complete";
   if (!flow?.started || !flow?.currentDriverId) return "waiting";
   return "live";
@@ -6255,11 +6649,25 @@ function deriveSyncedQualifyingFlowState(flow = qualifyingFlow, drivers = appDri
   const previousReadyRoles = flow?.readyRoles || {};
   const previousStarted = Boolean(flow?.started);
   const previousCompleted = Boolean(flow?.completed);
+  const twinRound = isTwinTripleMode(eventMeta) ? getTwinCompCurrentRound() : null;
 
   if (!queue.length) {
     return {
       flow: createEmptyQualifyingFlow(),
       judgeLaneIndex: 0,
+    };
+  }
+
+  if (isTwinTripleMode(eventMeta) && twinRound?.status === "live" && twinRound?.currentTeamId) {
+    const queueIndex = queue.findIndex((driver) => driver.id === twinRound.currentTeamId);
+    return {
+      flow: {
+        currentDriverId: twinRound.currentTeamId,
+        readyRoles: {},
+        started: true,
+        completed: false,
+      },
+      judgeLaneIndex: queueIndex > -1 ? queueIndex : 0,
     };
   }
 
@@ -6338,7 +6746,10 @@ function clearQualifyingReady(role) {
 
 function advanceQualifyingDriver() {
   if (isTwinTripleMode(activeEventMeta)) {
-    captureTwinCompCurrentRun(qualifyingFlow?.currentDriverId);
+    if (captureTwinCompCurrentRun(qualifyingFlow?.currentDriverId)) {
+      syncQualifyingFlowState();
+      return;
+    }
   }
   const queue = getQualifyingDriverQueue();
   if (!queue.length) {
@@ -6775,6 +7186,7 @@ function shouldUseJudgeRoleClaims(eventMeta = activeEventMeta) {
 }
 
 function renderJudgeRoleClaimSelector(eventMeta = activeEventMeta, selectedRole = null) {
+  if (currentRole?.startsWith("j") && usesCategoryJudging(eventMeta)) return "";
   if (!shouldUseJudgeRoleClaims(eventMeta)) return "";
   const claimedRole = selectedRole || getClaimedJudgeRoleForDevice(getJudgeDeviceId(), eventMeta) || "";
   const selectedLabel = claimedRole ? buildJudgeRoleClaimLabel(claimedRole, eventMeta) : "";
@@ -7071,15 +7483,33 @@ function applyRemoteEventState(data) {
     return;
   }
   const localJudgeDrafts = captureJudgeDraftScores(currentRole);
-  const nextDrivers = Array.isArray(data.drivers) && data.drivers.length ? sanitizeLoadedDrivers(data.drivers) : createDriverSet();
+  const usesScopedDriverModel = Number(data.schemaVersion || 1) >= 2;
+  const hasEmbeddedDrivers = Array.isArray(data.drivers);
+  const nextDrivers = hasEmbeddedDrivers
+    ? (data.drivers.length ? sanitizeLoadedDrivers(data.drivers) : createDriverSet())
+    : usesScopedDriverModel
+      ? appDrivers
+      : createDriverSet();
+  const nextBracket = data.bracket
+    ? upgradeStoredTournamentState(data.bracket)
+    : usesScopedDriverModel
+      ? tournamentState
+      : null;
+  const nextQualifyingFlow = data.qualifyingFlow
+    ? data.qualifyingFlow
+    : usesScopedDriverModel
+      ? qualifyingFlow
+      : createEmptyQualifyingFlow();
+  const nextFormatMode = data.formatMode || (usesScopedDriverModel ? activeEventState.formatMode : FORMAT_CLASSIC);
+  const nextLowerCount = data.lowerCount || (usesScopedDriverModel ? activeEventState.lowerCount : "0");
   applyActiveEventState({
     id: activeEventId,
     drivers: restoreJudgeDraftScores(nextDrivers, currentRole, localJudgeDrafts),
-    bracket: data.bracket ? upgradeStoredTournamentState(data.bracket) : null,
-    twinComp: normalizeTwinCompState(data.twinComp),
-    qualifyingFlow: data.qualifyingFlow || createEmptyQualifyingFlow(),
-    formatMode: data.formatMode || FORMAT_CLASSIC,
-    lowerCount: data.lowerCount || "0",
+    bracket: nextBracket,
+    twinComp: data.twinComp !== undefined ? normalizeTwinCompState(data.twinComp) : activeEventState.twinComp,
+    qualifyingFlow: nextQualifyingFlow,
+    formatMode: nextFormatMode,
+    lowerCount: nextLowerCount,
     meta: extractEventMeta(data, activeEventId),
   });
   const remoteLifecycle = reconcileActiveEventLifecycle(buildEventResults());
@@ -7181,7 +7611,10 @@ function saveViewForEventRole(eventId, role, viewName) {
 }
 
 function canPublishSharedDirectoryMetadata() {
-  return Boolean(isWebsiteAdmin || TEST_MODE_ENABLED);
+  return Boolean(
+    TEST_MODE_ENABLED
+    || websiteAdminCanUseProductionWrites()
+  );
 }
 
 function buildPublicEventShell(eventMeta = activeEventMeta, options = {}) {
@@ -7198,10 +7631,29 @@ function buildPublicEventShell(eventMeta = activeEventMeta, options = {}) {
     judgingMode: normalizeJudgingMode(source.judgingMode),
     qualifyingPhase,
     registrationClosed,
-    hasValidVenue: hasValidVenueConfig(source),
+    hasValidVenue: isSelfRegistrationEnabled(source),
     bracketLive: Boolean(tournamentState?.mainBracket?.rounds?.length),
     streamActive: Boolean(nativeStreamLatestState?.active),
   });
+}
+
+function buildPublishedEventPayload(eventMeta = activeEventMeta, persistableState = getPersistableActiveEventState(), syncStamp = Date.now()) {
+  const shellPayload = buildPublicEventShell({
+    ...eventMeta,
+    formatMode: persistableState.formatMode,
+    lowerCount: persistableState.lowerCount,
+    syncStamp,
+  });
+  return {
+    ...shellPayload,
+    drivers: JSON.parse(JSON.stringify(persistableState.drivers || [])),
+    bracket: persistableState.bracket ? JSON.parse(JSON.stringify(persistableState.bracket)) : null,
+    twinComp: persistableState.twinComp ? JSON.parse(JSON.stringify(persistableState.twinComp)) : null,
+    qualifyingFlow: JSON.parse(JSON.stringify(persistableState.qualifyingFlow || createEmptyQualifyingFlow())),
+    formatMode: persistableState.formatMode,
+    lowerCount: persistableState.lowerCount,
+    syncStamp,
+  };
 }
 
 function buildPrivateEventConfig(eventMeta = activeEventMeta) {
@@ -7284,7 +7736,12 @@ function buildPublicAggregates() {
 async function publishScopedEventShell(eventId = activeEventId, eventMeta = activeEventMeta) {
   if (LOCAL_EVENT_DATA_MODE) return;
   if (!db || !auth?.currentUser || !eventId || !eventMeta) return;
-  await firestoreWriteService.publishEventShell(eventId, buildPublicEventShell(eventMeta), buildPrivateEventConfig(eventMeta));
+  const eventShellState = eventId === activeEventId ? activeEventState : null;
+  await firestoreWriteService.publishEventShell(eventId, buildPublicEventShell({
+    ...eventMeta,
+    formatMode: eventShellState?.formatMode || eventMeta?.formatMode,
+    lowerCount: eventShellState?.lowerCount || eventMeta?.lowerCount,
+  }), buildPrivateEventConfig(eventMeta));
 }
 
 async function publishScopedRegistrations(eventId = activeEventId, registrations = getPendingRegistrations()) {
@@ -7329,6 +7786,15 @@ async function publishScopedDrivers(eventId = activeEventId, drivers = appDriver
   await Promise.all(writes);
 }
 
+async function deleteScopedRegistrations(entries = [], eventId = activeEventId) {
+  if (LOCAL_EVENT_DATA_MODE) return;
+  if (!db || !auth?.currentUser || !eventId || TEST_MODE_ENABLED || STANDALONE_DEMO_MODE) return;
+  const deletes = normalizePendingRegistrationList(entries)
+    .filter((entry) => entry?.id)
+    .map((entry) => firestoreWriteService.deleteRegistration(eventId, entry.id, entry.id));
+  await Promise.all(deletes);
+}
+
 async function publishScopedBracketAndAggregates(eventId = activeEventId) {
   if (LOCAL_EVENT_DATA_MODE) return;
   if (!db || !auth?.currentUser || !eventId) return;
@@ -7357,11 +7823,16 @@ async function publishScopedActiveEventState(eventId = activeEventId) {
     ]);
   } catch (error) {
     console.error("Scoped event sync failed:", error);
+    throw error;
   }
 }
 
 async function publishScopedJudgeSubmission({ eventId = activeEventId, driverId, runKey, judgeSlot, score, submittedScore }) {
-  if (!db || !auth?.currentUser || !eventId || !driverId || !runKey || !judgeSlot) return false;
+  if (!db || !eventId || !driverId || !runKey || !judgeSlot) return false;
+  if (!auth?.currentUser) {
+    const authReady = await ensureCloudAuthReady();
+    if (!authReady || !auth?.currentUser) return false;
+  }
   const numericScore = Number(submittedScore ?? score);
   if (!Number.isFinite(numericScore)) return false;
   const runId = getQualifyingRunId(driverId, runKey);
@@ -7391,7 +7862,11 @@ async function publishScopedJudgeSubmission({ eventId = activeEventId, driverId,
 }
 
 async function publishScopedBattleVote({ eventId = activeEventId, battleId, judgeSlot, side, scorecard = null, cycle = 1 }) {
-  if (!db || !auth?.currentUser || !eventId || !battleId || !judgeSlot) return false;
+  if (!db || !eventId || !battleId || !judgeSlot) return false;
+  if (!auth?.currentUser) {
+    const authReady = await ensureCloudAuthReady();
+    if (!authReady || !auth?.currentUser) return false;
+  }
   const nowIso = new Date().toISOString();
   const voteId = `${String(battleId).replace(/[^\w-]/g, "_")}_${String(judgeSlot).replace(/[^\w-]/g, "_")}`;
   await firestoreWriteService.publishBattleVote(eventId, voteId, {
@@ -7663,11 +8138,28 @@ function stopScopedEventSubscriptions() {
 }
 
 function applyScopedRegistrationDocs(docs = []) {
-  if (!docs.length || !activeEventMeta) return;
+  if (!activeEventMeta) return;
+  const approvedDocs = docs.filter((entry) => entry?.data?.status === "approved");
+  if (approvedDocs.length) {
+    deleteScopedRegistrations(
+      approvedDocs.map((entry) => ({
+        id: entry?.data?.registrationId || entry?.data?.publicId || entry?.id,
+      })).filter((entry) => entry.id),
+      activeEventId,
+    ).catch((error) => {
+      console.error("Approved registration cleanup failed:", error);
+    });
+  }
   const remoteEntries = buildPendingRegistrationsFromPublicIndexDocs(docs, {
     normalizePendingRegistrationList,
   });
   const localById = new Map(getPendingRegistrations().map((entry) => [entry.id, entry]));
+  const remoteIds = new Set(remoteEntries.map((entry) => entry.id).filter(Boolean));
+  Array.from(localById.keys()).forEach((entryId) => {
+    if (!remoteIds.has(entryId)) {
+      localById.delete(entryId);
+    }
+  });
   remoteEntries.forEach((entry) => {
     localById.set(entry.id, {
       ...(localById.get(entry.id) || {}),
@@ -7678,24 +8170,25 @@ function applyScopedRegistrationDocs(docs = []) {
     ...activeEventMeta,
     pendingRegistrations: Array.from(localById.values()),
   }, { syncQualifying: false });
+  eventDirectory[activeEventId] = cloneEventMeta(activeEventMeta);
+  saveDirectoryCache();
 }
 
 function applyScopedDriverDocs(docs = []) {
-  if (!docs.length) return;
+  if (!docs.length) {
+    if (getRegisteredDrivers(appDrivers).length) {
+      return;
+    }
+    setActiveDriversState(createDriverSet());
+    return;
+  }
   const remoteDrivers = docs
     .map((entry) => entry.data)
     .filter((driver) => driver?.id)
     .map((driver) => sanitizeLoadedDrivers([driver])[0])
     .filter(Boolean);
   if (!remoteDrivers.length) return;
-  const localById = new Map(appDrivers.map((driver) => [driver.id, driver]));
-  remoteDrivers.forEach((driver) => {
-    localById.set(driver.id, {
-      ...(localById.get(driver.id) || createEmptyDriver()),
-      ...driver,
-    });
-  });
-  setActiveDriversState(resequenceDrivers(Array.from(localById.values()), true));
+  setActiveDriversState(resequenceDrivers(remoteDrivers, true));
 }
 
 function applyScopedJudgeSubmissionDocs(docs = []) {
@@ -7705,22 +8198,140 @@ function applyScopedJudgeSubmissionDocs(docs = []) {
   });
   if (result.changed) {
     setActiveDriversState(resequenceDrivers(result.drivers, true));
+    const syncedProgress = deriveScopedQualifyingProgressSync(result.drivers, qualifyingFlow, activeEventMeta);
+    if (syncedProgress) {
+      setQualifyingFlowState(syncedProgress.flow, { syncQualifying: false });
+      setJudgeLaneIndexState(syncedProgress.judgeLaneIndex);
+      publishStateImmediately().catch((error) => {
+        console.error("Scoped qualifying progress sync failed:", error);
+      });
+    }
   }
 }
 
+function getScopedBattleVoteTimestampMs(vote = null) {
+  if (!vote) return 0;
+  const timestamp = Date.parse(vote.updatedAt || vote.submittedAt || "");
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function applyCompetitionVoteResolutionSnapshot(state, eventMeta, control, resolution, resolvedAtIso = null) {
+  if (!state || !control?.entry || !resolution?.allVoted) return;
+  const resolvedAt = resolvedAtIso || control.updatedAt || new Date().toISOString();
+  if (resolution.omtMajority || resolution.tied) {
+    clearCompetitionMatchDecision(state, control.entry);
+    state.competitionJudgeControl = {
+      ...buildCompetitionJudgeControlForEntry(control.entry, Math.max(Number(control.cycle || 1) + 1, 2)),
+      reason: "omt",
+      updatedAt: resolvedAt,
+    };
+    return;
+  }
+  if (!resolution.winnerSide) {
+    clearCompetitionMatchDecision(state, control.entry);
+    state.competitionJudgeControl = {
+      ...buildCompetitionJudgeControlForEntry(control.entry, Math.max(Number(control.cycle || 1) + 1, 2)),
+      reason: "omt",
+      updatedAt: resolvedAt,
+    };
+    return;
+  }
+  applyCompetitionMatchDecision(state, control.entry, resolution.winnerSide);
+  state.competitionJudgeControl = {
+    ...control,
+    resolvedWinnerSide: resolution.winnerSide,
+    resolvedAt,
+    reason: null,
+    status: "admin_decision",
+    updatedAt: resolvedAt,
+  };
+}
+
+function applyScopedBattleVoteDocs(docs = []) {
+  if (!tournamentState?.mainBracket?.rounds?.length || !activeEventMeta || isTech1AnniversaryMode(activeEventMeta)) return;
+  const nextState = upgradeStoredTournamentState(JSON.parse(JSON.stringify(tournamentState)));
+  if (!nextState?.mainBracket?.rounds?.length) return;
+
+  const existingControl = getCompetitionJudgeControl(nextState);
+  const flow = getCompetitionFlowEntriesForState(nextState);
+  const fallbackEntry = cloneCompetitionEntrySnapshot(existingControl.entry || flow.currentEntry);
+  if (!fallbackEntry) return;
+
+  const existingKey = buildCompetitionJudgeEntryKey(existingControl.entry);
+  const fallbackKey = buildCompetitionJudgeEntryKey(fallbackEntry);
+  const cycle = existingControl.entry && existingKey === fallbackKey
+    ? Math.max(Number(existingControl.cycle || 1), 1)
+    : 1;
+
+  if (existingControl.status === "review_hold" && existingControl.reason === "contest" && existingKey === fallbackKey) {
+    return;
+  }
+
+  const activeRoles = getActiveJudgeRoles(activeEventMeta);
+  const battleId = getBattleScopedId(fallbackEntry, cycle);
+  const matchingVotes = docs
+    .map((entry) => ({ id: entry.id, ...(entry.data || {}) }))
+    .filter((vote) => vote?.battleId === battleId && activeRoles.includes(vote.judgeSlot));
+
+  if (!matchingVotes.length) return;
+
+  const latestVote = matchingVotes.reduce((latest, vote) => (
+    getScopedBattleVoteTimestampMs(vote) > getScopedBattleVoteTimestampMs(latest) ? vote : latest
+  ), null);
+  const resolvedAtIso = latestVote?.updatedAt || latestVote?.submittedAt || new Date().toISOString();
+  const nextControl = buildCompetitionJudgeControlForEntry(fallbackEntry, cycle);
+  nextControl.status = "voting";
+  nextControl.updatedAt = resolvedAtIso;
+  nextControl.votes = {
+    ...createEmptyCompetitionJudgeVotes(),
+    ...matchingVotes.reduce((accumulator, vote) => {
+      if (["left", "right", "omt"].includes(vote.side)) {
+        accumulator[vote.judgeSlot] = vote.side;
+      }
+      return accumulator;
+    }, {}),
+  };
+  nextControl.scorecards = matchingVotes.reduce((accumulator, vote) => {
+    if (!vote?.scorecard || !["left", "right"].includes(vote.scorecard.side) || !hasCompetitionScoreValue(vote.scorecard.score)) {
+      return accumulator;
+    }
+    accumulator[vote.judgeSlot] = {
+      ...accumulator[vote.judgeSlot],
+      [vote.scorecard.side]: Number(vote.scorecard.score),
+    };
+    return accumulator;
+  }, createEmptyCompetitionJudgeScorecards());
+
+  const resolution = getCompetitionDecisionResolution(nextControl, activeEventMeta);
+  nextState.competitionJudgeControl = nextControl;
+  if (resolution.allVoted) {
+    applyCompetitionVoteResolutionSnapshot(nextState, activeEventMeta, nextControl, resolution, resolvedAtIso);
+  }
+
+  setTournamentStateState(nextState, { syncQualifying: false });
+}
+
 function applyScopedBracketDoc(data = null) {
-  if (!data?.state) return;
-  setTournamentStateState(upgradeStoredTournamentState(data.state), { syncQualifying: false });
+  if (!data) return;
+  applyActiveEventState({
+    bracket: data.state ? upgradeStoredTournamentState(data.state) : null,
+    formatMode: data.formatMode !== undefined ? data.formatMode : activeEventState.formatMode,
+    lowerCount: data.lowerCount !== undefined ? data.lowerCount : activeEventState.lowerCount,
+  }, { syncQualifying: false });
 }
 
 function subscribeToScopedEventModel(eventId = activeEventId) {
-  if (!db || !auth?.currentUser || !eventId || TEST_MODE_ENABLED) return;
+  if (!db || !eventId || TEST_MODE_ENABLED) return;
   stopScopedEventSubscriptions();
   if (LOCAL_EVENT_DATA_MODE) {
     scopedJudgeSubmissionsUnsubscribe = scopedEventSubscriptions.replace("judgeSubmissions", eventReadService.subscribeJudgeSubmissions(eventId, (docs) => {
       applyScopedJudgeSubmissionDocs(docs);
       renderAfterRemoteSync();
     }, (error) => console.error("Scoped judge submissions listener failed:", error)));
+    scopedBattleVotesUnsubscribe = scopedEventSubscriptions.replace("battleVotes", eventReadService.subscribeBattleVotes(eventId, (docs) => {
+      applyScopedBattleVoteDocs(docs);
+      renderAfterRemoteSync();
+    }, (error) => console.error("Scoped battle votes listener failed:", error)));
     return;
   }
   scopedRegistrationsUnsubscribe = scopedEventSubscriptions.replace("registrations", eventReadService.subscribePublicRegistrationIndex(eventId, (docs) => {
@@ -7735,6 +8346,10 @@ function subscribeToScopedEventModel(eventId = activeEventId) {
     applyScopedJudgeSubmissionDocs(docs);
     renderAfterRemoteSync();
   }, (error) => console.error("Scoped judge submissions listener failed:", error)));
+  scopedBattleVotesUnsubscribe = scopedEventSubscriptions.replace("battleVotes", eventReadService.subscribeBattleVotes(eventId, (docs) => {
+    applyScopedBattleVoteDocs(docs);
+    renderAfterRemoteSync();
+  }, (error) => console.error("Scoped battle votes listener failed:", error)));
   scopedBracketUnsubscribe = scopedEventSubscriptions.replace("bracket", eventReadService.subscribeBracket(eventId, (result) => {
     if (result.exists) {
       applyScopedBracketDoc(result.data);
@@ -7747,7 +8362,7 @@ function subscribeToScopedEventModel(eventId = activeEventId) {
 }
 
 function subscribeToActiveEvent() {
-  if (!db || !auth?.currentUser || !activeEventId) return;
+  if (!db || !activeEventId) return;
   if (eventDocUnsubscribe) eventDocUnsubscribe();
   eventDocUnsubscribe = null;
   if (LOCAL_EVENT_DATA_MODE) {
@@ -7800,6 +8415,14 @@ function publishState() {
   if (!db) return;
   if (!auth?.currentUser) {
     pendingCloudBootstrapSync = true;
+    ensureCloudAuthReady().then((ready) => {
+      if (!ready || !pendingCloudBootstrapSync || !activeEventId || !activeEventMeta) return;
+      publishStateImmediately().catch((error) => {
+        console.error("Deferred publishState sync failed:", error);
+      });
+    }).catch((error) => {
+      console.error("Auth bootstrap for publishState failed:", error);
+    });
     return;
   }
   lastLocalPush = Date.now();
@@ -7823,40 +8446,54 @@ function publishState() {
 
   clearTimeout(syncTimeout);
   syncTimeout = setTimeout(async () => {
-    try {
-      const syncTasks = [
-        setDoc(getEventDocRef(publishEventId), (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE && Number(publishEventMeta.schemaVersion || 1) >= 2)
-          ? buildPublicEventShell({ ...publishEventMeta, syncStamp: publishSyncStamp })
-          : {
-            ...publishEventMeta,
-            drivers: publishDrivers,
-            bracket: publishBracket,
-            twinComp: publishTwinComp,
-            qualifyingFlow: publishQualifyingFlow,
-            formatMode: publishFormatMode,
-            lowerCount: publishLowerCount,
-            syncStamp: publishSyncStamp,
-          }),
-      ];
-      if (!STANDALONE_DEMO_MODE && canPublishSharedDirectoryMetadata()) {
-        syncTasks.push(setDoc(getDirectoryDocRef(), {
-          ...directoryPayload,
-          activeEventId: publishEventId,
+    const syncTasks = [
+      setDoc(getEventDocRef(publishEventId), (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE && Number(publishEventMeta.schemaVersion || 1) >= 2)
+        ? buildPublishedEventPayload(publishEventMeta, {
+          drivers: publishDrivers,
+          bracket: publishBracket,
+          twinComp: publishTwinComp,
+          qualifyingFlow: publishQualifyingFlow,
+          formatMode: publishFormatMode,
+          lowerCount: publishLowerCount,
+        }, publishSyncStamp)
+        : {
+          ...publishEventMeta,
+          drivers: publishDrivers,
+          bracket: publishBracket,
+          twinComp: publishTwinComp,
+          qualifyingFlow: publishQualifyingFlow,
+          formatMode: publishFormatMode,
+          lowerCount: publishLowerCount,
+          syncStamp: publishSyncStamp,
+        }),
+    ];
+    if (!STANDALONE_DEMO_MODE && canPublishSharedDirectoryMetadata()) {
+      syncTasks.push(setDoc(getDirectoryDocRef(), {
+        ...directoryPayload,
+        activeEventId: publishEventId,
+        syncStamp: publishSyncStamp,
+      }));
+      if (lifecycle.archivedResultsChanged) {
+        syncTasks.push(setDoc(getArchivedResultsDocRef(), {
+          events: getArchivedResultsSnapshot(),
           syncStamp: publishSyncStamp,
         }));
-        if (lifecycle.archivedResultsChanged) {
-          syncTasks.push(setDoc(getArchivedResultsDocRef(), {
-            events: getArchivedResultsSnapshot(),
-            syncStamp: publishSyncStamp,
-          }));
-        }
       }
-    await Promise.all(syncTasks);
-    await publishScopedActiveEventState(publishEventId);
-  } catch (e) {
-    console.error("Cloud sync failed:", e);
-    handleCloudPermissionError(e, "eventAdmin", "event sync");
-  }
+    }
+
+    const settled = await Promise.allSettled(syncTasks);
+    const syncFailure = settled.find((result) => result.status === "rejected");
+    if (syncFailure) {
+      console.error("Cloud event shell sync failed:", syncFailure.reason);
+      handleCloudPermissionError(syncFailure.reason, "eventAdmin", "event shell sync");
+    }
+
+    try {
+      await publishScopedActiveEventState(publishEventId);
+    } catch (error) {
+      console.error("Scoped event sync failed:", error);
+      handleCloudPermissionError(error, "eventAdmin", "scoped event sync");
+    }
   }, 800);
 }
 
@@ -7881,8 +8518,11 @@ async function publishStateImmediately() {
   if (LOCAL_EVENT_DATA_MODE) return true;
   if (!db) return;
   if (!auth?.currentUser) {
-    pendingCloudBootstrapSync = true;
-    return;
+    const authReady = await ensureCloudAuthReady();
+    if (!authReady || !auth?.currentUser) {
+      pendingCloudBootstrapSync = true;
+      return false;
+    }
   }
   lastLocalPush = Date.now();
   activeEventMeta.syncStamp = lastLocalPush;
@@ -7893,51 +8533,59 @@ async function publishStateImmediately() {
     [activeEventId]: activeEventMeta,
   });
 
-  try {
-    const syncTasks = [
-      setDoc(getEventDocRef(activeEventId), (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE && Number(activeEventMeta.schemaVersion || 1) >= 2)
-        ? buildPublicEventShell({ ...activeEventMeta, syncStamp: lastLocalPush })
-        : {
-          ...activeEventMeta,
-          drivers: persistableState.drivers,
-          bracket: persistableState.bracket,
-          twinComp: persistableState.twinComp,
-          qualifyingFlow: persistableState.qualifyingFlow,
-          formatMode: persistableState.formatMode,
-          lowerCount: persistableState.lowerCount,
-          syncStamp: lastLocalPush,
-        }),
-    ];
-    if (!STANDALONE_DEMO_MODE && canPublishSharedDirectoryMetadata()) {
-      lastKnownRemoteActiveEventSelection = normalizeActiveEventSelectionSnapshot({
+  const syncTasks = [
+    setDoc(getEventDocRef(activeEventId), (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE && Number(activeEventMeta.schemaVersion || 1) >= 2)
+      ? buildPublishedEventPayload(activeEventMeta, persistableState, lastLocalPush)
+      : {
+        ...activeEventMeta,
+        drivers: persistableState.drivers,
+        bracket: persistableState.bracket,
+        twinComp: persistableState.twinComp,
+        qualifyingFlow: persistableState.qualifyingFlow,
+        formatMode: persistableState.formatMode,
+        lowerCount: persistableState.lowerCount,
+        syncStamp: lastLocalPush,
+      }),
+  ];
+  if (!STANDALONE_DEMO_MODE && canPublishSharedDirectoryMetadata()) {
+    lastKnownRemoteActiveEventSelection = normalizeActiveEventSelectionSnapshot({
+      activeEventId,
+      eventMeta: cloneEventMeta(directoryPayload.events[activeEventId] || activeEventMeta),
+      syncStamp: lastLocalPush,
+    });
+    saveCachedActiveEventSelection(lastKnownRemoteActiveEventSelection);
+    syncTasks.push(
+      setDoc(getDirectoryDocRef(), directoryPayload),
+      setDoc(getActiveEventSelectionDocRef(), {
         activeEventId,
         eventMeta: cloneEventMeta(directoryPayload.events[activeEventId] || activeEventMeta),
         syncStamp: lastLocalPush,
-      });
-      saveCachedActiveEventSelection(lastKnownRemoteActiveEventSelection);
-      syncTasks.push(
-        setDoc(getDirectoryDocRef(), directoryPayload),
-        setDoc(getActiveEventSelectionDocRef(), {
-          activeEventId,
-          eventMeta: cloneEventMeta(directoryPayload.events[activeEventId] || activeEventMeta),
-          syncStamp: lastLocalPush,
-        }, { merge: true }),
-      );
-      if (lifecycle.archivedResultsChanged) {
-        syncTasks.push(setDoc(getArchivedResultsDocRef(), {
-          events: getArchivedResultsSnapshot(),
-          syncStamp: lastLocalPush,
-        }));
-      }
+      }, { merge: true }),
+    );
+    if (lifecycle.archivedResultsChanged) {
+      syncTasks.push(setDoc(getArchivedResultsDocRef(), {
+        events: getArchivedResultsSnapshot(),
+        syncStamp: lastLocalPush,
+      }));
     }
-    await Promise.all(syncTasks);
+  }
+
+  const settled = await Promise.allSettled(syncTasks);
+  const syncFailure = settled.find((result) => result.status === "rejected");
+  if (syncFailure) {
+    console.error("Immediate cloud event shell sync failed:", syncFailure.reason);
+    handleCloudPermissionError(syncFailure.reason, "eventAdmin", "event shell sync");
+  }
+
+  try {
     await publishScopedActiveEventState(activeEventId);
-    return true;
-  } catch (e) {
-    console.error("Immediate cloud sync failed:", e);
-    handleCloudPermissionError(e, "eventAdmin", "event sync");
+  } catch (error) {
+    console.error("Immediate scoped event sync failed:", error);
+    handleCloudPermissionError(error, "eventAdmin", "scoped event sync");
     return false;
   }
+
+  return !syncFailure;
 }
 
 async function publishPublicRegistrationState() {
@@ -7969,7 +8617,11 @@ async function publishPublicRegistrationState() {
       return;
     }
     await publishScopedRegistrations(activeEventId, activeEventMeta.pendingRegistrations);
-    await setDoc(getEventDocRef(activeEventId), buildPublicEventShell(activeEventMeta), { merge: true });
+    await setDoc(getEventDocRef(activeEventId), buildPublicEventShell({
+      ...activeEventMeta,
+      formatMode: activeEventState.formatMode,
+      lowerCount: activeEventState.lowerCount,
+    }), { merge: true });
   } catch (error) {
     console.error("Public registration sync failed:", error);
     handleCloudPermissionError(error, "driver", "registration");
@@ -7998,7 +8650,7 @@ async function bootstrapStandaloneDemoSession() {
 }
 
 function setupCloudSync(user) {
-  if (!db || !user) return;
+  if (!db) return;
   const statusEl = document.getElementById('syncStatus');
   if (STANDALONE_DEMO_MODE) {
     statusEl.textContent = "Demo Window";
@@ -8007,11 +8659,13 @@ function setupCloudSync(user) {
     return;
   }
   syncNetworkStatusIndicator();
-  refreshCloudClaims(false).then(() => {
-    renderAfterRemoteSync();
-  }).catch((error) => {
-    console.error("Initial cloud claim refresh failed:", error);
-  });
+  if (user) {
+    refreshCloudClaims(false).then(() => {
+      renderAfterRemoteSync();
+    }).catch((error) => {
+      console.error("Initial cloud claim refresh failed:", error);
+    });
+  }
 
   if (directoryDocUnsubscribe) directoryDocUnsubscribe();
   directoryDocUnsubscribe = eventReadService.subscribeDirectory((result) => {
@@ -8226,13 +8880,12 @@ if (firebaseConfig && !QA_OFFLINE_MODE) {
   };
 
   initAuth().then(() => {
+    setupCloudSync(null);
     onAuthStateChanged(auth, (user) => {
-      if (user) {
-        renderWebsiteAdminAccessDiagnostics();
-        setupCloudSync(user);
-        if (nativeStreamActive && activeEventId && nativeStreamSessionId && !nativeStreamViewerUnsubscribe) {
-          listenForNativeStreamViewers().catch((error) => console.error("Native viewer listener bootstrap failed:", error));
-        }
+      renderWebsiteAdminAccessDiagnostics();
+      setupCloudSync(user || null);
+      if (user && nativeStreamActive && activeEventId && nativeStreamSessionId && !nativeStreamViewerUnsubscribe) {
+        listenForNativeStreamViewers().catch((error) => console.error("Native viewer listener bootstrap failed:", error));
       }
     });
   }).catch((error) => {
@@ -8266,8 +8919,10 @@ async function ensureCloudAuthReady(timeoutMs = 12000) {
 
 window.addEventListener("online", async () => {
   syncNetworkStatusIndicator();
+  if (db) {
+    setupCloudSync(auth?.currentUser || null);
+  }
   if (db && auth?.currentUser) {
-    setupCloudSync(auth.currentUser);
     await publishStateImmediately();
   }
 });
@@ -8288,6 +8943,8 @@ const websiteAdminBtn = document.getElementById("websiteAdminBtn");
 const globalRoleSelect = document.getElementById("globalRoleSelect");
 const registrationHeroEventName = document.getElementById("registrationHeroEventName");
 const registrationHeroEventDate = document.getElementById("registrationHeroEventDate");
+const registrationHeroEyebrow = document.getElementById("registrationHeroEyebrow");
+const registrationHeroTitle = document.getElementById("registrationHeroTitle");
 const registrationDriverCount = document.getElementById("registrationDriverCount");
 const registrationSortSelect = document.getElementById("registrationSortSelect");
 const registrationAdminAlerts = document.getElementById("registrationAdminAlerts");
@@ -8314,6 +8971,7 @@ const registrationDraftChassis3 = document.getElementById("registrationDraftChas
 const registrationForms = document.getElementById("registrationForms");
 const registrationAddDriverBtn = document.getElementById("registrationAddDriverBtn");
 const registrationAddDriverSecondaryBtn = document.getElementById("registrationAddDriverSecondaryBtn");
+const registrationLoadSampleBtn = document.getElementById("registrationLoadSampleBtn");
 const registrationToQualifyingBtn = document.getElementById("registrationToQualifyingBtn");
 const registrationRandomTwinCompBtn = document.getElementById("registrationRandomTwinCompBtn");
 const registrationStandardWorkflow = document.getElementById("registrationStandardWorkflow");
@@ -8357,6 +9015,9 @@ const selfRegisterQrPendingSelect = document.getElementById("selfRegisterQrPendi
 const selfRegisterQrLookupNote = document.getElementById("selfRegisterQrLookupNote");
 const selfRegisterNameLabel = document.getElementById("selfRegisterNameLabel");
 const selfRegisterNumberLabel = document.getElementById("selfRegisterNumberLabel");
+const selfRegisterNumberField = document.getElementById("selfRegisterNumberField");
+const selfRegisterNumberField2 = document.getElementById("selfRegisterNumberField2");
+const selfRegisterNumberField3 = document.getElementById("selfRegisterNumberField3");
 const selfRegisterTeamLabel = document.getElementById("selfRegisterTeamLabel");
 const selfRegisterChassisLabel = document.getElementById("selfRegisterChassisLabel");
 const selfRegisterName = document.getElementById("selfRegisterName");
@@ -8372,12 +9033,6 @@ const selfRegisterChassis2 = document.getElementById("selfRegisterChassis2");
 const selfRegisterName3 = document.getElementById("selfRegisterName3");
 const selfRegisterNumber3 = document.getElementById("selfRegisterNumber3");
 const selfRegisterChassis3 = document.getElementById("selfRegisterChassis3");
-const selfRegisterSavedProfileSelect = document.getElementById("selfRegisterSavedProfileSelect");
-const useSavedSelfRegisterProfileBtn = document.getElementById("useSavedSelfRegisterProfileBtn");
-const saveCurrentSelfRegisterProfileBtn = document.getElementById("saveCurrentSelfRegisterProfileBtn");
-const clearSavedSelfRegisterProfileBtn = document.getElementById("clearSavedSelfRegisterProfileBtn");
-const deleteSavedSelfRegisterProfileBtn = document.getElementById("deleteSavedSelfRegisterProfileBtn");
-const selfRegisterSavedProfileNote = document.getElementById("selfRegisterSavedProfileNote");
 const selfRegisterLocateBtn = document.getElementById("selfRegisterLocateBtn");
 const selfRegisterSubmitBtn = document.getElementById("selfRegisterSubmitBtn");
 const selfRegisterStatus = document.getElementById("selfRegisterStatus");
@@ -8477,6 +9132,7 @@ const landingWhySectionKicker = document.getElementById("landingWhySectionKicker
 const landingWhySectionCopy = document.getElementById("landingWhySectionCopy");
 const landingWhyFeatures = document.getElementById("landingWhyFeatures");
 const landingQuickLinks = document.getElementById("landingQuickLinks");
+const mobileSpectatorHub = document.getElementById("mobileSpectatorHub");
 const selfRegisterProfileCard = document.getElementById("selfRegisterProfileCard");
 const queueHeroTitle = document.getElementById("queueHeroTitle");
 const queueHeroCopy = document.getElementById("queueHeroCopy");
@@ -9649,7 +10305,7 @@ function normalizeRouteViewForRole(role, requestedView = null) {
     if (role === "admin") return isTeamTandemMode() ? (tournamentState?.mainBracket?.rounds?.length ? "bracket" : "registration") : "bracket";
     if (role === "spectator" && isTeamTandemMode()) return tournamentState?.mainBracket?.rounds?.length ? "bracket" : "home";
   }
-  if (role !== "admin" && viewName === "registration") return fallbackView;
+  if (role !== "admin" && role !== "spectator" && viewName === "registration") return fallbackView;
   if (role !== "spectator" && viewName === "home") return fallbackView;
   if (role !== "spectator" && viewName === "privacy") return fallbackView;
   if (role !== "spectator" && viewName === "live") return fallbackView;
@@ -10236,6 +10892,7 @@ function buildTestSampleDrivers(populateScores = false) {
   return TEST_SAMPLE_DRIVER_ENTRIES.map(([name, teamName, chassis, run1, run2], index) => {
     const driver = createEmptyDriver(index + 1);
     driver.name = name;
+    driver.driverNumber = String(index + 1);
     driver.teamName = teamName;
     driver.chassis = chassis;
     driver.runFlags = { run1: null, run2: null, runoff: null };
@@ -10631,6 +11288,7 @@ function applyRouteFromLocation() {
   }
 
   const route = parseRouteFromLocation();
+  syncSharedPublicRouteEventSelection({ route });
   syncRequestedRouteEventSelection({ route });
   if (!route) {
     const resolvedEvent = resolvePlatformCurrentEvent({ currentEventId: activeEventId });
@@ -10739,8 +11397,8 @@ function formatClaimedAt(value) {
 }
 
 function isSampleEventEnabled(eventMeta = activeEventMeta) {
-  const eventName = String(eventMeta?.name || "");
-  return /test/i.test(eventName);
+  const sampleLabel = `${String(eventMeta?.name || "")} ${String(eventMeta?.title || "")}`.trim();
+  return /\btest\b/i.test(sampleLabel);
 }
 
 function getTopQualifierTieInfo(rankedDrivers) {
@@ -10813,6 +11471,7 @@ function syncCompetitionModeNavigation() {
   }
   if (bracketModeSelect) {
     const showBracketFormatSelector = !tech1Mode && !teamTandemMode && !twinTripleMode;
+    bracketModeSelect.disabled = !canEditCompetitionFormat(activeEventMeta);
     const bracketModeField = bracketModeSelect.closest(".search-field");
     if (bracketModeField) {
       bracketModeField.hidden = !showBracketFormatSelector;
@@ -10909,11 +11568,14 @@ function updateEventChrome() {
       : "Qualifying order can only be randomized before qualifying starts and requires at least 2 drivers.";
   }
   if (loadSampleBtn) {
-    const canLoadSample = adminCanEdit() && isSampleEventEnabled(activeEventMeta);
-    loadSampleBtn.classList.toggle("hidden", !canLoadSample);
+    const canManageSamples = adminCanEdit();
+    const canLoadSample = canManageSamples && isSampleEventEnabled(activeEventMeta);
+    loadSampleBtn.classList.toggle("hidden", !canManageSamples);
     loadSampleBtn.disabled = !canLoadSample;
     loadSampleBtn.textContent = "Load Test Sample";
-    loadSampleBtn.title = "Only available on events with TEST in the name.";
+    loadSampleBtn.title = canLoadSample
+      ? "Load practice drivers into this TEST event."
+      : "Rename this event to include TEST to enable sample loading.";
   }
   Array.from(globalRoleSelect.options).forEach((option) => {
     option.textContent = getRoleDisplayName(option.value);
@@ -10935,6 +11597,15 @@ function updateEventChrome() {
   if (registrationHeroEventDate) registrationHeroEventDate.textContent = formatEventDate(activeEventMeta?.date);
   if (registrationAddDriverBtn) registrationAddDriverBtn.classList.toggle("hidden", !registrationCanEdit());
   if (registrationAddDriverSecondaryBtn) registrationAddDriverSecondaryBtn.classList.toggle("hidden", !registrationCanEdit());
+  if (registrationLoadSampleBtn) {
+    const canManageSamples = adminCanEdit();
+    const canLoadSample = canManageSamples && isSampleEventEnabled(activeEventMeta);
+    registrationLoadSampleBtn.classList.toggle("hidden", !canManageSamples);
+    registrationLoadSampleBtn.disabled = !canLoadSample;
+    registrationLoadSampleBtn.title = canLoadSample
+      ? "Load practice drivers into this TEST event."
+      : "Rename this event to include TEST to enable sample loading.";
+  }
   if (websiteAdminNewEventBtn) websiteAdminNewEventBtn.disabled = !websiteAdminCanUseProductionWrites();
   if (editCurrentEventBtn) editCurrentEventBtn.disabled = !websiteAdminCanUseProductionWrites() || !activeEventMeta;
   if (restoreRound3PdfBtn) {
@@ -11415,6 +12086,7 @@ function isSelfRegistrationClosedByQualifying(eventMeta = activeEventMeta, flow 
 
 function loadSavedSelfRegisterProfile() {
   try {
+    localStorage.removeItem(`rc-drift-self-register-profiles-v${EVENT_STORAGE_VERSION}`);
     const raw = localStorage.getItem(SELF_REGISTER_PROFILE_STORAGE_KEY);
     if (!raw) return createEmptyRegistrationDraft();
     return normalizeRegistrationDraftState(JSON.parse(raw));
@@ -11424,59 +12096,11 @@ function loadSavedSelfRegisterProfile() {
   }
 }
 
-function normalizeSavedSelfRegisterProfiles(entries) {
-  return (Array.isArray(entries) ? entries : [])
-    .map((entry) => {
-      const normalized = entry && typeof entry === "object" ? entry : {};
-      return {
-        id: normalized.id || generateId(),
-        label: typeof normalized.label === "string" ? normalized.label : "",
-        name: typeof normalized.name === "string" ? normalized.name : "",
-        teamName: typeof normalized.teamName === "string" ? normalized.teamName : "",
-        chassis: typeof normalized.chassis === "string" ? normalized.chassis : "",
-        teammate2Name: typeof normalized.teammate2Name === "string" ? normalized.teammate2Name : "",
-        teammate2Chassis: typeof normalized.teammate2Chassis === "string" ? normalized.teammate2Chassis : "",
-        teammate3Name: typeof normalized.teammate3Name === "string" ? normalized.teammate3Name : "",
-        teammate3Chassis: typeof normalized.teammate3Chassis === "string" ? normalized.teammate3Chassis : "",
-        lastUsedAt: normalized.lastUsedAt || null,
-      };
-    })
-    .filter((entry) => Boolean(entry.name.trim()))
-    .sort((left, right) => String(right.lastUsedAt || "").localeCompare(String(left.lastUsedAt || "")));
-}
-
-function loadSavedSelfRegisterProfiles() {
-  try {
-    const raw = localStorage.getItem(SELF_REGISTER_PROFILES_STORAGE_KEY);
-    if (!raw) return [];
-    return normalizeSavedSelfRegisterProfiles(JSON.parse(raw));
-  } catch (error) {
-    console.warn("Failed to load saved self-registration profiles.", error);
-    return [];
-  }
-}
-
-function persistSavedSelfRegisterProfiles(profiles) {
-  try {
-    localStorage.setItem(SELF_REGISTER_PROFILES_STORAGE_KEY, JSON.stringify(normalizeSavedSelfRegisterProfiles(profiles)));
-  } catch (error) {
-    console.warn("Failed to save self-registration profiles.", error);
-  }
-}
-
 function persistSelfRegisterProfile() {
   try {
     localStorage.setItem(SELF_REGISTER_PROFILE_STORAGE_KEY, JSON.stringify(normalizeRegistrationDraftState(selfRegistrationDraft)));
   } catch (error) {
     console.warn("Failed to save self-registration profile.", error);
-  }
-}
-
-function clearSavedSelfRegisterProfile() {
-  try {
-    localStorage.removeItem(SELF_REGISTER_PROFILE_STORAGE_KEY);
-  } catch (error) {
-    console.warn("Failed to clear saved self-registration profile.", error);
   }
 }
 
@@ -11671,6 +12295,29 @@ function syncRequestedRouteEventSelection(options = {}) {
   return true;
 }
 
+function syncSharedPublicRouteEventSelection(options = {}) {
+  const route = options.route || parseRouteFromLocation();
+  if (route?.kind !== "role" || route.routeStyle !== "public-path" || route.eventId) {
+    return false;
+  }
+  const resolvedEvent = resolvePlatformCurrentEvent({
+    ...options,
+    route,
+    currentEventId: activeEventId,
+  });
+  if (!resolvedEvent?.eventId || !eventDirectory[resolvedEvent.eventId]) {
+    return false;
+  }
+  if (resolvedEvent.shouldFollowShared && localEventPreviewMode) {
+    setLocalEventPreviewModeState(false);
+  }
+  if (resolvedEvent.eventId === activeEventId) {
+    return false;
+  }
+  adoptActiveEvent(resolvedEvent.eventId, currentRole);
+  return true;
+}
+
 function syncRequestedSelfRegisterEventSelection(options = {}) {
   const request = getVenueQrCheckInRequest();
   if (!request?.eventId) return false;
@@ -11683,84 +12330,6 @@ function syncRequestedSelfRegisterEventSelection(options = {}) {
   applyRoleChange("spectator");
   switchView(targetView);
   return routeSynced;
-}
-
-function buildSelfRegisterProfileLabel(profile) {
-  const name = (profile?.name || "").trim() || "Unnamed Driver";
-  const team = (profile?.teamName || "").trim();
-  const memberCount = getNamedDraftDriverMembers(profile).length;
-  if (team && memberCount > 1) return `${team} | ${memberCount} drivers`;
-  return team ? `${name} | ${team}` : name;
-}
-
-function syncSavedSelfRegisterProfilesUi(selectedId = "") {
-  if (!selfRegisterSavedProfileSelect) return;
-  const profiles = loadSavedSelfRegisterProfiles();
-  if (!profiles.length) {
-    selfRegisterSavedProfileSelect.innerHTML = `<option value="">No saved profiles yet</option>`;
-    selfRegisterSavedProfileSelect.value = "";
-    return;
-  }
-  selfRegisterSavedProfileSelect.innerHTML = [
-    `<option value="">${isTeamTandemMode() ? "Choose a saved team" : "Choose a saved driver"}</option>`,
-    ...profiles.map((profile) => `<option value="${escapeHtml(profile.id)}">${escapeHtml(buildSelfRegisterProfileLabel(profile))}</option>`)
-  ].join("");
-  selfRegisterSavedProfileSelect.value = profiles.some((profile) => profile.id === selectedId) ? selectedId : "";
-}
-
-function saveCurrentSelfRegisterProfile() {
-  const name = (selfRegistrationDraft.name || "").trim();
-  if (!name) {
-    if (selfRegisterName) selfRegisterName.focus();
-    return false;
-  }
-  const now = new Date().toISOString();
-  const profiles = loadSavedSelfRegisterProfiles();
-  const matchingProfile = profiles.find((profile) =>
-    profile.name.trim().toLowerCase() === name.toLowerCase()
-    && (profile.teamName || "").trim().toLowerCase() === (selfRegistrationDraft.teamName || "").trim().toLowerCase()
-  );
-  const nextProfile = {
-    id: matchingProfile?.id || generateId(),
-    label: "",
-    name,
-    driverNumber: (selfRegistrationDraft.driverNumber || "").trim(),
-    teamName: (selfRegistrationDraft.teamName || "").trim(),
-    chassis: (selfRegistrationDraft.chassis || "").trim(),
-    teammate2Name: (selfRegistrationDraft.teammate2Name || "").trim(),
-    teammate2Number: (selfRegistrationDraft.teammate2Number || "").trim(),
-    teammate2Chassis: (selfRegistrationDraft.teammate2Chassis || "").trim(),
-    teammate3Name: (selfRegistrationDraft.teammate3Name || "").trim(),
-    teammate3Number: (selfRegistrationDraft.teammate3Number || "").trim(),
-    teammate3Chassis: (selfRegistrationDraft.teammate3Chassis || "").trim(),
-    lastUsedAt: now,
-  };
-  const nextProfiles = [
-    nextProfile,
-    ...profiles.filter((profile) => profile.id !== nextProfile.id),
-  ].slice(0, 20);
-  persistSavedSelfRegisterProfiles(nextProfiles);
-  syncSavedSelfRegisterProfilesUi(nextProfile.id);
-  return true;
-}
-
-function applySavedSelfRegisterProfile(profileId) {
-  const profile = loadSavedSelfRegisterProfiles().find((entry) => entry.id === profileId);
-  if (!profile) return false;
-  selfRegistrationDraft = normalizeRegistrationDraftState(profile);
-  persistSelfRegisterProfile();
-  syncSavedSelfRegisterProfilesUi(profile.id);
-  syncSelfRegisterForm();
-  return true;
-}
-
-function deleteSavedSelfRegisterProfile(profileId) {
-  if (!profileId) return false;
-  const profiles = loadSavedSelfRegisterProfiles();
-  if (!profiles.some((profile) => profile.id === profileId)) return false;
-  persistSavedSelfRegisterProfiles(profiles.filter((profile) => profile.id !== profileId));
-  syncSavedSelfRegisterProfilesUi("");
-  return true;
 }
 
 function collectVenueConfigFromForm() {
@@ -11945,6 +12514,7 @@ function syncRegistrationDraftForm() {
   if (registrationAddDriverBtn) registrationAddDriverBtn.textContent = teamMode ? "Add Team" : "Add Driver";
   if (registrationAddDriverSecondaryBtn) registrationAddDriverSecondaryBtn.disabled = !canEditRegistration;
   if (registrationAddDriverSecondaryBtn) registrationAddDriverSecondaryBtn.textContent = teamMode ? "Submit Team" : "Submit Driver";
+  if (registrationLoadSampleBtn) registrationLoadSampleBtn.disabled = !canEditRegistration || !isSampleEventEnabled(activeEventMeta);
   if (registrationEntryIntro) {
     registrationEntryIntro.textContent = teamMode
       ? "Team tandem mode registers one team at a time. Team name is required, Driver 1 and Driver 2 are required, and Driver 3 is optional."
@@ -12041,29 +12611,19 @@ function syncVenueConfigForm(options = {}) {
       ? closeReason === "scheduled-close"
         ? `Self-registration is closed because the scheduled close time has passed${venueConfig.closeAt ? ` (${new Date(venueConfig.closeAt).toLocaleString()})` : ""}. ${qrStatus}`
         : `Self-registration is automatically closed because qualifying has already started. ${qrStatus}`
-      : hasValidVenueConfig(venueStatusMeta)
-      ? `Enabled for ${venueConfig.label || (eventNameInput?.value || "").trim() || activeEventMeta?.name || "this venue"} within ${Math.round(Number(venueConfig.radiusMeters) || 0)} meters${venueConfig.closeAt ? ` until ${new Date(venueConfig.closeAt).toLocaleString()}` : ""}. ${qrStatus}`
+      : isSelfRegistrationEnabled(venueStatusMeta)
+      ? `Self-registration is enabled for ${venueConfig.label || (eventNameInput?.value || "").trim() || activeEventMeta?.name || "this event"}${venueConfig.closeAt ? ` until ${new Date(venueConfig.closeAt).toLocaleString()}` : ""}. ${qrStatus}`
       : `Public self-registration is disabled for this event. ${qrStatus}`;
   }
 }
 
 function syncSelfRegisterForm() {
-  const venueIsValid = hasValidVenueConfig();
+  const selfRegistrationEnabled = isSelfRegistrationEnabled();
   const closeReason = getSelfRegistrationCloseReason();
   const isClosedByQualifying = Boolean(closeReason);
   const teamMode = isTeamTandemMode();
-  const qrRequest = getVenueQrCheckInRequest();
-  const qrMode = qrRequest.qrMode;
-  const qrValidation = qrMode ? getVenueQrCheckInValidation() : { valid: false, code: "not-qr", copy: "" };
-  const qrSearchValue = (selfRegisterQrSearchInput?.value || "").trim().toLowerCase();
-  const qrCandidates = qrMode
-    ? getPendingRegistrationGroupLeaders().filter((entry) => {
-      if (!qrSearchValue) return true;
-      const label = getPendingGroupLabel(entry).toLowerCase();
-      return label.includes(qrSearchValue) || (entry.name || "").toLowerCase().includes(qrSearchValue) || (entry.teamName || "").toLowerCase().includes(qrSearchValue);
-    })
-    : [];
-  const selectedQrLeader = qrMode ? findPendingRegistrationGroupLeaderById(selfRegisterQrPendingSelect?.value || "") : null;
+  const qrMode = false;
+  const qrValidation = { valid: false, code: "not-qr", copy: "" };
   if (selfRegisterNameLabel) selfRegisterNameLabel.textContent = teamMode ? "Driver 1" : "Driver Name";
   if (selfRegisterTeamLabel) selfRegisterTeamLabel.textContent = "Team Name";
   if (selfRegisterChassisLabel) selfRegisterChassisLabel.textContent = teamMode ? "Driver 1 Chassis" : "Chassis";
@@ -12072,29 +12632,21 @@ function syncSelfRegisterForm() {
   const hasDraftName = teamMode
     ? Boolean((selfRegistrationDraft.teamName || "").trim()) && namedDraftMembers.length >= TEAM_TANDEM_MIN_DRIVERS && !draftSlots.some((member) => member.chassis && !member.name)
     : Boolean((selfRegistrationDraft.name || "").trim());
-  const canSubmit = venueIsValid && !isEventReadOnly() && !isClosedByQualifying && hasDraftName;
-  const effectiveCopy = qrMode
-    ? (qrValidation.valid
-      ? selfRegistrationState.copy || qrValidation.copy
-      : qrValidation.copy)
-    : venueIsValid
-      ? selfRegistrationState.copy
-      : "Pre-registration is disabled until event admin saves a valid venue location and radius.";
-  const effectiveStatus = qrMode
-    ? (qrValidation.valid ? selfRegistrationState.status : "error")
-    : (!venueIsValid || isClosedByQualifying ? "error" : selfRegistrationState.status);
-  const pendingCheckInGroup = selectedQrLeader && qrMode
-    ? getPendingRegistrationGroupEntries(selectedQrLeader.id)
-    : getPendingEntryGroupForCheckIn();
-  const pendingCheckInEntry = getPendingRegistrationGroupLeader(pendingCheckInGroup);
-  const qrLocateReady = qrMode && qrValidation.valid && Boolean(pendingCheckInEntry);
+  const canSubmit = selfRegistrationEnabled && !isEventReadOnly() && !isClosedByQualifying && hasDraftName;
+  const effectiveCopy = selfRegistrationEnabled
+    ? selfRegistrationState.copy
+    : "Self-registration is disabled by event staff.";
+  const effectiveStatus = (!selfRegistrationEnabled || isClosedByQualifying) ? "error" : selfRegistrationState.status;
   if (selfRegisterNumberLabel) selfRegisterNumberLabel.textContent = teamMode ? "Driver 1 Number" : "Driver Number";
+  if (selfRegisterNumberField) selfRegisterNumberField.hidden = true;
+  if (selfRegisterNumberField2) selfRegisterNumberField2.hidden = true;
+  if (selfRegisterNumberField3) selfRegisterNumberField3.hidden = true;
   if (selfRegisterName) selfRegisterName.value = selfRegistrationDraft.name || "";
   if (selfRegisterNumber) selfRegisterNumber.value = selfRegistrationDraft.driverNumber || "";
   if (selfRegisterTeam) selfRegisterTeam.value = selfRegistrationDraft.teamName || "";
   if (selfRegisterChassis) selfRegisterChassis.value = selfRegistrationDraft.chassis || "";
   if (selfRegisterName) selfRegisterName.placeholder = teamMode ? "First driver name" : "Driver name";
-  if (selfRegisterNumber) selfRegisterNumber.placeholder = teamMode ? "First driver number" : "Driver number";
+  if (selfRegisterNumber) selfRegisterNumber.placeholder = "Assigned by staff";
   if (selfRegisterTeam) selfRegisterTeam.placeholder = "Team name";
   if (selfRegisterChassis) selfRegisterChassis.placeholder = teamMode ? "First driver chassis" : "Chassis";
   if (selfRegisterName2) selfRegisterName2.value = selfRegistrationDraft.teammate2Name || "";
@@ -12103,95 +12655,42 @@ function syncSelfRegisterForm() {
   if (selfRegisterName3) selfRegisterName3.value = selfRegistrationDraft.teammate3Name || "";
   if (selfRegisterNumber3) selfRegisterNumber3.value = selfRegistrationDraft.teammate3Number || "";
   if (selfRegisterChassis3) selfRegisterChassis3.value = selfRegistrationDraft.teammate3Chassis || "";
-  if (selfRegisterName) selfRegisterName.disabled = !venueIsValid || isEventReadOnly() || isClosedByQualifying;
-  if (selfRegisterNumber) selfRegisterNumber.disabled = !venueIsValid || isEventReadOnly() || isClosedByQualifying;
-  if (selfRegisterTeam) selfRegisterTeam.disabled = !venueIsValid || isEventReadOnly() || isClosedByQualifying;
-  if (selfRegisterChassis) selfRegisterChassis.disabled = !venueIsValid || isEventReadOnly() || isClosedByQualifying;
-  if (selfRegisterName2) selfRegisterName2.disabled = !venueIsValid || isEventReadOnly() || isClosedByQualifying;
-  if (selfRegisterNumber2) selfRegisterNumber2.disabled = !venueIsValid || isEventReadOnly() || isClosedByQualifying;
-  if (selfRegisterChassis2) selfRegisterChassis2.disabled = !venueIsValid || isEventReadOnly() || isClosedByQualifying;
-  if (selfRegisterName3) selfRegisterName3.disabled = !venueIsValid || isEventReadOnly() || isClosedByQualifying;
-  if (selfRegisterNumber3) selfRegisterNumber3.disabled = !venueIsValid || isEventReadOnly() || isClosedByQualifying;
-  if (selfRegisterChassis3) selfRegisterChassis3.disabled = !venueIsValid || isEventReadOnly() || isClosedByQualifying;
+  if (selfRegisterName) selfRegisterName.disabled = !selfRegistrationEnabled || isEventReadOnly() || isClosedByQualifying;
+  if (selfRegisterNumber) selfRegisterNumber.disabled = !selfRegistrationEnabled || isEventReadOnly() || isClosedByQualifying;
+  if (selfRegisterTeam) selfRegisterTeam.disabled = !selfRegistrationEnabled || isEventReadOnly() || isClosedByQualifying;
+  if (selfRegisterChassis) selfRegisterChassis.disabled = !selfRegistrationEnabled || isEventReadOnly() || isClosedByQualifying;
+  if (selfRegisterName2) selfRegisterName2.disabled = !selfRegistrationEnabled || isEventReadOnly() || isClosedByQualifying;
+  if (selfRegisterNumber2) selfRegisterNumber2.disabled = !selfRegistrationEnabled || isEventReadOnly() || isClosedByQualifying;
+  if (selfRegisterChassis2) selfRegisterChassis2.disabled = !selfRegistrationEnabled || isEventReadOnly() || isClosedByQualifying;
+  if (selfRegisterName3) selfRegisterName3.disabled = !selfRegistrationEnabled || isEventReadOnly() || isClosedByQualifying;
+  if (selfRegisterNumber3) selfRegisterNumber3.disabled = !selfRegistrationEnabled || isEventReadOnly() || isClosedByQualifying;
+  if (selfRegisterChassis3) selfRegisterChassis3.disabled = !selfRegistrationEnabled || isEventReadOnly() || isClosedByQualifying;
   if (selfRegisterTeamFields) selfRegisterTeamFields.hidden = !teamMode;
   if (selfRegisterSoloFields) selfRegisterSoloFields.hidden = false;
   if (selfRegisterSubmitBtn) {
     selfRegisterSubmitBtn.disabled = !canSubmit;
-    selfRegisterSubmitBtn.textContent = pendingCheckInEntry
-      ? teamMode ? "Update Team Pre-Registration" : "Update Pre-Registration"
-      : teamMode ? "Pre-Register Team" : "Pre-Register";
+    selfRegisterSubmitBtn.textContent = teamMode ? "Pre-Register Team" : "Pre-Register";
   }
   if (selfRegisterQrArrivalPanel) {
-    selfRegisterQrArrivalPanel.hidden = !qrMode;
-    selfRegisterQrArrivalPanel.classList.remove("is-ready", "is-locked", "is-error");
-    selfRegisterQrArrivalPanel.classList.add(
-      !qrValidation.valid
-        ? "is-error"
-        : pendingCheckInEntry?.checkedInAt
-          ? "is-ready"
-          : pendingCheckInEntry
-            ? "is-ready"
-            : "is-locked"
-    );
-  }
-  if (selfRegisterQrArrivalTitle) {
-    selfRegisterQrArrivalTitle.textContent = !qrMode
-      ? "Venue QR Check-In"
-      : !qrValidation.valid
-        ? "Venue QR Check-In Unavailable"
-        : pendingCheckInEntry?.checkedInAt
-          ? "Already Checked In"
-          : pendingCheckInEntry
-            ? "Venue QR Check-In Ready"
-            : "Find Your Pre-Registration";
-  }
-  if (selfRegisterQrArrivalCopy) {
-    selfRegisterQrArrivalCopy.textContent = !qrMode
-      ? "Select your preregistered name or use saved details to confirm arrival."
-      : !qrValidation.valid
-        ? qrValidation.copy
-        : pendingCheckInEntry?.checkedInAt
-          ? `${pendingCheckInEntry.teamName || pendingCheckInEntry.name} already arrived for ${activeEventMeta?.name || "this event"}.`
-          : pendingCheckInEntry
-            ? `${pendingCheckInEntry.teamName || pendingCheckInEntry.name} is ready for QR arrival confirmation.`
-            : "Select your preregistered name or use saved details to match your arrival.";
+    selfRegisterQrArrivalPanel.hidden = true;
   }
   if (selfRegisterQrLookupPanel) {
-    selfRegisterQrLookupPanel.hidden = !qrMode;
-  }
-  if (selfRegisterQrPendingSelect) {
-    const currentValue = selectedQrLeader?.id || pendingCheckInEntry?.id || "";
-    const optionsMarkup = [
-      `<option value="">Choose your preregistered entry</option>`,
-      ...qrCandidates.map((entry) => `<option value="${escapeHtml(entry.id)}">${escapeHtml(getPendingGroupLabel(entry))}</option>`),
-    ];
-    selfRegisterQrPendingSelect.innerHTML = optionsMarkup.join("");
-    selfRegisterQrPendingSelect.value = qrCandidates.some((entry) => entry.id === currentValue) ? currentValue : "";
-    selfRegisterQrPendingSelect.disabled = !qrMode || !qrValidation.valid;
+    selfRegisterQrLookupPanel.hidden = true;
   }
   if (selfRegisterQrSearchInput) {
-    selfRegisterQrSearchInput.disabled = !qrMode || !qrValidation.valid;
+    selfRegisterQrSearchInput.disabled = true;
+    selfRegisterQrSearchInput.value = "";
+  }
+  if (selfRegisterQrPendingSelect) {
+    selfRegisterQrPendingSelect.innerHTML = `<option value="">Choose your preregistered entry</option>`;
+    selfRegisterQrPendingSelect.disabled = true;
+    selfRegisterQrPendingSelect.value = "";
   }
   if (selfRegisterQrLookupNote) {
-    selfRegisterQrLookupNote.textContent = !qrMode
-      ? "Choose your preregistered name or use saved details to confirm arrival faster."
-      : !qrValidation.valid
-        ? qrValidation.copy
-        : qrCandidates.length
-          ? `Matching preregistrations: ${qrCandidates.length}. Select your entry to confirm arrival.`
-          : "No preregistered entry matches your current name yet. Search by name or use saved details.";
+    selfRegisterQrLookupNote.textContent = "Venue QR check-in is turned off for mobile registration.";
   }
   if (selfRegisterLocateBtn) {
-    selfRegisterLocateBtn.disabled = qrMode
-      ? !qrLocateReady || isEventReadOnly()
-      : !venueIsValid || isEventReadOnly() || isClosedByQualifying;
-    selfRegisterLocateBtn.textContent = qrMode
-      ? pendingCheckInEntry?.checkedInAt
-        ? "Already Checked In"
-        : teamMode ? "Confirm Team QR Arrival" : "Confirm QR Arrival"
-      : pendingCheckInEntry?.checkedInAt
-        ? "Venue Check-In Verified"
-        : teamMode ? "Verify Team Venue Check-In" : "Verify Venue Check-In";
+    selfRegisterLocateBtn.hidden = true;
   }
   if (selfRegisterStatus) {
     selfRegisterStatus.classList.remove("is-ready", "is-locked", "is-error");
@@ -12208,77 +12707,42 @@ function syncSelfRegisterForm() {
       ? closeReason === "scheduled-close"
         ? "Registration is closed."
         : "Registration is closed."
-      : qrMode && !qrValidation.valid
-        ? "Venue QR Check-In Unavailable"
-      : !venueIsValid
+      : !selfRegistrationEnabled
         ? "Self-registration is disabled by event staff."
       : effectiveStatus === "ready"
-        ? pendingCheckInEntry?.checkedInAt
-          ? "You are preregistered."
-          : qrMode
-            ? "Venue check-in is open."
-            : "Venue check-in is open."
+        ? "Pre-registration is open."
         : effectiveStatus === "error"
-          ? "Check-In Required"
+          ? "Registration Closed"
           : "Pre-registration is open.";
   }
   if (selfRegisterStatusCopy) selfRegisterStatusCopy.textContent = isClosedByQualifying
     ? closeReason === "scheduled-close"
       ? `Registration is closed. The scheduled cutoff has passed${getVenueConfig().closeAt ? ` (${new Date(getVenueConfig().closeAt).toLocaleString()})` : ""}.`
       : "Registration is closed because qualifying has already started for this event."
-    : !venueIsValid && !qrMode
+    : !selfRegistrationEnabled
       ? "Self-registration is disabled by event staff."
-      : effectiveStatus === "ready" && pendingCheckInEntry?.checkedInAt
-        ? "You are preregistered. Complete venue check-in when you arrive."
-        : effectiveStatus === "ready"
-          ? "Venue check-in is open."
-          : qrMode
-            ? effectiveCopy
-            : "Pre-registration is open. Venue check-in opens on event day.";
+      : effectiveStatus === "ready"
+        ? "Pre-registration is open. Front desk will review payment and assign the sticker number."
+        : effectiveCopy;
   if (selfRegisterFormNote) {
-    selfRegisterFormNote.textContent = qrMode
-      ? !qrValidation.valid
-        ? qrValidation.copy
-        : pendingCheckInEntry?.checkedInAt
-          ? teamMode
-            ? "QR arrival already confirmed. Event admin can approve this team after payment."
-            : "QR arrival already confirmed. Event admin can approve this driver after payment."
-          : pendingCheckInEntry
-            ? teamMode
-              ? "Use Confirm Team QR Arrival to mark this preregistered team on site."
-              : "Use Confirm QR Arrival to mark this preregistered driver on site."
-            : "Search your preregistered name, choose the right entry, then confirm arrival."
-      : !venueIsValid
-      ? "Self-registration is disabled until event admin saves a valid venue location and radius."
-      : selfRegistrationState.unlocked
-      ? pendingCheckInEntry?.checkedInAt
-        ? teamMode
-          ? "Venue check-in confirmed. Event admin can now approve this team after payment."
-          : "Venue check-in confirmed. Event admin can now approve this driver after payment."
-        : teamMode
-          ? "Venue check-in confirmed. Submit now to pre-register this team with on-site verification."
-          : "Venue check-in confirmed. Submit now to pre-register with on-site verification."
+    selfRegisterFormNote.textContent = !selfRegistrationEnabled
+      ? "Self-registration is disabled by event staff."
       : isClosedByQualifying
         ? closeReason === "scheduled-close"
           ? "Pre-registration is closed because the scheduled close time has passed."
           : "Pre-registration is closed once qualifying is live."
         : teamMode
-          ? "Team tandem mode requires a team name plus 2-3 drivers. Verify venue check-in when the team arrives."
-          : "Pre-register from anywhere, then tap Verify Venue Check-In when you arrive.";
+          ? "Team tandem mode requires a team name plus 2-3 drivers. Front desk will take payment, assign sticker numbers, and approve the team."
+          : "Enter your name, team, and chassis. Front desk will take payment, assign your sticker number, and approve you.";
   }
   if (selfRegisterVenueMeta) {
-    const venueConfig = getVenueConfig();
     const pendingCount = getPendingRegistrations().length;
     selfRegisterVenueMeta.textContent = isClosedByQualifying
       ? closeReason === "scheduled-close"
         ? `Pre-registration is closed because the scheduled close time passed. Live roster: ${getRegisteredDrivers(appDrivers).length} drivers | Pending payment: ${pendingCount}`
         : `Pre-registration is closed because qualifying is already ${getQualifyingFlowPhase(qualifyingFlow, appDrivers) === "complete" ? "complete" : "live"}. Live roster: ${getRegisteredDrivers(appDrivers).length} drivers | Pending payment: ${pendingCount}`
-      : qrMode
-        ? qrValidation.valid
-          ? `${activeEventMeta?.name || "Current event"} | Venue QR mode | Pending pre-registrations: ${pendingCount} | Approval mode: ${venueConfig.qrApprovalMode ? "On" : "Off"}`
-          : qrValidation.copy
-      : hasValidVenueConfig()
-      ? `${venueConfig.label || activeEventMeta?.name || "Current venue"} | Radius ${Math.round(Number(venueConfig.radiusMeters) || 0)} m | Live roster: ${getRegisteredDrivers(appDrivers).length} drivers | Pending pre-registrations: ${pendingCount}`
+      : selfRegistrationEnabled
+      ? `${activeEventMeta?.name || "Current event"} | Live roster: ${getRegisteredDrivers(appDrivers).length} drivers | Pending pre-registrations: ${pendingCount}`
       : "Self-registration is disabled by event staff.";
   }
   if (selfRegisterDriverCount) {
@@ -12287,35 +12751,11 @@ function syncSelfRegisterForm() {
       ? `${count} Driver${count === 1 ? "" : "s"}`
       : "Driver list will appear when registration opens.";
   }
-  if (selfRegisterSavedProfileNote) {
-    const hasSavedProfile = Boolean(
-      (selfRegistrationDraft.name || "").trim()
-      || (selfRegistrationDraft.teamName || "").trim()
-      || (selfRegistrationDraft.chassis || "").trim()
-      || (selfRegistrationDraft.teammate2Name || "").trim()
-      || (selfRegistrationDraft.teammate2Chassis || "").trim()
-      || (selfRegistrationDraft.teammate3Name || "").trim()
-      || (selfRegistrationDraft.teammate3Chassis || "").trim()
-    );
-    const savedProfiles = loadSavedSelfRegisterProfiles();
-    selfRegisterSavedProfileNote.textContent = hasSavedProfile
-      ? teamMode
-        ? `This device is remembering the current team details. Saved profiles available: ${savedProfiles.length}.`
-        : `This device is remembering the current driver details. Saved profiles available: ${savedProfiles.length}.`
-      : teamMode
-        ? `This device can remember team details for faster tandem check-in next time. Saved profiles: ${savedProfiles.length}.`
-        : `This device can remember driver details for faster check-in next time. Saved profiles: ${savedProfiles.length}.`;
-  }
   if (selfRegisterModeNote) {
-    selfRegisterModeNote.textContent = qrMode
-      ? teamMode
-        ? "Venue QR check-in works best with a saved team profile or by selecting the preregistered team below."
-        : "Venue QR check-in works best with your saved profile or by selecting your preregistered name below."
-      : teamMode
-        ? "Use the first driver fields for Driver 1, then add Driver 2 and an optional Driver 3. Team name is required."
-        : "Solo events accept one driver per pre-registration.";
+    selfRegisterModeNote.textContent = teamMode
+      ? "Use the first driver fields for Driver 1, then add Driver 2 and an optional Driver 3. Front desk assigns sticker numbers later."
+      : "Driver numbers are assigned by staff when you receive your sticker sheet.";
   }
-  syncSavedSelfRegisterProfilesUi(selfRegisterSavedProfileSelect?.value || "");
   syncSelfRegisterProfileCard();
 }
 
@@ -12420,9 +12860,9 @@ function syncRegistrationAdminAlerts() {
       value: qualifyingPhase === "waiting" && queueCount > 0 ? "Yes" : "No",
     },
     {
-      tone: isSelfRegistrationClosedByQualifying() ? "is-warning" : hasValidVenueConfig() ? "is-success" : "is-muted",
+      tone: isSelfRegistrationClosedByQualifying() ? "is-warning" : isSelfRegistrationEnabled() ? "is-success" : "is-muted",
       label: "Self-Register",
-      value: isSelfRegistrationClosedByQualifying() ? "Closed" : hasValidVenueConfig() ? "Open" : "Off",
+      value: isSelfRegistrationClosedByQualifying() ? "Closed" : isSelfRegistrationEnabled() ? "Open" : "Off",
     },
   ];
   const closeAt = getVenueConfig().closeAt;
@@ -12793,17 +13233,12 @@ function renderPendingStatusChips(entry) {
     statuses.push({ label: "Rejected", tone: "error" });
   } else if (isPendingRegistrationNeedsReview(entry)) {
     statuses.push({ label: "Duplicate / Needs Review", tone: "warning" });
-  } else if (entry.checkedInAt) {
-    statuses.push({ label: "Arrived", tone: "ready" });
-    statuses.push({ label: needsPendingRegistrationApproval(entry) ? "Pending Approval" : "Checked In", tone: needsPendingRegistrationApproval(entry) ? "warning" : "ready" });
   } else {
     statuses.push({ label: "Pre-Registered", tone: "muted" });
-    statuses.push({ label: "Venue Check-In Needed", tone: "warning" });
+    statuses.push({ label: "Awaiting Front Desk Approval", tone: "warning" });
   }
-  if (entry.paidAt) {
-    statuses.push({ label: "Paid", tone: "ready" });
-  } else {
-    statuses.push({ label: "Pending Payment", tone: "warning" });
+  if (entry.checkedInAt) {
+    statuses.push({ label: "Approved At Desk", tone: "ready" });
   }
   return renderStatusChips(statuses);
 }
@@ -13214,22 +13649,364 @@ async function finalizeCurrentEventResults(options = {}) {
 
 function syncSelfRegisterProfileCard() {
   if (!selfRegisterProfileCard) return;
-  const savedProfiles = loadSavedSelfRegisterProfiles();
   const name = (selfRegistrationDraft.name || "").trim();
-  const driverNumber = (selfRegistrationDraft.driverNumber || "").trim();
   const team = (selfRegistrationDraft.teamName || "").trim();
   const chassis = (selfRegistrationDraft.chassis || "").trim();
   const extraMembers = getNamedDraftDriverMembers(selfRegistrationDraft).slice(1).map((member) => member.name);
   const teamMode = isTeamTandemMode();
   selfRegisterProfileCard.innerHTML = `
-    <span>${teamMode ? "Team Profile Card" : "Driver Profile Card"}</span>
-    <strong>${escapeHtml(teamMode ? (team || "No team loaded yet") : (name ? formatDriverDisplayName({ name, driverNumber }) : "No driver loaded yet"))}</strong>
-    <small>${escapeHtml(teamMode ? (name ? `Driver 1: ${name}` : "Add Driver 1 to start the team roster.") : (team || "Add a team name to make repeat check-ins faster."))}</small>
-    <small>${escapeHtml(teamMode ? (extraMembers.length ? `Linked drivers: ${extraMembers.join(", ")}` : "Add Driver 2 and an optional Driver 3 for team tandems.") : (chassis || "Add the chassis so event staff can confirm the right driver profile."))}</small>
+    <span>${teamMode ? "Current Team Entry" : "Current Driver Entry"}</span>
+    <strong>${escapeHtml(teamMode ? (team || "No team entered yet") : (name || "No driver entered yet"))}</strong>
+    <small>${escapeHtml(teamMode ? (name ? `Driver 1: ${name}` : "Add Driver 1 to start the team roster.") : (team || "Add a team name for this registration."))}</small>
+    <small>${escapeHtml(teamMode ? (extraMembers.length ? `Additional drivers: ${extraMembers.join(", ")}` : "Add Driver 2 and an optional Driver 3 for team tandems.") : (chassis || "Add the chassis for this registration."))}</small>
     ${renderStatusChips([
-      { label: `${savedProfiles.length} Saved`, tone: savedProfiles.length ? "ready" : "muted" },
-      { label: teamMode ? (getNamedDraftDriverMembers(selfRegistrationDraft).length >= TEAM_TANDEM_MIN_DRIVERS && team ? "Ready To Check In" : "Needs Team") : (name ? "Ready To Check In" : "Needs Name"), tone: teamMode ? (getNamedDraftDriverMembers(selfRegistrationDraft).length >= TEAM_TANDEM_MIN_DRIVERS && team ? "live" : "warning") : (name ? "live" : "warning") },
+      { label: teamMode ? (getNamedDraftDriverMembers(selfRegistrationDraft).length >= TEAM_TANDEM_MIN_DRIVERS && team ? "Ready To Submit" : "Needs Team") : (name ? "Ready To Submit" : "Needs Name"), tone: teamMode ? (getNamedDraftDriverMembers(selfRegistrationDraft).length >= TEAM_TANDEM_MIN_DRIVERS && team ? "live" : "warning") : (name ? "live" : "warning") },
     ])}
+  `;
+}
+
+function isMobileSpectatorPrimaryNavContext() {
+  return currentRole === "spectator"
+    && typeof window !== "undefined"
+    && window.matchMedia("(max-width: 960px)").matches;
+}
+
+function resolvePrimaryNavViewTarget(requestedTarget) {
+  if (!isMobileSpectatorPrimaryNavContext()) return requestedTarget;
+  if (requestedTarget === "home") return "registration";
+  if (requestedTarget === "live") return "self-register";
+  return requestedTarget;
+}
+
+function resolvePrimaryNavActiveTarget(viewName) {
+  if (!isMobileSpectatorPrimaryNavContext()) return viewName;
+  if (viewName === "registration") return "home";
+  if (viewName === "self-register") return "live";
+  return viewName;
+}
+
+function syncMobileSpectatorPrimaryNav() {
+  const mainTopbar = document.querySelector(".main-topbar");
+  const topbarLeft = document.querySelector(".main-topbar .topbar-left");
+  const topbarCenter = document.querySelector(".main-topbar .topbar-center");
+  const topbarRight = document.querySelector(".main-topbar .topbar-right");
+  const topbarControls = document.querySelector(".main-topbar .topbar-controls");
+  const modeTabs = document.querySelector(".main-topbar .mode-tabs");
+  const homeTab = document.querySelector('.mode-tab[data-target="home"]');
+  const liveTab = document.querySelector('.mode-tab[data-target="live"]');
+  const registerTab = document.querySelector('.mode-tab[data-target="self-register"]');
+  const resultsTab = document.querySelector('.mode-tab[data-target="results"]');
+  if (!homeTab || !liveTab || !registerTab || !modeTabs || !topbarRight) return;
+
+  if (isMobileSpectatorPrimaryNavContext()) {
+    homeTab.textContent = "Drivers";
+    liveTab.textContent = "Registration";
+    registerTab.hidden = true;
+    registerTab.setAttribute("aria-hidden", "true");
+    if (mainTopbar) {
+      mainTopbar.style.setProperty("display", "flex", "important");
+      mainTopbar.style.setProperty("flex-direction", "column", "important");
+      mainTopbar.style.setProperty("align-items", "stretch", "important");
+      mainTopbar.style.setProperty("width", "min(calc(100% - 16px), 100%)", "important");
+      mainTopbar.style.setProperty("margin", "0 auto", "important");
+      mainTopbar.style.setProperty("gap", "10px", "important");
+      mainTopbar.style.setProperty("overflow", "visible", "important");
+    }
+    [topbarLeft, topbarCenter, topbarRight, topbarControls].forEach((node) => {
+      if (!node) return;
+      node.style.setProperty("width", "100%", "important");
+      node.style.setProperty("min-width", "0", "important");
+    });
+    topbarRight.style.setProperty("overflow-x", "visible", "important");
+    topbarRight.style.setProperty("overflow-y", "visible", "important");
+    topbarRight.style.setProperty("padding", "0", "important");
+    topbarRight.style.setProperty("border", "0", "important");
+    topbarRight.style.setProperty("background", "transparent", "important");
+    topbarRight.style.setProperty("box-shadow", "none", "important");
+    modeTabs.style.setProperty("display", "grid", "important");
+    modeTabs.style.setProperty("grid-template-columns", "repeat(2, minmax(0, 1fr))", "important");
+    modeTabs.style.setProperty("gap", "8px", "important");
+    modeTabs.style.setProperty("width", "100%", "important");
+    modeTabs.style.setProperty("min-width", "0", "important");
+    modeTabs.style.setProperty("overflow", "visible", "important");
+    [homeTab, liveTab, registerTab, document.querySelector('.mode-tab[data-target="qualifying"]'), document.querySelector('.mode-tab[data-target="bracket"]'), resultsTab]
+      .filter(Boolean)
+      .forEach((tab) => {
+        tab.style.setProperty("min-height", "48px", "important");
+        tab.style.setProperty("padding", "10px 8px", "important");
+        tab.style.setProperty("white-space", "normal", "important");
+        tab.style.setProperty("overflow-wrap", "anywhere", "important");
+        tab.style.setProperty("font-size", "0.78rem", "important");
+        tab.style.setProperty("line-height", "1.15", "important");
+      });
+    if (resultsTab) {
+      resultsTab.style.setProperty("grid-column", "1 / -1", "important");
+    }
+    if (document.body.classList.contains("competition-page")) {
+      document.body.style.setProperty("height", "auto", "important");
+      document.body.style.setProperty("min-height", "100dvh", "important");
+      document.body.style.setProperty("overflow-x", "hidden", "important");
+      document.body.style.setProperty("overflow-y", "auto", "important");
+      const pageShell = document.querySelector(".page-shell");
+      if (pageShell) {
+        pageShell.style.setProperty("width", "100%", "important");
+        pageShell.style.setProperty("max-width", "100%", "important");
+        pageShell.style.setProperty("min-height", "100dvh", "important");
+        pageShell.style.setProperty("height", "auto", "important");
+        pageShell.style.setProperty("padding", "8px 0 24px", "important");
+        pageShell.style.setProperty("margin", "0", "important");
+        pageShell.style.setProperty("display", "flex", "important");
+        pageShell.style.setProperty("flex-direction", "column", "important");
+        pageShell.style.setProperty("overflow", "visible", "important");
+      }
+    }
+  } else {
+    homeTab.textContent = "Home";
+    liveTab.textContent = "Live";
+    registerTab.hidden = false;
+    registerTab.removeAttribute("aria-hidden");
+    if (mainTopbar) {
+      mainTopbar.style.removeProperty("display");
+      mainTopbar.style.removeProperty("flex-direction");
+      mainTopbar.style.removeProperty("align-items");
+      mainTopbar.style.removeProperty("width");
+      mainTopbar.style.removeProperty("margin");
+      mainTopbar.style.removeProperty("gap");
+      mainTopbar.style.removeProperty("overflow");
+    }
+    [topbarLeft, topbarCenter, topbarRight, topbarControls].forEach((node) => {
+      if (!node) return;
+      node.style.removeProperty("width");
+      node.style.removeProperty("min-width");
+    });
+    topbarRight.style.removeProperty("overflow-x");
+    topbarRight.style.removeProperty("overflow-y");
+    topbarRight.style.removeProperty("padding");
+    topbarRight.style.removeProperty("border");
+    topbarRight.style.removeProperty("background");
+    topbarRight.style.removeProperty("box-shadow");
+    modeTabs.style.removeProperty("display");
+    modeTabs.style.removeProperty("grid-template-columns");
+    modeTabs.style.removeProperty("gap");
+    modeTabs.style.removeProperty("width");
+    modeTabs.style.removeProperty("min-width");
+    modeTabs.style.removeProperty("overflow");
+    [homeTab, liveTab, registerTab, document.querySelector('.mode-tab[data-target="qualifying"]'), document.querySelector('.mode-tab[data-target="bracket"]'), resultsTab]
+      .filter(Boolean)
+      .forEach((tab) => {
+        tab.style.removeProperty("min-height");
+        tab.style.removeProperty("padding");
+        tab.style.removeProperty("white-space");
+        tab.style.removeProperty("overflow-wrap");
+        tab.style.removeProperty("font-size");
+        tab.style.removeProperty("line-height");
+        tab.style.removeProperty("grid-column");
+      });
+    document.body.style.removeProperty("height");
+    document.body.style.removeProperty("min-height");
+    document.body.style.removeProperty("overflow-x");
+    document.body.style.removeProperty("overflow-y");
+    const pageShell = document.querySelector(".page-shell");
+    if (pageShell) {
+      pageShell.style.removeProperty("width");
+      pageShell.style.removeProperty("max-width");
+      pageShell.style.removeProperty("min-height");
+      pageShell.style.removeProperty("height");
+      pageShell.style.removeProperty("padding");
+      pageShell.style.removeProperty("margin");
+      pageShell.style.removeProperty("display");
+      pageShell.style.removeProperty("flex-direction");
+      pageShell.style.removeProperty("overflow");
+    }
+  }
+}
+
+function syncSpectatorDriversViewCopy() {
+  if (!registrationHeroEyebrow || !registrationHeroTitle) return;
+  const isSpectatorDriversView = currentRole === "spectator" && getActiveViewName() === "registration";
+  registrationHeroEyebrow.textContent = isSpectatorDriversView ? "Drivers" : "Registration";
+  registrationHeroTitle.textContent = isSpectatorDriversView ? "Active Driver Roster" : "Driver Sign-Up";
+}
+
+function renderMobileSpectatorHub(model = {}) {
+  if (!mobileSpectatorHub) return;
+  const shouldShow = currentRole === "spectator"
+    && typeof window !== "undefined"
+    && window.matchMedia("(max-width: 960px)").matches;
+  if (!shouldShow) {
+    mobileSpectatorHub.innerHTML = "";
+    return;
+  }
+
+  const {
+    activePublicEvent = null,
+    lifecycle = getEventLifecycleMeta(),
+    publicEventDate = "Date coming soon",
+    publicRegistrationStatus = "No active event",
+    rankedDrivers = [],
+    registeredDriverCount = 0,
+    queuedDriverCount = 0,
+    currentDriver = null,
+    nextDriver = null,
+    competitionFlow = { currentEntry: null, nextEntry: null, lowerEntries: [], mainEntries: [], resolvedPage: "main" },
+    currentBattle = null,
+    nextBattle = null,
+    currentBattleTitle = "",
+    nextBattleTitle = "",
+    latestArchive = null,
+    latestArchiveDate = "",
+    results = buildEmptyEventResults(),
+    publicLiveStatus = "Waiting",
+    competitionModeLabel = "Solo Drivers",
+    activeBracketLabel = "Bracket",
+    hasPublicBracket = false,
+    qualifyingPlanDescription = "Waiting for scores.",
+  } = model;
+
+  const eventTitle = activePublicEvent?.name || "No Active Event";
+  const topStandings = rankedDrivers.slice(0, 5);
+  const visibleCompetitionEntries = competitionFlow.resolvedPage === "lower"
+    ? competitionFlow.lowerEntries || []
+    : competitionFlow.mainEntries || [];
+  const queuedBattleEntries = visibleCompetitionEntries.slice(2, 5);
+  const championLabel = results.championName
+    ? `#${results.championSeed || "-"} ${results.championName}`
+    : latestArchive?.results?.championName
+      ? `#${latestArchive.results?.championSeed || "-"} ${latestArchive.results.championName}`
+      : "Waiting for finals";
+  const topQualifierLabel = results.topQualifierName
+    ? `#${results.topQualifierSeed || "-"} ${results.topQualifierName}`
+    : rankedDrivers[0]
+      ? `#${rankedDrivers[0].seed || 1} ${rankedDrivers[0].name}`
+      : "Waiting for first score";
+  const statusItems = [
+    { label: lifecycle.label || "Waiting", tone: lifecycle.tone || "muted" },
+    { label: publicLiveStatus || "Waiting", tone: currentBattleTitle ? "live" : currentDriver?.name ? "ready" : "muted" },
+    { label: competitionModeLabel, tone: "muted" },
+  ];
+
+  const battleTimelineMarkup = hasPublicBracket
+    ? `
+      <div class="mobile-spectator-timeline">
+        <article class="mobile-spectator-timeline-item">
+          <span>Now Battling</span>
+          <strong>${escapeHtml(currentBattleTitle || "Bracket is published and waiting for the next battle.")}</strong>
+          <small>${escapeHtml(currentBattle?.meta || currentBattle?.label || "Event admin advances battle flow from the competition screen.")}</small>
+        </article>
+        <article class="mobile-spectator-timeline-item">
+          <span>Up Next</span>
+          <strong>${escapeHtml(nextBattleTitle || "Waiting for the next pairing")}</strong>
+          <small>${escapeHtml(nextBattle?.meta || nextBattle?.label || "This updates automatically from the live bracket state.")}</small>
+        </article>
+        ${queuedBattleEntries.map((entry, index) => `
+          <article class="mobile-spectator-timeline-item">
+            <span>Queue ${index + 1}</span>
+            <strong>${escapeHtml(buildPublicEventBattleTitle(entry) || "Waiting for confirmed pairings")}</strong>
+            <small>${escapeHtml(entry?.meta || entry?.label || activeBracketLabel)}</small>
+          </article>
+        `).join("")}
+      </div>
+    `
+    : `<div class="mobile-spectator-empty">${escapeHtml(qualifyingPlanDescription || "Bracket pairings will appear here as soon as event admin publishes competition.")}</div>`;
+
+  mobileSpectatorHub.innerHTML = `
+    <div class="mobile-spectator-shell">
+      <section class="mobile-spectator-band mobile-spectator-hero">
+        <span class="mobile-spectator-kicker">Live Spectator Hub</span>
+        <h1>${escapeHtml(eventTitle)}</h1>
+        <p class="mobile-spectator-copy">${escapeHtml(activePublicEvent ? `${publicEventDate} | ${publicRegistrationStatus}` : "Open the live event once staff starts registration, qualifying, or bracket battles.")}</p>
+        <div class="mobile-spectator-chip-row">${renderStatusChips(statusItems)}</div>
+        <div class="mobile-spectator-nav">
+          <button class="button button-accent" type="button" data-landing-jump="registration">Drivers</button>
+          <button class="button button-secondary" type="button" data-landing-jump="self-register">Registration</button>
+          <button class="button button-secondary" type="button" data-landing-jump="results">Results</button>
+        </div>
+      </section>
+
+      <section class="mobile-spectator-band">
+        <span class="mobile-spectator-kicker">Right Now</span>
+        <h2>${escapeHtml(currentBattleTitle ? "Competition is live" : currentDriver?.name ? "Qualifying is live" : lifecycle.label || "Waiting for event action")}</h2>
+        <div class="mobile-spectator-stage-grid">
+          <article class="mobile-spectator-stage-card">
+            <span>Current Driver</span>
+            <strong>${escapeHtml(currentDriver ? formatDriverDisplayName(currentDriver) : "Waiting for qualifying")}</strong>
+            <small>${escapeHtml(currentDriver ? `On deck: ${nextDriver?.name || "No next driver yet"}` : "The current qualifying queue appears here live.")}</small>
+          </article>
+          <article class="mobile-spectator-stage-card">
+            <span>Current Battle</span>
+            <strong>${escapeHtml(currentBattleTitle || "Bracket not live yet")}</strong>
+            <small>${escapeHtml(currentBattle?.meta || currentBattle?.label || "As soon as battles are active, the next pairing will show here.")}</small>
+          </article>
+        </div>
+      </section>
+
+      <section class="mobile-spectator-band">
+        <span class="mobile-spectator-kicker">Qualifying</span>
+        <h2>Live standings and driver queue</h2>
+        <div class="mobile-spectator-stat-grid">
+          <article class="mobile-spectator-stat-card">
+            <span>Registered</span>
+            <strong>${registeredDriverCount}</strong>
+            <small>${escapeHtml(competitionModeLabel)}</small>
+          </article>
+          <article class="mobile-spectator-stat-card">
+            <span>Scored</span>
+            <strong>${rankedDrivers.length}</strong>
+            <small>${escapeHtml(qualifyingPlanDescription)}</small>
+          </article>
+          <article class="mobile-spectator-stat-card">
+            <span>Queue</span>
+            <strong>${queuedDriverCount}</strong>
+            <small>${escapeHtml(currentDriver ? `${formatDriverDisplayName(currentDriver)} is up now.` : "Queue begins when qualifying starts.")}</small>
+          </article>
+          <article class="mobile-spectator-stat-card">
+            <span>Top Qualifier</span>
+            <strong>${escapeHtml(topQualifierLabel)}</strong>
+            <small>${results.topQualifierScore !== null ? `Best ${formatScore(results.topQualifierScore)}` : rankedDrivers[0] ? `Best ${formatScore(rankedDrivers[0].bestScore)}` : "Waiting for first score."}</small>
+          </article>
+        </div>
+        <div class="mobile-spectator-standing-list">
+          ${topStandings.length
+            ? topStandings.map((driver) => `
+              <article class="mobile-spectator-standing-row">
+                <span class="mobile-spectator-standing-rank">${driver.seed || "-"}</span>
+                <div class="mobile-spectator-standing-main">
+                  <strong>${escapeHtml(formatDriverDisplayName(driver))}</strong>
+                  <small>${escapeHtml(driver.teamName || "Independent")}</small>
+                </div>
+                <div class="mobile-spectator-standing-score">
+                  <small>Best</small>
+                  <strong>${formatScore(driver.bestScore)}</strong>
+                </div>
+              </article>
+            `).join("")
+            : `<div class="mobile-spectator-empty">Standings update here as soon as judges submit scores.</div>`}
+        </div>
+      </section>
+
+      <section class="mobile-spectator-band">
+        <span class="mobile-spectator-kicker">Competition</span>
+        <h2>${escapeHtml(activeBracketLabel)}</h2>
+        ${battleTimelineMarkup}
+      </section>
+
+      <section class="mobile-spectator-band">
+        <span class="mobile-spectator-kicker">Results</span>
+        <h2>Podium and event wrap-up</h2>
+        <div class="mobile-spectator-results-grid">
+          <article class="mobile-spectator-results-card">
+            <span>Champion</span>
+            <strong>${escapeHtml(championLabel)}</strong>
+            <small>${escapeHtml(results.championName ? "Locked from the active event." : latestArchive ? `${latestArchive.name} closed on ${latestArchiveDate}.` : "Final podium appears automatically when the event is complete.")}</small>
+          </article>
+          <article class="mobile-spectator-results-card">
+            <span>Runner Up</span>
+            <strong>${escapeHtml(results.runnerUpName ? `#${results.runnerUpSeed || "-"} ${results.runnerUpName}` : latestArchive?.results?.runnerUpName ? `#${latestArchive.results?.runnerUpSeed || "-"} ${latestArchive.results.runnerUpName}` : "Waiting for finals")}</strong>
+            <small>${escapeHtml(results.thirdPlaceName ? `Third: #${results.thirdPlaceSeed || "-"} ${results.thirdPlaceName}` : "Runner-up and podium update from the completed bracket.")}</small>
+          </article>
+        </div>
+      </section>
+    </div>
   `;
 }
 
@@ -13248,15 +14025,26 @@ function renderLandingView() {
   const latestArchiveForPublicHome = archivedResultsForPublicHome[0] || null;
   const activePublicEvent = activeEventMeta && getEventStatus(activeEventMeta) === EVENT_STATUS_ACTIVE ? activeEventMeta : null;
   const currentPublicDriver = getCurrentQualifyingDriver();
+  const publicQualifyingQueue = getQualifyingDriverQueue();
+  const nextPublicDriver = currentPublicDriver
+    ? publicQualifyingQueue[publicQualifyingQueue.findIndex((entry) => entry.id === currentPublicDriver.id) + 1] || null
+    : publicQualifyingQueue[0] || null;
   const publicCompetitionFlow = getCompetitionFlowEntriesForState(tournamentState);
   const currentPublicBattle = publicCompetitionFlow.currentEntry || null;
+  const nextPublicBattle = publicCompetitionFlow.nextEntry || null;
+  const rankedDriversForPublicHome = rankDrivers(appDrivers);
+  const publicPlan = isTwinTripleMode(activeEventMeta)
+    ? { description: getTwinCompEliminationLabel(activeEventMeta), qualifiedCount: getTwinCompActiveTeams(getTwinCompState()).length }
+    : isTeamTandemMode(activeEventMeta)
+      ? getTeamTandemCompetitionPlan(rankedDriversForPublicHome.length)
+      : getCompetitionPlan(rankedDriversForPublicHome.length, activeEventState.formatMode || bracketModeSelect?.value || FORMAT_CLASSIC, getRequestedSdcMainBracketSize(activeEventState.formatMode || bracketModeSelect?.value || FORMAT_CLASSIC) || 0);
   const publicCloseReason = getSelfRegistrationCloseReason();
   const publicRegistrationStatus = !activePublicEvent
     ? "No active event"
     : publicCloseReason
       ? "Registration is closed."
-      : hasValidVenueConfig()
-        ? "Pre-registration is open. Venue check-in opens on event day."
+      : isSelfRegistrationEnabled()
+        ? "Pre-registration is open. Front desk will review payment and assign sticker numbers."
         : "Self-registration is disabled by event staff.";
   const publicLiveStatus = currentPublicBattle?.match?.left && currentPublicBattle?.match?.right
     ? "Bracket battle live"
@@ -13271,6 +14059,7 @@ function renderLandingView() {
   const currentBattleTitle = currentPublicBattle?.match?.left?.name && currentPublicBattle?.match?.right?.name
     ? `${currentPublicBattle.match.left.name} vs ${currentPublicBattle.match.right.name}`
     : "";
+  const nextBattleTitle = buildPublicEventBattleTitle(nextPublicBattle);
   const latestArchiveDate = latestArchiveForPublicHome
     ? formatEventDate(latestArchiveForPublicHome.results?.completedAt?.slice?.(0, 10) || latestArchiveForPublicHome.date)
     : "";
@@ -13304,6 +14093,36 @@ function renderLandingView() {
   landingFeaturedDrivers.innerHTML = homeView.featuredDriversHtml;
   landingLatestPodium.innerHTML = homeView.latestPodiumHtml;
   landingQuickLinks.innerHTML = homeView.quickLinksHtml;
+  renderMobileSpectatorHub({
+    activePublicEvent,
+    lifecycle: lifecycleForPublicHome,
+    publicEventDate,
+    publicRegistrationStatus,
+    rankedDrivers: rankedDriversForPublicHome,
+    registeredDriverCount: registeredDriversForPublicHome.length,
+    queuedDriverCount: publicQualifyingQueue.length,
+    currentDriver: currentPublicDriver,
+    nextDriver: nextPublicDriver,
+    competitionFlow: publicCompetitionFlow,
+    currentBattle: currentPublicBattle,
+    nextBattle: nextPublicBattle,
+    currentBattleTitle,
+    nextBattleTitle,
+    latestArchive: latestArchiveForPublicHome,
+    latestArchiveDate,
+    results: currentEventResultsForPublicHome,
+    publicLiveStatus,
+    competitionModeLabel: isTwinTripleMode(activeEventMeta)
+      ? getTwinCompModeTitle(activeEventMeta)
+      : isTeamTandemMode(activeEventMeta)
+        ? "Team Tandem"
+        : "Solo Drivers",
+    activeBracketLabel: hasPublicBracket
+      ? getStreamerDivisionLabel(activeEventMeta, tournamentState)
+      : "Bracket Queue",
+    hasPublicBracket,
+    qualifyingPlanDescription: publicPlan?.description || "Waiting for scores.",
+  });
 
 }
 
@@ -14182,7 +15001,7 @@ function renderQueueViewV2() {
   const battleQueue = lowerBattleEntries.length ? [...lowerBattleEntries, ...mainBattleEntries] : mainBattleEntries;
   const lifecycle = getEventLifecycleMeta();
   const results = activeEventMeta?.results || {};
-  const registerOpen = !getSelfRegistrationCloseReason() && hasValidVenueConfig();
+  const registerOpen = !getSelfRegistrationCloseReason() && isSelfRegistrationEnabled();
   const battleStats = getTournamentBattleStats(tournamentState);
   const hasBracketPublished = Boolean(tournamentState?.mainBracket?.rounds?.length || tournamentState?.lowerBracket?.rounds?.length);
   const hasSavedResults = Boolean(results.championName || getEventStatus(activeEventMeta) === EVENT_STATUS_COMPLETED || getEventStatus(activeEventMeta) === EVENT_STATUS_ARCHIVED);
@@ -16373,6 +17192,7 @@ function renderRegistrationForms() {
 
   if (registrationHeroEventName) registrationHeroEventName.textContent = activeEventMeta?.name || "Main Event";
   if (registrationHeroEventDate) registrationHeroEventDate.textContent = formatEventDate(activeEventMeta?.date);
+  syncSpectatorDriversViewCopy();
   if (registrationDriverCount) {
     const totalCount = getRegisteredDrivers(appDrivers).length;
     const visibleCount = isTeamCompetitionMode()
@@ -16396,7 +17216,6 @@ function renderRegistrationForms() {
       ? filteredTeamRosterEntries.map((teamEntry) => {
           const leader = teamEntry.members[0] || null;
           if (!leader) return "";
-          const removeDisabled = teamRosterEntries.length <= 1 ? "disabled" : "";
           const openSlots = Math.max(0, TEAM_TANDEM_MAX_DRIVERS - teamEntry.memberCount);
           const limitMarkup = teamEntry.memberCount >= TEAM_TANDEM_MAX_DRIVERS
             ? `<span class="status-pill archived">Team Full</span>`
@@ -16423,9 +17242,9 @@ function renderRegistrationForms() {
                   <small>Registration #${teamEntry.signUpPosition} | ${teamEntry.memberCount}/${TEAM_TANDEM_MAX_DRIVERS} Drivers</small>
                 </div>
                 ${canEditRegistration
-                  ? `<div class="role-admin-actions">
+                 ? `<div class="role-admin-actions">
                        <button class="micro-button" type="button" data-action="edit-registration-team">Edit Team</button>
-                       <button class="micro-button" type="button" data-action="remove-registration-team" ${removeDisabled}>Remove Team</button>
+                       <button class="micro-button" type="button" data-action="remove-registration-team">Delete Team</button>
                      </div>`
                   : ""
                 }
@@ -16457,7 +17276,6 @@ function renderRegistrationForms() {
           const teamValue = escapeHtml(driver.teamName || "");
           const chassisValue = escapeHtml(driver.chassis || "");
           const driverNumberValue = escapeHtml(driver.driverNumber || "");
-          const removeDisabled = orderedDrivers.length <= 1 ? "disabled" : "";
           return `
             <article class="registration-card" data-id="${driver.id}">
               <div class="registration-card-header">
@@ -16466,9 +17284,9 @@ function renderRegistrationForms() {
                   <small>Registration #${driver.signUpPosition}</small>
                 </div>
                 ${canEditRegistration
-                  ? `<div class="role-admin-actions">
+                 ? `<div class="role-admin-actions">
                        <button class="micro-button" type="button" data-action="edit-registration-driver">Edit</button>
-                       <button class="micro-button" type="button" data-action="remove-registration-driver" ${removeDisabled}>Remove</button>
+                       <button class="micro-button" type="button" data-action="remove-registration-driver">Delete Driver</button>
                      </div>`
                   : ""
                 }
@@ -16489,6 +17307,10 @@ function renderRegistrationForms() {
                 <div class="modal-field">
                   <span>Chassis</span>
                   <strong>${chassisValue || "Not provided"}</strong>
+                </div>
+                <div class="modal-field">
+                  <span>Chassis Weight</span>
+                  <strong>${String(driver.chassisWeight || "").trim() || "Not provided"}</strong>
                 </div>
               </div>
               ${renderDriverStatusChips(driver, statusContext)}
@@ -16530,19 +17352,14 @@ function renderPendingRegistrationForms() {
       : escapeHtml(formatDriverDisplayName(leader, "New Driver"));
     const teamValue = escapeHtml(leader.teamName || "");
     const chassisValue = escapeHtml(leader.chassis || "");
-    const driverNumberValue = escapeHtml(leader.driverNumber || "");
-    const paymentStatus = leader.paidAt ? "Paid" : "Waiting For Payment";
+    const paymentStatus = "Waiting For Approval";
     const submittedMeta = leader.selfRegisteredAt
       ? `Pre-registered ${new Date(leader.selfRegisteredAt).toLocaleString()}`
       : "Submitted from home pre-registration";
-    const arrivalMeta = leader.arrivedAt
-      ? ` | Arrived ${new Date(leader.arrivedAt).toLocaleString()} via ${leader.arrivalSource || "venue"}`
-      : leader.checkedInAt
-        ? ` | Checked in ${new Date(leader.checkedInAt).toLocaleString()}`
-        : " | Venue check-in pending";
-    const paidMeta = leader.paidAt
-      ? ` | Paid ${new Date(leader.paidAt).toLocaleString()}`
-      : "";
+    const arrivalMeta = leader.checkedInAt
+      ? ` | Approved ${new Date(leader.checkedInAt).toLocaleString()}`
+      : " | Waiting for front desk approval";
+    const paidMeta = "";
     const reviewMeta = leader.needsReviewAt
       ? ` | Needs review${leader.reviewReason ? `: ${escapeHtml(leader.reviewReason)}` : ""}`
       : "";
@@ -16555,7 +17372,7 @@ function renderPendingRegistrationForms() {
     const checkedDistanceMeta = Number.isFinite(leader.checkedInDistanceMeters)
       ? ` | Checked in ${escapeHtml(formatDistanceMeters(leader.checkedInDistanceMeters))} from venue center`
       : "";
-    const approveDisabled = entries.some((entry) => !entry.checkedInAt || isPendingRegistrationRejected(entry) || isPendingRegistrationNeedsReview(entry));
+    const approveDisabled = entries.some((entry) => isPendingRegistrationRejected(entry) || isPendingRegistrationNeedsReview(entry));
     const membersMarkup = isTeamEntry
       ? entries.map((entry) => `${escapeHtml(formatDriverDisplayName(entry, "Unnamed Driver"))}${entry.chassis ? ` | ${escapeHtml(entry.chassis)}` : ""}`).join("<br />")
       : "";
@@ -16568,12 +17385,10 @@ function renderPendingRegistrationForms() {
           </div>
           ${canEditRegistration
             ? `<div class="role-admin-actions">
-                 <button class="micro-button" type="button" data-action="toggle-pending-paid">${leader.paidAt ? "Paid" : leader.checkedInAt ? isTeamEntry ? "Mark Team Paid & Approve" : "Mark Paid & Approve" : "Await Venue Check-In"}</button>
-                 <button class="micro-button button-accent" type="button" data-action="approve-pending-registration" ${approveDisabled ? "disabled" : ""}>${leader.checkedInAt ? isTeamEntry ? "Approve Team To Roster" : "Approve To Roster" : "Needs Check-In"}</button>
+                 <button class="micro-button button-accent" type="button" data-action="approve-pending-registration" ${approveDisabled ? "disabled" : ""}>${isTeamEntry ? "Approve Team" : "Approve Driver"}</button>
                  <button class="micro-button" type="button" data-action="mark-pending-review">${isPendingRegistrationNeedsReview(leader) ? "Needs Review" : "Mark Needs Review"}</button>
                  <button class="micro-button" type="button" data-action="reject-pending-registration">${isPendingRegistrationRejected(leader) ? "Rejected" : "Reject"}</button>
-                 <button class="micro-button" type="button" data-action="reset-pending-arrival">Reset Arrival</button>
-                 <button class="micro-button" type="button" data-action="remove-pending-registration">${isTeamEntry ? "Remove Team" : "Remove"}</button>
+                 <button class="micro-button" type="button" data-action="remove-pending-registration">${isTeamEntry ? "Delete Team" : "Delete Driver"}</button>
                </div>`
             : ""
           }
@@ -16591,12 +17406,6 @@ function renderPendingRegistrationForms() {
             <span>${isTeamEntry ? "Drivers" : "Chassis"}</span>
             <strong>${isTeamEntry ? `${entries.length} linked drivers` : (chassisValue || "Not provided")}</strong>
           </div>
-          ${isTeamEntry ? "" : `
-            <div class="modal-field">
-              <span>Driver Number</span>
-              <strong>${driverNumberValue || "Not provided"}</strong>
-            </div>
-          `}
           ${isTeamEntry
             ? `<div class="modal-field" style="grid-column: 1 / -1;">
                  <span>Members</span>
@@ -16610,6 +17419,82 @@ function renderPendingRegistrationForms() {
       </article>
     `;
   }).join("");
+}
+
+function collectPendingDriverNumberAssignments(card, entryGroup) {
+  const inputs = Array.from(card?.querySelectorAll("[data-pending-driver-number]") || []);
+  const assignments = new Map();
+  inputs.forEach((input) => {
+    assignments.set(input.getAttribute("data-member-id") || "", String(input.value || "").trim());
+  });
+  return entryGroup.map((entry) => ({
+    ...entry,
+    driverNumber: assignments.has(entry.id) ? assignments.get(entry.id) : (entry.driverNumber || ""),
+  }));
+}
+
+async function promptPendingRegistrationApprovalDetails(entryGroup = []) {
+  if (!Array.isArray(entryGroup) || !entryGroup.length) return null;
+  const updatedGroup = [];
+  for (const [index, entry] of entryGroup.entries()) {
+    const promptLabel = entryGroup.length > 1
+      ? `${formatDriverDisplayName(entry, `Driver ${index + 1}`)} SDC Driver Number`
+      : `${entry.name || "Driver"} SDC Driver Number`;
+    const promptedNumber = window.prompt(`Enter ${promptLabel}:`, String(entry.driverNumber || "").trim());
+    if (promptedNumber === null) return null;
+    const nextDriverNumber = String(promptedNumber || "").trim();
+    if (!nextDriverNumber) {
+      window.alert(`${entry.name || "This driver"} needs an SDC Driver Number before approval.`);
+      return null;
+    }
+    const weightPromptLabel = entryGroup.length > 1
+      ? `${formatDriverDisplayName(entry, `Driver ${index + 1}`)} Chassis Weight`
+      : `${entry.name || "Driver"} Chassis Weight`;
+    const promptedWeight = window.prompt(`Enter ${weightPromptLabel}:`, String(entry.chassisWeight || "").trim());
+    if (promptedWeight === null) return null;
+    updatedGroup.push({
+      ...entry,
+      driverNumber: nextDriverNumber,
+      chassisWeight: String(promptedWeight || "").trim(),
+    });
+  }
+  return updatedGroup;
+}
+
+async function savePendingRegistrationDriverNumbers(entryId, options = {}) {
+  if (!registrationCanEdit() || !activeEventMeta || !pendingRegistrationForms) return false;
+  const pendingEntries = getPendingRegistrations();
+  const entryGroup = getPendingRegistrationGroupEntries(entryId);
+  const leader = getPendingRegistrationGroupLeader(entryGroup);
+  if (!leader || !entryGroup.length) return false;
+  const card = Array.from(pendingRegistrationForms.querySelectorAll("[data-pending-id]"))
+    .find((item) => item.getAttribute("data-pending-id") === leader.id);
+  if (!card) return false;
+  const updatedGroup = collectPendingDriverNumberAssignments(card, entryGroup);
+  const missingNumber = updatedGroup.find((entry) => !(entry.driverNumber || "").trim());
+  if (options.requireAll && missingNumber) {
+    window.alert(`${missingNumber.name || "This driver"} still needs a sticker number before approval.`);
+    const missingInput = Array.from(card.querySelectorAll("[data-member-id]"))
+      .find((input) => input.getAttribute("data-member-id") === missingNumber.id);
+    missingInput?.focus();
+    return false;
+  }
+  const changed = updatedGroup.some((entry, index) => String(entry.driverNumber || "") !== String(entryGroup[index]?.driverNumber || ""));
+  if (!changed) return true;
+  setActiveEventMetaState({
+    ...activeEventMeta,
+    pendingRegistrations: pendingEntries.map((entry) => {
+      const updatedEntry = updatedGroup.find((member) => member.id === entry.id);
+      return updatedEntry ? updatedEntry : entry;
+    }),
+  }, { syncQualifying: false });
+  eventDirectory[activeEventId] = cloneEventMeta(activeEventMeta);
+  await publishStateImmediately();
+  renderDriversTable();
+  if (!options.silent) {
+    window.alert(`${leader.teamName || leader.name} sticker number${updatedGroup.length > 1 ? "s were" : " was"} saved.`);
+  }
+  return true;
 }
 
 function resetRegistrationDraft() {
@@ -16728,12 +17613,10 @@ function saveVenueConfigDraft() {
   saveDirectoryCache();
   saveEventStateCache();
   updateSelfRegistrationState(
-    hasValidVenueConfig() ? "locked" : "error",
-    hasValidVenueConfig()
-      ? nextConfig.qrCheckInEnabled
-        ? "Pre-register from anywhere, then scan the venue QR when you arrive."
-        : "Pre-register from anywhere, then verify your venue check-in when you arrive."
-      : "Pre-registration is disabled until a valid venue location and radius are saved.",
+    isSelfRegistrationEnabled() ? "ready" : "error",
+    isSelfRegistrationEnabled()
+      ? "Pre-register from anywhere. Front desk will take payment, assign sticker numbers, and approve the entry."
+      : "Self-registration is disabled by event staff.",
     false,
   );
   publishState();
@@ -16926,8 +17809,8 @@ async function confirmSelfRegistrationQrArrival() {
 
 async function checkSelfRegistrationLocation() {
   const venueConfig = getVenueConfig();
-  if (!hasValidVenueConfig()) {
-    updateSelfRegistrationState("error", "Venue check-in is not configured for this event yet.", false);
+  if (!isSelfRegistrationEnabled()) {
+    updateSelfRegistrationState("error", "Self-registration is disabled by event staff.", false);
     syncSelfRegisterForm();
     return;
   }
@@ -17017,7 +17900,7 @@ async function checkSelfRegistrationLocation() {
 }
 
 async function submitSelfRegistration() {
-  if (!hasValidVenueConfig() || !activeEventMeta) return false;
+  if (!isSelfRegistrationEnabled() || !activeEventMeta) return false;
   const nextDraft = normalizeRegistrationDraftState(selfRegistrationDraft);
   const teamMode = isTeamTandemMode();
   const name = (nextDraft.name || "").trim();
@@ -17074,7 +17957,7 @@ async function submitSelfRegistration() {
           "error",
           duplicate.type === "roster"
             ? `${member.name} is already in the live roster. Please check with event staff before registering again.`
-            : `${member.name} is already in the pre-registration list. Use Verify Venue Check-In when your team arrives or see event staff.`,
+            : `${member.name} is already in the pre-registration list. Update the existing pre-registration or see event staff.`,
           false,
         );
         syncSelfRegisterForm();
@@ -17104,7 +17987,7 @@ async function submitSelfRegistration() {
       return {
         id: existingMember?.id || generateId(),
         name: member.name,
-        driverNumber: member.driverNumber,
+        driverNumber: existingMember?.driverNumber || "",
         teamName: validatedTeam.teamName,
         chassis: member.chassis,
         teamRegistrationId,
@@ -17113,15 +17996,13 @@ async function submitSelfRegistration() {
         deviceToken,
         ownerUid: auth?.currentUser?.uid || existingMember?.ownerUid || null,
         selfRegisteredAt: existingMember?.selfRegisteredAt || submittedAt,
-        arrivedAt: selfRegistrationState.unlocked ? (existingMember?.arrivedAt || submittedAt) : (existingMember?.arrivedAt || null),
-        checkedInAt: selfRegistrationState.unlocked ? (existingMember?.checkedInAt || submittedAt) : (existingMember?.checkedInAt || null),
-        arrivalSource: selfRegistrationState.unlocked ? (existingMember?.arrivalSource || (getVenueQrCheckInRequest().qrMode ? "qr" : "geofence")) : (existingMember?.arrivalSource || null),
+        arrivedAt: existingMember?.arrivedAt || null,
+        checkedInAt: existingMember?.checkedInAt || null,
+        arrivalSource: existingMember?.arrivalSource || null,
         approvalRequired: existingMember?.approvalRequired ?? createDefaultVenueConfig(activeEventMeta?.venueConfig || {}).qrApprovalMode,
         paidAt: existingMember?.paidAt || null,
-        selfRegisteredDistanceMeters: selfRegistrationState.lastDistanceMeters,
-        checkedInDistanceMeters: selfRegistrationState.unlocked
-          ? (selfRegistrationState.lastDistanceMeters ?? existingMember?.checkedInDistanceMeters ?? null)
-          : (existingMember?.checkedInDistanceMeters ?? null),
+        selfRegisteredDistanceMeters: existingMember?.selfRegisteredDistanceMeters ?? null,
+        checkedInDistanceMeters: existingMember?.checkedInDistanceMeters ?? null,
         needsReviewAt: existingMember?.needsReviewAt || null,
         reviewReason: existingMember?.reviewReason || null,
         rejectedAt: existingMember?.rejectedAt || null,
@@ -17137,16 +18018,14 @@ async function submitSelfRegistration() {
       ],
     }, { syncQualifying: false });
     eventDirectory[activeEventId] = cloneEventMeta(activeEventMeta);
-    saveCurrentSelfRegisterProfile();
     selfRegistrationDraft = createEmptyRegistrationDraft();
+    persistSelfRegisterProfile();
     writeLastSelfRegisterSubmitMeta({ submittedAt, name: submissionKey, deviceToken });
     updateSelfRegistrationState(
-      selfRegistrationState.unlocked ? "ready" : "locked",
-      selfRegistrationState.unlocked
-        ? `${validatedTeam.teamName} is pre-registered and checked in. Event admin can add this team to the live roster after payment.`
-        : `${validatedTeam.teamName} is pre-registered. When the team arrives, tap Verify Venue Check-In to confirm they are on site.`,
+      "ready",
+      `${validatedTeam.teamName} is pre-registered. Front desk can take payment, assign sticker numbers, and approve this team.`,
       false,
-      selfRegistrationState.lastDistanceMeters,
+      null,
     );
     await publishPublicRegistrationState();
     renderDriversTable();
@@ -17164,7 +18043,7 @@ async function submitSelfRegistration() {
       "error",
       duplicate.type === "roster"
         ? `${name} is already in the live roster. Please check with event staff before registering again.`
-        : `${name} is already in the pre-registration list. Use Verify Venue Check-In when you arrive or see event staff.`,
+        : `${name} is already in the pre-registration list. Update the existing pre-registration or see event staff.`,
       false,
     );
     syncSelfRegisterForm();
@@ -17211,21 +18090,19 @@ async function submitSelfRegistration() {
   const nextPendingEntry = {
     id: existingEntry?.id || generateId(),
     name,
-    driverNumber: (nextDraft.driverNumber || "").trim(),
+    driverNumber: existingEntry?.driverNumber || "",
     teamName: (nextDraft.teamName || "").trim(),
     chassis: (nextDraft.chassis || "").trim(),
     deviceToken,
     ownerUid: auth?.currentUser?.uid || existingEntry?.ownerUid || null,
     selfRegisteredAt: existingEntry?.selfRegisteredAt || submittedAt,
-    arrivedAt: selfRegistrationState.unlocked ? (existingEntry?.arrivedAt || submittedAt) : (existingEntry?.arrivedAt || null),
-    checkedInAt: selfRegistrationState.unlocked ? (existingEntry?.checkedInAt || submittedAt) : (existingEntry?.checkedInAt || null),
-    arrivalSource: selfRegistrationState.unlocked ? (existingEntry?.arrivalSource || (getVenueQrCheckInRequest().qrMode ? "qr" : "geofence")) : (existingEntry?.arrivalSource || null),
+    arrivedAt: existingEntry?.arrivedAt || null,
+    checkedInAt: existingEntry?.checkedInAt || null,
+    arrivalSource: existingEntry?.arrivalSource || null,
     approvalRequired: existingEntry?.approvalRequired ?? createDefaultVenueConfig(activeEventMeta?.venueConfig || {}).qrApprovalMode,
     paidAt: existingEntry?.paidAt || null,
-    selfRegisteredDistanceMeters: selfRegistrationState.lastDistanceMeters,
-    checkedInDistanceMeters: selfRegistrationState.unlocked
-      ? (selfRegistrationState.lastDistanceMeters ?? existingEntry?.checkedInDistanceMeters ?? null)
-      : (existingEntry?.checkedInDistanceMeters ?? null),
+    selfRegisteredDistanceMeters: existingEntry?.selfRegisteredDistanceMeters ?? null,
+    checkedInDistanceMeters: existingEntry?.checkedInDistanceMeters ?? null,
     needsReviewAt: existingEntry?.needsReviewAt || null,
     reviewReason: existingEntry?.reviewReason || null,
     rejectedAt: existingEntry?.rejectedAt || null,
@@ -17238,16 +18115,14 @@ async function submitSelfRegistration() {
       : [...getPendingRegistrations(), nextPendingEntry],
   }, { syncQualifying: false });
   eventDirectory[activeEventId] = cloneEventMeta(activeEventMeta);
-  saveCurrentSelfRegisterProfile();
   selfRegistrationDraft = createEmptyRegistrationDraft();
+  persistSelfRegisterProfile();
   writeLastSelfRegisterSubmitMeta({ submittedAt, name, deviceToken });
   updateSelfRegistrationState(
-    selfRegistrationState.unlocked ? "ready" : "locked",
-    selfRegistrationState.unlocked
-      ? `${nextPendingEntry.name} is pre-registered and checked in. Event admin can add this driver to the live roster after payment.`
-      : `${nextPendingEntry.name} is pre-registered. When they arrive, tap Verify Venue Check-In to confirm they are on site.`,
+    "ready",
+    `${nextPendingEntry.name} is pre-registered. Front desk can take payment, assign the sticker number, and approve this driver.`,
     false,
-    selfRegistrationState.lastDistanceMeters,
+    null,
   );
   await publishPublicRegistrationState();
   renderDriversTable();
@@ -17261,10 +18136,6 @@ async function approvePendingRegistration(entryId) {
   const entryGroup = getPendingRegistrationGroupEntries(entryId);
   const nextEntry = getPendingRegistrationGroupLeader(entryGroup);
   if (!nextEntry || !entryGroup.length) return false;
-  if (entryGroup.some((entry) => !entry.checkedInAt)) {
-    window.alert(`${nextEntry.teamName || nextEntry.name} is only pre-registered right now. Have them verify venue check-in on their phone before approving them to the roster.`);
-    return false;
-  }
   if (entryGroup.some((entry) => isPendingRegistrationRejected(entry))) {
     window.alert(`${nextEntry.teamName || nextEntry.name} is marked rejected. Reset or correct that arrival before approving it to the roster.`);
     return false;
@@ -17286,14 +18157,18 @@ async function approvePendingRegistration(entryId) {
     return false;
   }
 
+  const updatedGroup = await promptPendingRegistrationApprovalDetails(entryGroup);
+  if (!updatedGroup) return false;
+
   const nextPosition = getNextSignUpPosition(appDrivers);
   const approvedAt = new Date().toISOString();
-  const nextDrivers = entryGroup.map((entry, index) => {
+  const nextDrivers = updatedGroup.map((entry, index) => {
     const nextDriver = createEmptyDriver(nextPosition + index);
     nextDriver.name = entry.name;
     nextDriver.driverNumber = entry.driverNumber || "";
     nextDriver.teamName = entry.teamName || "";
     nextDriver.chassis = entry.chassis || "";
+    nextDriver.chassisWeight = entry.chassisWeight || "";
     nextDriver.teamRegistrationId = entry.teamRegistrationId || "";
     nextDriver.teamMemberOrder = entry.teamMemberOrder || (index + 1);
     nextDriver.teamMemberCount = entry.teamMemberCount || entryGroup.length;
@@ -17302,7 +18177,7 @@ async function approvePendingRegistration(entryId) {
     nextDriver.signUpPosition = nextPosition + index;
     nextDriver.selfRegisteredAt = entry.selfRegisteredAt;
     nextDriver.selfRegisteredDistanceMeters = entry.selfRegisteredDistanceMeters;
-    nextDriver.checkedInAt = entry.checkedInAt;
+    nextDriver.checkedInAt = entry.checkedInAt || approvedAt;
     nextDriver.checkedInDistanceMeters = entry.checkedInDistanceMeters;
     nextDriver.paidAt = entry.paidAt || null;
     nextDriver.approvedToRosterAt = approvedAt;
@@ -17313,27 +18188,30 @@ async function approvePendingRegistration(entryId) {
   invalidateBracketFromAdminChanges();
   setActiveEventMetaState({
     ...activeEventMeta,
-    pendingRegistrations: pendingEntries.filter((entry) => !entryGroup.some((member) => member.id === entry.id)),
+    pendingRegistrations: pendingEntries.filter((entry) => !updatedGroup.some((member) => member.id === entry.id)),
     latestApprovalToast: {
       id: `${nextDrivers[0].id}:${approvedAt}`,
-      name: entryGroup.length > 1 ? `${nextEntry.teamName || nextEntry.name} (${entryGroup.length} drivers)` : nextDrivers[0].name,
+      name: updatedGroup.length > 1 ? `${nextEntry.teamName || nextEntry.name} (${updatedGroup.length} drivers)` : nextDrivers[0].name,
       reg: nextDrivers[0].reg,
       approvedAt,
     },
   }, { syncQualifying: false });
   eventDirectory[activeEventId] = cloneEventMeta(activeEventMeta);
   await publishStateImmediately();
-  await publishScopedRegistrationAdminPatch(entryGroup, {
+  await publishScopedRegistrationAdminPatch(updatedGroup, {
     status: "approved",
     approvedAt,
     approvedDriverIds: nextDrivers.map((driver) => driver.id),
   });
+  await deleteScopedRegistrations(updatedGroup);
   renderDriversTable();
   return true;
 }
 
 async function togglePendingRegistrationPaid(entryId) {
   if (!registrationCanEdit() || !activeEventMeta) return false;
+  const savedNumbers = await savePendingRegistrationDriverNumbers(entryId, { requireAll: true, silent: true });
+  if (!savedNumbers) return false;
   const pendingEntries = getPendingRegistrations();
   const entryGroup = getPendingRegistrationGroupEntries(entryId);
   const nextEntry = getPendingRegistrationGroupLeader(entryGroup);
@@ -17364,6 +18242,7 @@ async function togglePendingRegistrationPaid(entryId) {
     nextDriver.driverNumber = entry.driverNumber || "";
     nextDriver.teamName = entry.teamName || "";
     nextDriver.chassis = entry.chassis || "";
+    nextDriver.chassisWeight = entry.chassisWeight || "";
     nextDriver.teamRegistrationId = entry.teamRegistrationId || "";
     nextDriver.teamMemberOrder = entry.teamMemberOrder || (index + 1);
     nextDriver.teamMemberCount = entry.teamMemberCount || entryGroup.length;
@@ -17393,21 +18272,26 @@ async function togglePendingRegistrationPaid(entryId) {
   }, { syncQualifying: false });
   eventDirectory[activeEventId] = cloneEventMeta(activeEventMeta);
   await publishStateImmediately();
+  await deleteScopedRegistrations(entryGroup);
   renderDriversTable();
   return true;
 }
 
 async function removePendingRegistration(entryId) {
   if (!registrationCanEdit() || !activeEventMeta) return false;
-  const pendingEntries = getPendingRegistrations();
   const entryGroup = getPendingRegistrationGroupEntries(entryId);
   if (!entryGroup.length) return false;
+  const leader = getPendingRegistrationGroupLeader(entryGroup) || entryGroup[0];
+  const confirmed = window.confirm(`Delete ${leader?.teamName || leader?.name || "this pending registration"} from the approval queue?`);
+  if (!confirmed) return false;
+  const pendingEntries = getPendingRegistrations();
   setActiveEventMetaState({
     ...activeEventMeta,
     pendingRegistrations: pendingEntries.filter((entry) => !entryGroup.some((member) => member.id === entry.id)),
   }, { syncQualifying: false });
   eventDirectory[activeEventId] = cloneEventMeta(activeEventMeta);
   await publishStateImmediately();
+  await deleteScopedRegistrations(entryGroup);
   renderDriversTable();
   return true;
 }
@@ -18004,6 +18888,8 @@ async function editRegistrationDriver(driverId) {
   if (nextTeamInput === null) return;
   const nextChassisInput = window.prompt(`Edit chassis for ${nextName}.`, driver.chassis || "");
   if (nextChassisInput === null) return;
+  const nextChassisWeightInput = window.prompt(`Edit chassis weight for ${nextName}.`, driver.chassisWeight || "");
+  if (nextChassisWeightInput === null) return;
   const nextTeamName = nextTeamInput.trim();
   if (isTwinTripleMode(activeEventMeta)) {
     if (!nextTeamName) {
@@ -18020,6 +18906,7 @@ async function editRegistrationDriver(driverId) {
   driver.driverNumber = nextDriverNumberInput.trim();
   driver.teamName = nextTeamName;
   driver.chassis = nextChassisInput.trim();
+  driver.chassisWeight = nextChassisWeightInput.trim();
   invalidateBracketFromAdminChanges();
   publishState();
   renderDriversTable();
@@ -18066,11 +18953,14 @@ async function editRegistrationTeam(teamId) {
     if (nextDriverNumberInput === null) return;
     const nextChassisInput = window.prompt(`Edit chassis for ${nextName}.`, member.chassis || "");
     if (nextChassisInput === null) return;
+    const nextChassisWeightInput = window.prompt(`Edit chassis weight for ${nextName}.`, member.chassisWeight || "");
+    if (nextChassisWeightInput === null) return;
     nextMemberValues.push({
       id: member.id,
       name: nextName,
       driverNumber: nextDriverNumberInput.trim(),
       chassis: nextChassisInput.trim(),
+      chassisWeight: nextChassisWeightInput.trim(),
     });
   }
   nextMemberValues.forEach((nextMember) => {
@@ -18080,6 +18970,7 @@ async function editRegistrationTeam(teamId) {
     driver.driverNumber = nextMember.driverNumber;
     driver.teamName = nextTeamName;
     driver.chassis = nextMember.chassis;
+    driver.chassisWeight = nextMember.chassisWeight;
   });
   invalidateBracketFromAdminChanges();
   publishState();
@@ -18090,8 +18981,6 @@ function removeRegistrationTeam(teamId) {
   if (!registrationCanEdit() || !isTeamCompetitionMode()) return;
   const teamEntry = getTeamTandemRosterEntries(appDrivers).find((entry) => entry.id === teamId);
   if (!teamEntry?.members?.length) return;
-  const teamRosterEntries = getTeamTandemRosterEntries(appDrivers);
-  if (teamRosterEntries.length <= 1) return;
   const confirmed = window.confirm(`Remove ${teamEntry.teamName} from the roster?`);
   if (!confirmed) return;
   const memberIds = new Set(teamEntry.members.map((member) => member.id));
@@ -18387,12 +19276,6 @@ createEventSubmitBtn.addEventListener("click", async () => {
 
   if (!name || !date) {
     createEventError.textContent = "Complete the event name and date before creating the competition.";
-    createEventError.style.display = "block";
-    return;
-  }
-
-  if (venueConfig.enabled && !hasValidVenueConfig({ venueConfig })) {
-    createEventError.textContent = "Enable self-registration only after adding valid venue coordinates and a positive radius.";
     createEventError.style.display = "block";
     return;
   }
@@ -18749,7 +19632,7 @@ roleAdminPanel.addEventListener("click", async (e) => {
 document.querySelectorAll('.mode-tab[data-target]').forEach(tab => {
   tab.addEventListener('click', (e) => {
     if (currentRole.startsWith('j')) return;
-    switchView(e.target.dataset.target);
+    switchView(resolvePrimaryNavViewTarget(e.currentTarget.dataset.target));
   });
 });
 
@@ -21445,7 +22328,7 @@ function switchView(viewName) {
   if (viewName === "live" && currentRole !== "spectator") {
     viewName = getDefaultViewForRole(currentRole);
   }
-  if (viewName === "registration" && currentRole !== "admin") {
+  if (viewName === "registration" && currentRole !== "admin" && currentRole !== "spectator") {
     viewName = getDefaultViewForRole(currentRole);
   }
   if (viewName === "self-register" && currentRole !== "spectator") {
@@ -21486,8 +22369,10 @@ function switchView(viewName) {
     document.body.classList.remove('self-register-display-fullscreen');
   }
 
+  syncMobileSpectatorPrimaryNav();
+  syncSpectatorDriversViewCopy();
   document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('is-active'));
-  const activeTab = document.querySelector(`.mode-tab[data-target="${viewName}"]`);
+  const activeTab = document.querySelector(`.mode-tab[data-target="${resolvePrimaryNavActiveTarget(viewName)}"]`);
   if (activeTab) activeTab.classList.add('is-active');
   document.querySelectorAll('[data-streamer-target]').forEach((tab) => {
     tab.classList.toggle('is-active', tab.dataset.streamerTarget === viewName);
@@ -21561,8 +22446,13 @@ function shouldUseJudgeLane() {
 }
 
 function renderJudgeLaneCard(driver, index, total, r1Avg, r2Avg, runoffEligibleIds) {
-  const claimedJudgeRole = shouldUseJudgeRoleClaims(activeEventMeta) ? getClaimedJudgeRoleForDevice() : currentRole;
-  const judgeRoleSelectionRequired = shouldUseJudgeRoleClaims(activeEventMeta) && !claimedJudgeRole;
+  const fixedJudgeCategoryMode = currentRole.startsWith("j") && usesCategoryJudging(activeEventMeta);
+  const claimedJudgeRole = fixedJudgeCategoryMode
+    ? currentRole
+    : (shouldUseJudgeRoleClaims(activeEventMeta) ? getClaimedJudgeRoleForDevice() : currentRole);
+  const judgeRoleSelectionRequired = fixedJudgeCategoryMode
+    ? false
+    : (shouldUseJudgeRoleClaims(activeEventMeta) && !claimedJudgeRole);
   const scoringRole = claimedJudgeRole || currentRole;
   const judgeCategory = getJudgeCategoryConfig(scoringRole, activeEventMeta);
   const judgeScoreMax = getJudgeScoreMax(scoringRole, activeEventMeta);
@@ -21588,10 +22478,10 @@ function renderJudgeLaneCard(driver, index, total, r1Avg, r2Avg, runoffEligibleI
   const teamCompetitionMode = isTeamCompetitionMode(activeEventMeta);
   const entryLabel = teamCompetitionMode ? "Team" : "Driver";
   const focusedJudgeEntryName = teamCompetitionMode
-    ? (driver.name || driver.teamName || `Unnamed ${entryLabel}`)
+    ? (driver.teamName || driver.name || `Unnamed ${entryLabel}`)
     : formatDriverDisplayName(driver, `Unnamed ${entryLabel}`);
   const nextDriverLabel = nextDriver
-    ? `${escapeHtml(teamCompetitionMode ? (nextDriver.name || nextDriver.teamName || `Unnamed ${entryLabel}`) : formatDriverDisplayName(nextDriver, `Unnamed ${entryLabel}`))} - Reg #${escapeHtml(formatDriverRegistrationNumber(nextDriver))}`
+    ? `${escapeHtml(teamCompetitionMode ? (nextDriver.teamName || nextDriver.name || `Unnamed ${entryLabel}`) : formatDriverDisplayName(nextDriver, `Unnamed ${entryLabel}`))} - Reg #${escapeHtml(formatDriverRegistrationNumber(nextDriver))}`
     : `Final ${entryLabel.toLowerCase()} in queue`;
   const activeRunKey = twinSingleRunMode || !run1SubmittedByMe || run1Pending ? "run1" : "run2";
   const activeRunLabel = activeRunKey === "run1"
@@ -21622,7 +22512,7 @@ function renderJudgeLaneCard(driver, index, total, r1Avg, r2Avg, runoffEligibleI
     : twinSingleRunMode
       ? "Twin Comp uses one scored run per team each round. Submit this team's score; the board advances after every active judge submits."
     : usesCategoryJudging(activeEventMeta)
-      ? `This phone view is run-by-run. ${judgeCategory.label} is your category, worth up to ${formatScore(judgeScoreMax)} points per run. Submit Run 1 first, then Run 2. The live board advances after Line, Angle, and Style are all submitted for Run 2.`
+      ? `This phone view is run-by-run. ${judgeCategory.label} is locked to ${getRoleDisplayName(scoringRole, activeEventMeta)}, worth up to ${formatScore(judgeScoreMax)} points per run. Submit Run 1 first, then Run 2. The live board advances after Line, Angle, and Style are all submitted for Run 2.`
       : "This phone view is run-by-run. Submit Run 1 first, then Run 2. The live board only advances after all active judges submit Run 2 for this driver.";
 
   return `
@@ -21676,7 +22566,6 @@ function renderJudgeLaneCard(driver, index, total, r1Avg, r2Avg, runoffEligibleI
                 ${renderScoreDeductionButtons("r1")}
               <div class="judge-deduction-history" data-col="r1">${renderDeductionHistory(driver, scoringRole, "run1")}</div>
               <div class="judge-score-help">Your submitted score: ${formatScore(driver.scores[scoringRole].submitted.run1)}</div>
-              ${activeRunKey === "run1" ? `<button class="button button-accent judge-run-submit ${run1JustSubmitted ? "just-submitted" : ""}" type="button" data-action="submit-judge-run" data-run="run1" ${activeRunDisabled ? "disabled" : ""}>${activeRunButtonLabel}</button>` : ""}
               <button class="micro-button" type="button" data-action="clear-score" data-col="r1">Clear</button>
             </label>
           ` : ""}
@@ -21695,7 +22584,6 @@ function renderJudgeLaneCard(driver, index, total, r1Avg, r2Avg, runoffEligibleI
               ${renderScoreDeductionButtons("r2")}
               <div class="judge-deduction-history" data-col="r2">${renderDeductionHistory(driver, scoringRole, "run2")}</div>
               <div class="judge-score-help">Your submitted score: ${formatScore(driver.scores[scoringRole].submitted.run2)}</div>
-              ${activeRunKey === "run2" ? `<button class="button button-accent judge-run-submit ${run2JustSubmitted ? "just-submitted" : ""}" type="button" data-action="submit-judge-run" data-run="run2" ${activeRunDisabled ? "disabled" : ""}>${activeRunButtonLabel}</button>` : ""}
               <button class="micro-button" type="button" data-action="clear-score" data-col="r2">Clear</button>
             </label>
           ` : twinSingleRunMode ? "" : `
@@ -21713,6 +22601,7 @@ function renderJudgeLaneCard(driver, index, total, r1Avg, r2Avg, runoffEligibleI
             <div class="helper-text">${submissionState}</div>
             <div class="judge-next-driver">Next up: ${nextDriverLabel}</div>
           </div>
+          <button class="button button-accent judge-run-submit ${activeRunKey === "run1" ? (run1JustSubmitted ? "just-submitted" : "") : (run2JustSubmitted ? "just-submitted" : "")}" type="button" data-action="submit-judge-run" data-run="${activeRunKey}" ${activeRunDisabled ? "disabled" : ""}>${activeRunButtonLabel}</button>
         </div>
       </article>
       `}
@@ -22785,6 +23674,40 @@ function applySearchFilter() {
   });
 }
 
+function buildTwinCompSampleDrivers(populateScores = false, teamCount = 8) {
+  const normalizedTeamCount = Math.max(2, Number(teamCount) || 8);
+  const sampleEntries = TEST_SAMPLE_DRIVER_ENTRIES.slice(0, normalizedTeamCount * 2);
+  return Array.from({ length: normalizedTeamCount }, (_, teamIndex) => {
+    const firstEntry = sampleEntries[teamIndex * 2] || TEST_SAMPLE_DRIVER_ENTRIES[(teamIndex * 2) % TEST_SAMPLE_DRIVER_ENTRIES.length];
+    const secondEntry = sampleEntries[(teamIndex * 2) + 1] || TEST_SAMPLE_DRIVER_ENTRIES[((teamIndex * 2) + 1) % TEST_SAMPLE_DRIVER_ENTRIES.length];
+    const sharedTeamName = `${firstEntry?.[1] || `Twin Team ${teamIndex + 1}`} Twin`;
+    const members = [firstEntry, secondEntry];
+    return members.map((entry, memberIndex) => {
+      const [name, , chassis, run1, run2] = entry || [];
+      const driver = createEmptyDriver((teamIndex * 2) + memberIndex + 1);
+      driver.name = name || `Twin Driver ${teamIndex + 1}-${memberIndex + 1}`;
+      driver.driverNumber = String((teamIndex * 2) + memberIndex + 1);
+      driver.teamName = sharedTeamName;
+      driver.chassis = chassis || "Twin Comp Chassis";
+      driver.teamMemberOrder = memberIndex + 1;
+      driver.teamMemberCount = 2;
+      driver.runFlags = { run1: null, run2: null, runoff: null };
+      JUDGE_ROLE_ORDER.forEach((role, roleIndex) => {
+        const run1Score = populateScores ? clampJudgeScoreValue(run1 - (roleIndex * 0.1), role) : null;
+        const run2Score = populateScores ? clampJudgeScoreValue(run2 - (roleIndex * 0.1), role) : null;
+        driver.scores[role] = {
+          run1: run1Score,
+          run2: run2Score,
+          runoff: null,
+          submitted: { run1: run1Score, run2: run2Score, runoff: null },
+          deductionHistory: { run1: [], run2: [], runoff: [] },
+        };
+      });
+      return driver;
+    });
+  }).flat();
+}
+
 registrationEntryForm?.addEventListener("input", (e) => {
   if (!registrationCanEdit()) return;
   if (e.target === registrationDraftName) {
@@ -22917,39 +23840,6 @@ selfRegisterQrPendingSelect?.addEventListener("change", () => {
   syncSelfRegisterForm();
 });
 
-useSavedSelfRegisterProfileBtn?.addEventListener("click", () => {
-  const selectedId = selfRegisterSavedProfileSelect?.value || "";
-  if (selectedId && applySavedSelfRegisterProfile(selectedId)) return;
-  selfRegistrationDraft = normalizeRegistrationDraftState(loadSavedSelfRegisterProfile());
-  syncSelfRegisterForm();
-});
-
-saveCurrentSelfRegisterProfileBtn?.addEventListener("click", () => {
-  if (saveCurrentSelfRegisterProfile()) {
-    window.alert("Registration profile saved on this device.");
-  }
-  syncSelfRegisterForm();
-});
-
-clearSavedSelfRegisterProfileBtn?.addEventListener("click", () => {
-  clearSavedSelfRegisterProfile();
-  selfRegistrationDraft = createEmptyRegistrationDraft();
-  syncSelfRegisterForm();
-});
-
-deleteSavedSelfRegisterProfileBtn?.addEventListener("click", () => {
-  const selectedId = selfRegisterSavedProfileSelect?.value || "";
-  if (!selectedId) return;
-  deleteSavedSelfRegisterProfile(selectedId);
-  syncSelfRegisterForm();
-});
-
-selfRegisterSavedProfileSelect?.addEventListener("change", () => {
-  const selectedId = selfRegisterSavedProfileSelect.value || "";
-  if (!selectedId) return;
-  applySavedSelfRegisterProfile(selectedId);
-});
-
 copySelfRegisterLinkBtn?.addEventListener("click", async () => {
   const selfRegisterUrl = buildVenueQrCheckInUrl();
   const copied = await copyTextToClipboard(selfRegisterUrl);
@@ -23013,7 +23903,9 @@ registrationForms.addEventListener("click", (e) => {
   }
   const removeButton = e.target.closest("[data-action='remove-registration-driver']");
   if (!removeButton) return;
-  if (appDrivers.length <= 1) return;
+  const driver = appDrivers.find((entry) => entry.id === card.dataset.id);
+  const confirmed = window.confirm(`Delete ${driver?.name || "this driver"} from the active roster?`);
+  if (!confirmed) return;
   setActiveDriversState(resequenceDrivers(appDrivers.filter((entry) => entry.id !== card.dataset.id), true));
   invalidateBracketFromAdminChanges();
   publishState();
@@ -23024,6 +23916,11 @@ pendingRegistrationForms?.addEventListener("click", async (e) => {
   if (!registrationCanEdit()) return;
   const card = e.target.closest("[data-pending-id]");
   if (!card) return;
+  const saveNumbersButton = e.target.closest("[data-action='save-pending-driver-numbers']");
+  if (saveNumbersButton) {
+    await savePendingRegistrationDriverNumbers(card.dataset.pendingId);
+    return;
+  }
   const paidButton = e.target.closest("[data-action='toggle-pending-paid']");
   if (paidButton) {
     await togglePendingRegistrationPaid(card.dataset.pendingId);
@@ -23080,7 +23977,7 @@ function openCompetitionBracket() {
 }
 
 bracketModeSelect.addEventListener("change", () => {
-  if (!adminCanEdit() || isTeamCompetitionMode(activeEventMeta)) {
+  if (!canEditCompetitionFormat(activeEventMeta)) {
     bracketModeSelect.value = activeEventState.formatMode || FORMAT_CLASSIC;
     return;
   }
@@ -23136,20 +24033,46 @@ registrationRandomTwinCompBtn?.addEventListener("click", () => {
   switchView("bracket");
 });
 
-loadSampleBtn.addEventListener("click", async () => {
-  if (!adminCanEdit() || !isSampleEventEnabled(activeEventMeta)) return;
+async function loadTestSampleDriversIntoActiveEvent() {
+  if (!adminCanEdit() || !isSampleEventEnabled(activeEventMeta)) return false;
   const confirmed = window.confirm("Load test sample drivers into this TEST event? This is only for practice or demo events.");
-  if (!confirmed) return;
-  const populateScores = window.confirm("Populate qualifying scores too?\n\nPress OK to load 32 sample drivers with qualifying scores.\nPress Cancel to load 32 sample drivers with names only.");
+  if (!confirmed) return false;
+  const twinCompMode = isTwinTripleMode(activeEventMeta);
+  const sampleDriverCount = twinCompMode ? 16 : TEST_SAMPLE_DRIVER_ENTRIES.length;
+  const sampleLabel = twinCompMode ? "sample drivers across 8 twin teams" : "sample drivers";
+  const populateScores = window.confirm(`Populate qualifying scores too?\n\nPress OK to load ${sampleDriverCount} ${sampleLabel} with qualifying scores.\nPress Cancel to load ${sampleDriverCount} ${sampleLabel} with names only.`);
+  const sampleDrivers = twinCompMode
+    ? buildTwinCompSampleDrivers(populateScores, 8)
+    : buildTestSampleDrivers(populateScores);
   applyActiveEventState({
-    drivers: buildTestSampleDrivers(populateScores),
+    drivers: sampleDrivers,
     qualifyingFlow: createEmptyQualifyingFlow(),
     bracket: null,
   });
   setCompetitionBracketPageState("main");
   saveBracketPagePreference(activeEventId, activeCompetitionBracketPage);
-  await publishStateImmediately();
   renderDriversTable();
+  renderRegistrationForms();
+  try {
+    const saved = await publishStateImmediately();
+    if (saved === false) {
+      window.alert("Sample drivers loaded on this device, but Firebase did not confirm the save. Refresh and verify sync status if other subdomains do not update.");
+      return false;
+    }
+  } catch (error) {
+    console.error("Loading test sample drivers failed:", error);
+    window.alert("Sample drivers loaded locally, but cloud sync failed. Refresh access and try again if other devices do not update.");
+    return false;
+  }
+  return true;
+}
+
+loadSampleBtn.addEventListener("click", async () => {
+  await loadTestSampleDriversIntoActiveEvent();
+});
+
+registrationLoadSampleBtn?.addEventListener("click", async () => {
+  await loadTestSampleDriversIntoActiveEvent();
 });
 
 openBracketBtn.addEventListener("click", openCompetitionBracket);
@@ -23163,6 +24086,7 @@ registrationSortSelect?.addEventListener("change", () => {
 window.addEventListener("resize", () => {
   clearTimeout(window.__driverLayoutResizeTimer);
   window.__driverLayoutResizeTimer = setTimeout(() => {
+    syncMobileSpectatorPrimaryNav();
     renderDriversTable();
     updateQualifyingDensity();
     scheduleBracketRefit();
@@ -24061,7 +24985,7 @@ function syncContestDecisionTimer(control) {
       renderCompetitionDecisionPanel();
       return;
     }
-    renderCompetitionDecisionPanel();
+    updateCompetitionContestTimerDisplay(latestControl);
   }, 1000);
 }
 
@@ -24180,7 +25104,9 @@ function renderCompetitionOmtOverlay() {
 
 function renderWinnerFocusBox(winnerDriver, options = {}) {
   const fallbackName = options.fallbackName || "Winner Locked";
-  const winnerName = getFirstDisplayName(formatDriverDisplayName(winnerDriver) || winnerDriver?.name || fallbackName);
+  const winnerName = winnerDriver
+    ? getFirstDisplayName(formatDriverDisplayName(winnerDriver, fallbackName) || winnerDriver?.name || fallbackName)
+    : fallbackName;
   const compactName = String(winnerName || "").trim();
   const winnerNameFitClass = compactName.length >= 34
     ? "fit-xxs"
@@ -24269,7 +25195,7 @@ function renderCompetitionDecisionPanel() {
         ${renderWinnerFocusBox(podiumProtectedDecision ? null : winnerDriver, {
           kicker: podiumProtectedDecision ? "Podium" : "Winner",
           meta: podiumProtectedDecision ? "Saved for trophy reveal" : (control.entry.meta || control.entry.title || "Battle winner locked"),
-          fallbackName: podiumProtectedDecision ? "Result Locked" : "Winner Locked",
+          fallbackName: podiumProtectedDecision ? "LOCKED IN!" : "Winner Locked",
           emptyMeta: podiumProtectedDecision ? "Use the trophy reveal modal for 3rd, 1st, then 2nd place" : "Result locked",
         })}
         <article class="winner-status-box">
@@ -24338,8 +25264,42 @@ function renderCompetitionJudgePanel() {
   }
   const entry = getCompetitionEntryFromControlOrFlow();
   if (!entry?.match?.left || !entry?.match?.right) {
-    competitionJudgePanel.classList.add("hidden");
-    competitionJudgePanel.innerHTML = "";
+    const hasCompetitionBracket = Boolean(tournamentState?.mainBracket?.rounds?.length);
+    const waitingForAdminAdvance = currentRole?.startsWith("j") && hasCompetitionBracket;
+    if (!waitingForAdminAdvance) {
+      competitionJudgePanel.classList.add("hidden");
+      competitionJudgePanel.innerHTML = "";
+      return;
+    }
+    const completedEvent = isEventCompleted(activeEventMeta);
+    competitionJudgePanel.innerHTML = `
+      <section class="judge-lane-shell competition-judge-card">
+        <div class="judge-lane-toolbar">
+          <div class="judge-lane-meta">
+            <div>
+              <div class="judge-lane-progress">Judge Standby</div>
+              <strong>Waiting For Event Admin To Advance</strong>
+            </div>
+            <div class="mobile-driver-reg">${escapeHtml(activeEventMeta?.name || "Competition Event")}</div>
+          </div>
+          <div class="judge-lane-status-row">
+            <span class="judge-lane-status-pill is-live">${escapeHtml(getRoleDisplayName(currentRole))}</span>
+            <span class="judge-lane-status-pill ${completedEvent ? "is-live" : "is-pending"}">${escapeHtml(completedEvent ? "Round Complete" : "Stand By")}</span>
+          </div>
+          <div class="judge-focus-strip">
+            <div>
+              <span>Focus Mode</span>
+              <strong>Waiting For Event Admin To Advance</strong>
+              <small>${escapeHtml(completedEvent
+                ? "Judging is finished for this elimination round. Stay on this screen until the event admin advances the flow or opens podium reveal."
+                : "Your last input is saved. Stay on this screen until the event admin advances to the next battle.")}</small>
+            </div>
+            <em>${escapeHtml(isOfflineMode() ? "Offline Safe" : "Sync Ready")}</em>
+          </div>
+        </div>
+      </section>
+    `;
+    competitionJudgePanel.classList.remove("hidden");
     return;
   }
 
@@ -24971,6 +25931,58 @@ function renderBattleFlowPair(currentSlot, nextSlot, entries, shouldAnimate = fa
   }
 }
 
+function buildSoloCompetitionVsDisplay(entry = null) {
+  if (!entry?.match?.left || !entry?.match?.right) return null;
+  return {
+    driverA: {
+      id: entry.match.left.id || "",
+      name: formatDriverDisplayName(entry.match.left) || entry.match.left.name || "Lead",
+      teamName: getBracketParticipantSecondaryLine(entry.match.left) || "",
+    },
+    driverB: {
+      id: entry.match.right.id || "",
+      name: formatDriverDisplayName(entry.match.right) || entry.match.right.name || "Chase",
+      teamName: getBracketParticipantSecondaryLine(entry.match.right) || "",
+    },
+    title: entry.title || "Current Battle",
+    meta: entry.meta || "",
+  };
+}
+
+function renderSoloCurrentBattleVsOverlay() {
+  const overlay = document.getElementById("soloCurrentBattleOverlay");
+  if (!overlay) return;
+  if (
+    isTech1AnniversaryMode(activeEventMeta)
+    || !document.body.classList.contains("bracket-fullscreen")
+    || getActiveViewName() !== "bracket"
+  ) {
+    overlay.innerHTML = "";
+    overlay.classList.add("hidden");
+    return;
+  }
+
+  const competitionFlow = getCompetitionFlowEntriesForState(tournamentState);
+  const currentDisplay = buildSoloCompetitionVsDisplay(competitionFlow.currentEntry);
+  if (!currentDisplay?.driverA || !currentDisplay?.driverB) {
+    overlay.innerHTML = "";
+    overlay.classList.add("hidden");
+    return;
+  }
+  const nextDisplay = buildSoloCompetitionVsDisplay(competitionFlow.nextEntry);
+  overlay.innerHTML = `
+    <section class="solo-current-battle-overlay tech1-current-battle-overlay" aria-live="polite" aria-label="Now battling">
+      <div class="tech1-vs-overlay-layer">
+        <div class="tech1-vs-overlay-stack ${nextDisplay ? "has-next-battle" : ""}">
+          ${renderTech1CurrentBattleVsPanel(currentDisplay, { compact: false, panelLabel: "Current Battle", roleClass: "is-current-card" })}
+          ${nextDisplay ? renderTech1CurrentBattleVsPanel(nextDisplay, { compact: true, panelLabel: "Next Battle", roleClass: "is-next-card" }) : ""}
+        </div>
+      </div>
+    </section>
+  `;
+  overlay.classList.remove("hidden");
+}
+
 function renderBattleFlow() {
   const lowerCurrent = document.getElementById("lowerBracketCurrentBattle");
   const lowerNext = document.getElementById("lowerBracketNextBattle");
@@ -24984,6 +25996,7 @@ function renderBattleFlow() {
       if (slot) slot.innerHTML = "";
     });
     lastBattleFlowSignature = null;
+    renderSoloCurrentBattleVsOverlay();
     return;
   }
 
@@ -25023,6 +26036,7 @@ function renderBattleFlow() {
   renderCompetitionOmtOverlay();
   renderCompetitionDecisionPanel();
   renderWinnerRevealOverlay();
+  renderSoloCurrentBattleVsOverlay();
   renderCompetitionJudgePanel();
 }
 
@@ -25070,9 +26084,14 @@ function getMainBracketPodiumDrivers() {
   return { champion, runnerUp, thirdPlace };
 }
 
-function getMainBracketPodiumSignature() {
+function isMainPodiumRevealReady() {
   const { champion, runnerUp, thirdPlace } = getMainBracketPodiumDrivers();
-  if (!champion) return "";
+  return Boolean(champion && runnerUp && thirdPlace);
+}
+
+function getMainBracketPodiumSignature() {
+  if (!isMainPodiumRevealReady()) return "";
+  const { champion, runnerUp, thirdPlace } = getMainBracketPodiumDrivers();
   return [
     activeEventId || "local",
     participantKey(champion) || "none",
@@ -25081,17 +26100,81 @@ function getMainBracketPodiumSignature() {
   ].join("|");
 }
 
+function canViewTwinCompPodiumReveal() {
+  return isTwinTripleMode(activeEventMeta) && (currentRole === "admin" || currentRole === "spectator");
+}
+
+function canControlTwinCompPodiumReveal() {
+  return isTwinTripleMode(activeEventMeta) && adminCanControlCompletedEventReveal();
+}
+
+function isTwinCompPodiumRevealReady(state = twinCompState) {
+  const normalized = getTwinCompState(state);
+  return Boolean(normalized.status === "complete" && normalized.winnerId && getTwinCompPodiumTeams(normalized).length >= 3);
+}
+
+function syncTwinCompPodiumRevealStateFromState(state = twinCompState) {
+  const signature = getTwinCompPodiumSignature(state);
+  if (!signature) {
+    twinPodiumRevealState = {
+      signature: null,
+      dismissedSignature: twinPodiumRevealState.dismissedSignature,
+      revealed: {},
+    };
+    return twinPodiumRevealState;
+  }
+  const remoteReveal = getTwinCompPodiumRevealRemoteState(state);
+  twinPodiumRevealState = {
+    signature,
+    dismissedSignature: twinPodiumRevealState.dismissedSignature,
+    revealed: { ...(remoteReveal.revealed || {}) },
+  };
+  return twinPodiumRevealState;
+}
+
+function canViewMainPodiumReveal() {
+  return currentRole === "admin" || currentRole === "spectator";
+}
+
+function canControlMainPodiumReveal() {
+  return adminCanControlCompletedEventReveal();
+}
+
+function syncMainPodiumRevealStateFromBracket() {
+  const signature = getMainBracketPodiumSignature();
+  if (!signature) {
+    mainPodiumRevealState = {
+      signature: null,
+      dismissedSignature: mainPodiumRevealState.dismissedSignature,
+      revealed: {},
+    };
+    return mainPodiumRevealState;
+  }
+  const remoteReveal = getMainPodiumRevealRemoteState();
+  mainPodiumRevealState = {
+    signature,
+    dismissedSignature: mainPodiumRevealState.dismissedSignature,
+    revealed: { ...(remoteReveal.revealed || {}) },
+  };
+  return mainPodiumRevealState;
+}
+
 function renderMainPodiumRevealButton(placeNumber, driver) {
+  syncMainPodiumRevealStateFromBracket();
   const revealed = Boolean(mainPodiumRevealState.revealed?.[placeNumber]);
-  const canReveal = placeNumber === 3
-    || (placeNumber === 1 && Boolean(mainPodiumRevealState.revealed?.[3]))
-    || (placeNumber === 2 && Boolean(mainPodiumRevealState.revealed?.[1]));
+  const revealSequenceReady = placeNumber === 3
+    || (placeNumber === 1 && Boolean(mainPodiumRevealState.revealed?.[3]));
+  const canReveal = canControlMainPodiumReveal() && revealSequenceReady;
   const suffix = placeNumber === 1 ? "st" : placeNumber === 2 ? "nd" : "rd";
-  const prompt = placeNumber === 2
-    ? "Reveals After 1st Place"
-    : canReveal
-      ? "Click To Reveal"
-      : "Reveal 3rd Place First";
+  const prompt = revealed
+    ? ""
+    : canControlMainPodiumReveal()
+      ? placeNumber === 2
+        ? "Reveals With 1st Place"
+        : canReveal
+          ? "Click To Reveal"
+          : "Reveal 3rd Place First"
+      : "Waiting For Live Reveal";
   return `
     <button class="podium-reveal-button ${revealed ? "is-revealed" : ""}" type="button" data-action="main-podium-reveal" data-place="${placeNumber}" ${canReveal || revealed ? "" : "disabled"}>
       <span class="podium-reveal-place">${placeNumber}${suffix} Place</span>
@@ -25108,6 +26191,7 @@ function renderMainPodiumRevealButton(placeNumber, driver) {
 function renderMainPodiumRevealModal() {
   const stage = document.getElementById("mainPodiumRevealStage");
   if (!stage) return;
+  syncMainPodiumRevealStateFromBracket();
   const { champion, runnerUp, thirdPlace } = getMainBracketPodiumDrivers();
   stage.innerHTML = [
     renderMainPodiumRevealButton(1, champion),
@@ -25117,17 +26201,11 @@ function renderMainPodiumRevealModal() {
 }
 
 function maybeOpenMainPodiumReveal(options = {}) {
-  if (!adminCanEdit() || isTeamCompetitionMode(activeEventMeta)) return;
+  if (!canViewMainPodiumReveal() || isTeamCompetitionMode(activeEventMeta)) return;
   const signature = getMainBracketPodiumSignature();
   if (!signature) return;
   if (!options.force && mainPodiumRevealState.dismissedSignature === signature) return;
-  if (mainPodiumRevealState.signature !== signature) {
-    mainPodiumRevealState = {
-      signature,
-      dismissedSignature: mainPodiumRevealState.dismissedSignature,
-      revealed: {},
-    };
-  }
+  syncMainPodiumRevealStateFromBracket();
   if (options.force) {
     mainPodiumRevealState.dismissedSignature = null;
   }
@@ -25155,8 +26233,7 @@ async function autoCompleteEventAfterPodiumReveal(source = "podium") {
 
 function renderChampion() {
   const banner = document.getElementById("championBanner");
-  const { champion } = getMainBracketPodiumDrivers();
-  if (!champion) {
+  if (!isMainPodiumRevealReady()) {
     banner.classList.add("hidden");
     banner.classList.remove("is-revealing");
     banner.innerHTML = "";
@@ -25165,7 +26242,7 @@ function renderChampion() {
   }
   lastPodiumSignature = getMainBracketPodiumSignature();
   maybeOpenMainPodiumReveal();
-  if (!adminCanEdit()) {
+  if (!canViewMainPodiumReveal()) {
     banner.classList.add("hidden");
     banner.classList.remove("is-revealing");
     banner.innerHTML = "";
@@ -25173,10 +26250,10 @@ function renderChampion() {
   }
   banner.classList.remove("hidden", "is-revealing");
   banner.innerHTML = `
-    <span>Podium Locked</span>
-    <strong>Trophy presentation ready</strong>
+    <span>${canControlMainPodiumReveal() ? "Podium Locked" : "Podium Live"}</span>
+    <strong>${canControlMainPodiumReveal() ? "Trophy presentation ready" : "Follow the live podium reveal"}</strong>
     <div class="button-row" style="justify-content:center; margin-top:14px;">
-      <button class="button button-accent" type="button" data-action="main-show-podium-reveal">Click To Reveal Podium</button>
+      <button class="button button-accent" type="button" data-action="main-show-podium-reveal">${canControlMainPodiumReveal() ? "Click To Reveal Podium" : "View Podium Reveal"}</button>
     </div>
   `;
 }
@@ -25421,9 +26498,10 @@ function renderLowerDriverButton(bracketKey, roundIndex, matchIndex, side, drive
   const canReorder = Boolean(driver) && isBracketSlotReorderable(bracketKey, roundIndex, matchIndex, side);
   const slotState = { bracketKey, roundIndex, matchIndex, side };
   const isSwapSource = bracketReorderModeEnabled && isBracketSwapSource(slotState);
+  const isCurrentBattle = isCurrentCompetitionBattle(bracketKey, roundIndex, matchIndex);
   const disabledHTML = (!(adminCanEdit() || STANDALONE_DEMO_MODE) || (!canChoose && !canReorder)) ? "disabled" : "";
   if (!driver) {
-    return `<div class="lower-battle-slot" ${slotAttrs} data-drop-slot="1"><button class="driver-button empty" type="button" disabled><span>${getEmptySlotText(bracketKey, roundIndex, matchIndex, side)}</span></button></div>`;
+    return `<div class="lower-battle-slot ${isCurrentBattle ? "current-live-battle" : ""}" ${isCurrentBattle ? 'data-current-battle="true"' : ""} ${slotAttrs} data-drop-slot="1"><button class="driver-button empty" type="button" disabled><span>${getEmptySlotText(bracketKey, roundIndex, matchIndex, side)}</span></button></div>`;
   }
   const selected = participantKey(driver) === participantKey(winner);
   const loser = Boolean(winner) && !selected;
@@ -25431,7 +26509,7 @@ function renderLowerDriverButton(bracketKey, roundIndex, matchIndex, side, drive
   const isWinnerBurst = winnerAnimationState?.selected?.signature === slotSignature && selected;
   const isIncomingWinner = winnerAnimationState?.target?.signature === slotSignature;
   return `
-    <div class="lower-battle-slot ${isSwapSource ? "is-bracket-swap-source" : ""}" ${slotAttrs} data-drop-slot="1">
+    <div class="lower-battle-slot ${isCurrentBattle ? "current-live-battle" : ""} ${isSwapSource ? "is-bracket-swap-source" : ""}" ${isCurrentBattle ? 'data-current-battle="true"' : ""} ${slotAttrs} data-drop-slot="1">
       <button class="driver-button ${selected ? "selected" : ""} ${loser ? "loser" : ""} ${isWinnerBurst ? "winner-just-selected" : ""} ${isIncomingWinner ? "incoming-winner" : ""} ${canReorder ? "is-draggable" : ""} ${isSwapSource ? "is-bracket-swap-source" : ""}" type="button" ${slotAttrs} data-drop-slot="1" ${bracketReorderModeEnabled && canReorder ? `data-draggable-slot="1"` : ""} ${disabledHTML}>
         <strong>#${driver.seed} ${escapeHtml(formatDriverDisplayName(driver))}</strong>
         <small>${escapeHtml(getBracketParticipantSecondaryLine(driver))}</small>
@@ -25524,19 +26602,32 @@ function renderMainSlot(bracketKey, roundIndex, matchIndex, side, driver, winner
     : `<div class="${slotClasses}" ${slotAttrs} data-drop-slot="1">${seedChip}${button}</div>`;
 }
 
+function isCurrentCompetitionBattle(bracketKey, roundIndex, matchIndex) {
+  const currentEntry = getCompetitionFlowEntriesForState(tournamentState).currentEntry;
+  return Boolean(
+    currentEntry
+    && currentEntry.bracketKey === bracketKey
+    && Number(currentEntry.roundIndex) === Number(roundIndex)
+    && Number(currentEntry.matchIndex) === Number(matchIndex)
+  );
+}
+
 function renderMainBattle(bracketKey, roundIndex, matchIndex, match, align) {
   const canChoose = Boolean(match.left && match.right);
-  return `<article class="main-battle ${align}"><div class="main-battle-stack">${renderMainSlot(bracketKey, roundIndex, matchIndex, "left", match.left, match.winner, canChoose, align)}${renderMainSlot(bracketKey, roundIndex, matchIndex, "right", match.right, match.winner, canChoose, align)}</div></article>`;
+  const isCurrentBattle = isCurrentCompetitionBattle(bracketKey, roundIndex, matchIndex);
+  return `<article class="main-battle ${align} ${isCurrentBattle ? "current-live-battle" : ""}" ${isCurrentBattle ? 'data-current-battle="true"' : ""}><div class="main-battle-stack">${renderMainSlot(bracketKey, roundIndex, matchIndex, "left", match.left, match.winner, canChoose, align)}${renderMainSlot(bracketKey, roundIndex, matchIndex, "right", match.right, match.winner, canChoose, align)}</div></article>`;
 }
 
 function renderFinalBattle(bracketKey, roundIndex, match, title = "Final Battle") {
   const canChoose = Boolean(match.left && match.right);
-  return `<article class="main-battle center final-center"><div class="final-battle-card"><div class="final-battle-head">${title}</div><div class="final-battle-body">${renderMainSlot(bracketKey, roundIndex, 0, "left", match.left, match.winner, canChoose, "center")}<div class="final-vs">VS</div>${renderMainSlot(bracketKey, roundIndex, 0, "right", match.right, match.winner, canChoose, "center")}</div></div></article>`;
+  const isCurrentBattle = isCurrentCompetitionBattle(bracketKey, roundIndex, 0);
+  return `<article class="main-battle center final-center ${isCurrentBattle ? "current-live-battle" : ""}" ${isCurrentBattle ? 'data-current-battle="true"' : ""}><div class="final-battle-card"><div class="final-battle-head">${title}</div><div class="final-battle-body">${renderMainSlot(bracketKey, roundIndex, 0, "left", match.left, match.winner, canChoose, "center")}<div class="final-vs">VS</div>${renderMainSlot(bracketKey, roundIndex, 0, "right", match.right, match.winner, canChoose, "center")}</div></div></article>`;
 }
 
 function renderPlacementBattle(bracketKey, match, title) {
   const canChoose = Boolean(match?.left && match?.right);
-  return `<article class="main-battle center placement-center"><div class="final-battle-card third-place-card"><div class="final-battle-head">${title}</div><div class="final-battle-body">${renderMainSlot(bracketKey, 0, 0, "left", match?.left, match?.winner, canChoose, "center")}<div class="final-vs">VS</div>${renderMainSlot(bracketKey, 0, 0, "right", match?.right, match?.winner, canChoose, "center")}</div></div></article>`;
+  const isCurrentBattle = isCurrentCompetitionBattle(bracketKey, 0, 0);
+  return `<article class="main-battle center placement-center ${isCurrentBattle ? "current-live-battle" : ""}" ${isCurrentBattle ? 'data-current-battle="true"' : ""}><div class="final-battle-card third-place-card"><div class="final-battle-head">${title}</div><div class="final-battle-body">${renderMainSlot(bracketKey, 0, 0, "left", match?.left, match?.winner, canChoose, "center")}<div class="final-vs">VS</div>${renderMainSlot(bracketKey, 0, 0, "right", match?.right, match?.winner, canChoose, "center")}</div></div></article>`;
 }
 
 function getBracketCssMetric(name, fallback) {
@@ -27574,6 +28665,16 @@ document.getElementById("view-bracket").addEventListener("click", (e) => {
       maybeOpenTwinCompPodiumReveal();
       return;
     }
+    if (action === "twin-inline-podium-reveal" || action === "twin-podium-reveal") {
+      revealTwinCompPodiumPlace(Number.parseInt(twinActionButton.dataset.place || "0", 10));
+      return;
+    }
+    if (action === "twin-close-podium-reveal") {
+      twinPodiumRevealState.dismissedSignature = twinPodiumRevealState.signature;
+      closeModal(twinPodiumRevealModal);
+      renderBracket();
+      return;
+    }
   }
   const btn = e.target.closest(".battle-flow-option.current[data-flow-bracket]");
   if (!btn) return;
@@ -27583,17 +28684,8 @@ document.getElementById("view-bracket").addEventListener("click", (e) => {
 twinPodiumRevealModal?.addEventListener("click", async (e) => {
   const revealButton = e.target.closest("[data-action='twin-podium-reveal']");
   if (revealButton) {
-    const place = Number.parseInt(revealButton.dataset.place || "0", 10);
-    if (place === 1 || place === 2 || place === 3) {
-      twinPodiumRevealState.revealed = {
-        ...(twinPodiumRevealState.revealed || {}),
-        [place]: true,
-      };
-      renderTwinCompPodiumRevealModal();
-      if (isTwinCompPodiumFullyRevealed()) {
-        await autoCompleteEventAfterPodiumReveal("Twin Comp podium");
-      }
-    }
+    await revealTwinCompPodiumPlace(Number.parseInt(revealButton.dataset.place || "0", 10));
+    renderTwinCompPodiumRevealModal();
     return;
   }
   if (e.target === twinPodiumRevealModal) {
@@ -27610,14 +28702,26 @@ twinPodiumRevealCloseBtn?.addEventListener("click", () => {
 mainPodiumRevealModal?.addEventListener("click", async (e) => {
   const revealButton = e.target.closest("[data-action='main-podium-reveal']");
   if (revealButton) {
+    if (!canControlMainPodiumReveal()) return;
     const place = Number.parseInt(revealButton.dataset.place || "0", 10);
     if (place === 1 || place === 2 || place === 3) {
-      if (place === 2 && !mainPodiumRevealState.revealed?.[1]) return;
-      mainPodiumRevealState.revealed = {
-        ...(mainPodiumRevealState.revealed || {}),
+      syncMainPodiumRevealStateFromBracket();
+      if (place === 2 || (place === 1 && !mainPodiumRevealState.revealed?.[3])) return;
+      const nextRevealState = {
+        ...(getMainPodiumRevealRemoteState().revealed || {}),
         [place]: true,
         ...(place === 1 ? { 2: true } : {}),
       };
+      if (tournamentState?.mainBracket) {
+        tournamentState.mainBracket.podiumReveal = {
+          ...getMainPodiumRevealRemoteState(),
+          revealed: nextRevealState,
+          updatedAt: new Date().toISOString(),
+          updatedBy: auth?.currentUser?.uid || "event-staff",
+        };
+      }
+      syncMainPodiumRevealStateFromBracket();
+      await publishStateImmediately();
       renderMainPodiumRevealModal();
       if (isMainPodiumFullyRevealed()) {
         await autoCompleteEventAfterPodiumReveal("main bracket podium");
@@ -27823,6 +28927,15 @@ if (typeof window !== "undefined" && ["127.0.0.1", "localhost"].includes(window.
       return normalizedLayout;
     },
   };
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("resize", () => {
+    syncMobileSpectatorPrimaryNav();
+    if (getActiveViewName() === "home" && currentRole === "spectator") {
+      renderLandingView();
+    }
+  });
 }
 
 // Final Init Call

@@ -465,15 +465,19 @@
 
     body[data-theme="dark"] .main-bracket-panel {
       background:
-        linear-gradient(180deg, rgba(12, 14, 18, 0.52), rgba(6, 8, 12, 0.68)),
-        linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+        linear-gradient(180deg, rgba(16, 20, 28, 0.62), rgba(7, 10, 16, 0.76)),
+        linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01)),
+        radial-gradient(circle at top center, rgba(147, 167, 181, 0.08), transparent 56%);
     }
 
     body[data-theme="dark"] .bracket-workspace {
       background:
-        linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.14)),
-        radial-gradient(circle at top right, rgba(255, 255, 255, 0.05), transparent 26%),
-        rgba(12, 12, 14, 0.92);
+        radial-gradient(circle at 50% 8%, rgba(255,255,255,0.08), transparent 22%),
+        radial-gradient(circle at 18% 18%, rgba(93, 115, 129, 0.10), transparent 24%),
+        radial-gradient(circle at 82% 14%, rgba(255,255,255,0.05), transparent 20%),
+        linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.18)),
+        repeating-linear-gradient(135deg, rgba(255,255,255,0.015) 0 14px, rgba(0,0,0,0.03) 14px 28px),
+        rgba(10, 12, 18, 0.94);
     }
 
     body[data-theme="dark"] .main-board-title,
@@ -910,7 +914,7 @@
       box-shadow: none;
       min-height: 0;
       overflow: hidden;
-      background: #f2f2f0;
+      background: #ffffff !important;
     }
     body.bracket-fullscreen .bracket-workspace {
       display: flex;
@@ -925,7 +929,7 @@
       min-height: 0;
       margin: 0;
       padding-inline: 0;
-      background: transparent;
+      background: #ffffff !important;
     }
     body.bracket-fullscreen .competition-subtabs,
     body.bracket-fullscreen #summaryStrip,
@@ -953,7 +957,10 @@
       overflow: hidden;
     }
     body.bracket-fullscreen .main-bracket-header {
-      display: none !important;
+      display: grid;
+      gap: 8px;
+      margin-bottom: 10px;
+      flex: 0 0 auto;
     }
     body.bracket-fullscreen .main-bracket-board {
       height: 100%;
@@ -969,13 +976,31 @@
       justify-content: center;
       overflow: hidden;
     }
+    body.bracket-fullscreen .competition-bracket-page.hide-header-battle-flow .main-bracket-header {
+      display: grid;
+      gap: 8px;
+    }
+    body.bracket-fullscreen .competition-bracket-page.hide-header-battle-flow .bracket-flow-slot {
+      display: none !important;
+    }
+    body.bracket-fullscreen .competition-bracket-page .bracket-flow-slot {
+      display: none !important;
+    }
     body.bracket-fullscreen .bracket-header-layout {
       grid-template-columns: minmax(220px, 1fr) minmax(250px, auto) minmax(220px, 1fr);
       gap: 10px;
+      align-items: start;
+    }
+    body.bracket-fullscreen .competition-bracket-page .bracket-header-layout {
+      grid-template-columns: 1fr;
+      justify-items: center;
     }
     body.bracket-fullscreen .bracket-header-center {
       gap: 4px;
       min-height: 0;
+      justify-items: center;
+      text-align: center;
+      width: min(100%, 560px);
     }
     body.bracket-fullscreen .bracket-header-center .section-kicker {
       font-size: 0.62rem;
@@ -1067,9 +1092,7 @@
     }
     #view-bracket:fullscreen::backdrop,
     #view-qualifying:fullscreen::backdrop {
-      background:
-        linear-gradient(180deg, rgba(12, 14, 16, 0.88), rgba(12, 14, 16, 0.94)),
-        var(--brand-track-background-image) center center / cover no-repeat;
+      background: #ffffff !important;
     }
     body.qualifying-fullscreen {
       height: 100vh;
@@ -1714,11 +1737,14 @@
       overflow-x: auto;
       padding: 24px clamp(12px, 2vw, 32px);
       background:
-        linear-gradient(180deg, rgba(255,255,255,0.08), rgba(0,0,0,0.04)),
-        radial-gradient(circle at top right, rgba(255, 255, 255, 0.14), transparent 24%),
+        radial-gradient(circle at 50% 8%, rgba(255,255,255,0.34), transparent 24%),
+        radial-gradient(circle at 14% 18%, rgba(93, 115, 129, 0.16), transparent 26%),
+        radial-gradient(circle at 86% 16%, rgba(113, 113, 113, 0.12), transparent 24%),
+        linear-gradient(180deg, rgba(255,255,255,0.10), rgba(0,0,0,0.05)),
+        repeating-linear-gradient(135deg, rgba(255,255,255,0.025) 0 14px, rgba(0,0,0,0.018) 14px 28px),
         var(--brand-track-background-image);
-      background-position: center center;
-      background-size: cover;
+      background-position: center center, center center, center center, center center, center center, center center;
+      background-size: auto, auto, auto, auto, auto, cover;
     }
 
     body.competition-page:not(.bracket-fullscreen) .bracket-header-bar {
@@ -1748,12 +1774,11 @@
     }
 
     body.bracket-fullscreen #view-bracket:fullscreen {
-      background: #f2f2f0 !important;
-      background-image: none !important;
+      background: #ffffff !important;
     }
 
     body.bracket-fullscreen #view-bracket:fullscreen::backdrop {
-      background: #f2f2f0 !important;
+      background: #ffffff !important;
     }
 
     .bracket-presentation-fullscreen-btn {
@@ -3043,7 +3068,10 @@
       line-height: 1;
       text-transform: uppercase;
       color: #111111;
-      text-shadow: 0 2px 10px rgba(255,255,255,0.55);
+      text-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.7),
+        0 8px 18px rgba(0, 0, 0, 0.12);
+      -webkit-text-fill-color: #111111;
     }
 
     .qualifying-live-meta {
@@ -3788,6 +3816,98 @@
       letter-spacing: 0.02em;
       text-transform: none;
       color: #000;
+      text-shadow: none;
+    }
+
+    .registration-entry-panel .registration-driver-input,
+    .registration-roster-panel .registration-driver-input {
+      color: #111111 !important;
+      background: #ffffff !important;
+      text-shadow: none;
+      -webkit-text-fill-color: #111111;
+    }
+
+    .registration-entry-panel .registration-driver-input::placeholder,
+    .registration-roster-panel .registration-driver-input::placeholder {
+      color: rgba(17, 17, 17, 0.58) !important;
+      -webkit-text-fill-color: rgba(17, 17, 17, 0.58);
+    }
+
+    body[data-theme="dark"] .registration-entry-panel .modal-field span,
+    body[data-theme="dark"] .registration-roster-panel .modal-field span {
+      color: #f3f4f6 !important;
+      text-shadow: none;
+    }
+
+    body[data-theme="dark"] .registration-entry-panel .registration-driver-input,
+    body[data-theme="dark"] .registration-roster-panel .registration-driver-input {
+      color: #f3f4f6 !important;
+      background: rgba(15, 15, 17, 0.96) !important;
+      -webkit-text-fill-color: #f3f4f6;
+    }
+
+    body[data-theme="dark"] .registration-entry-panel .registration-driver-input::placeholder,
+    body[data-theme="dark"] .registration-roster-panel .registration-driver-input::placeholder {
+      color: rgba(243, 244, 246, 0.5) !important;
+      -webkit-text-fill-color: rgba(243, 244, 246, 0.5);
+    }
+
+    body:not([data-theme="dark"]) #view-registration .registration-entry-panel,
+    body:not([data-theme="dark"]) #view-registration .registration-roster-panel {
+      color: #111111 !important;
+    }
+
+    body:not([data-theme="dark"]) #view-registration .registration-entry-panel .section-kicker,
+    body:not([data-theme="dark"]) #view-registration .registration-roster-panel .section-kicker,
+    body:not([data-theme="dark"]) #view-registration .registration-entry-panel h2,
+    body:not([data-theme="dark"]) #view-registration .registration-roster-panel h2,
+    body:not([data-theme="dark"]) #view-registration .registration-intro,
+    body:not([data-theme="dark"]) #view-registration .registration-form-note,
+    body:not([data-theme="dark"]) #view-registration .registration-roster-count,
+    body:not([data-theme="dark"]) #view-registration .registration-entry-panel .modal-field,
+    body:not([data-theme="dark"]) #view-registration .registration-roster-panel .modal-field {
+      color: #111111 !important;
+      text-shadow: none !important;
+      -webkit-text-fill-color: #111111 !important;
+    }
+
+    body:not([data-theme="dark"]) #view-registration .registration-roster-count {
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.98), rgba(241, 240, 236, 0.97)) !important;
+      border-color: rgba(0, 0, 0, 0.18) !important;
+      box-shadow:
+        0 10px 24px rgba(22, 29, 43, 0.12),
+        inset 0 1px 0 rgba(255,255,255,0.82) !important;
+    }
+
+    body:not([data-theme="dark"]) #view-registration .registration-intro,
+    body:not([data-theme="dark"]) #view-registration .registration-form-note {
+      color: #555555 !important;
+      -webkit-text-fill-color: #555555 !important;
+    }
+
+    body[data-theme="dark"] #view-registration .registration-entry-panel,
+    body[data-theme="dark"] #view-registration .registration-roster-panel {
+      color: #f3f4f6 !important;
+    }
+
+    body[data-theme="dark"] #view-registration .registration-entry-panel .section-kicker,
+    body[data-theme="dark"] #view-registration .registration-roster-panel .section-kicker,
+    body[data-theme="dark"] #view-registration .registration-entry-panel h2,
+    body[data-theme="dark"] #view-registration .registration-roster-panel h2,
+    body[data-theme="dark"] #view-registration .registration-roster-count,
+    body[data-theme="dark"] #view-registration .registration-entry-panel .modal-field,
+    body[data-theme="dark"] #view-registration .registration-roster-panel .modal-field {
+      color: #f3f4f6 !important;
+      text-shadow: none !important;
+      -webkit-text-fill-color: #f3f4f6 !important;
+    }
+
+    body[data-theme="dark"] #view-registration .registration-intro,
+    body[data-theme="dark"] #view-registration .registration-form-note {
+      color: #b3b3b7 !important;
+      text-shadow: none !important;
+      -webkit-text-fill-color: #b3b3b7 !important;
     }
 
     .registration-entry-panel,
@@ -3867,6 +3987,49 @@
       display: grid;
       gap: 12px;
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    .pending-number-assignment {
+      display: grid;
+      gap: 12px;
+      margin-top: 14px;
+      padding: 14px 16px;
+      border: 1px solid rgba(17, 17, 17, 0.12);
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.82), rgba(244,241,236,0.88));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.72);
+    }
+
+    .pending-number-assignment-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .pending-number-assignment-head strong {
+      font-size: 0.82rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .pending-number-assignment-grid {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+
+    .pending-number-assignment-grid .modal-field input {
+      margin-bottom: 0;
+    }
+
+    body[data-theme="dark"] .pending-number-assignment {
+      border-color: rgba(255,255,255,0.14);
+      background:
+        linear-gradient(180deg, rgba(33, 35, 40, 0.92), rgba(18, 19, 24, 0.94)),
+        linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
     }
 
     .venue-profile-bar {
@@ -4413,6 +4576,7 @@
       gap: 14px;
       min-height: calc(100dvh - 32px);
       align-content: start;
+      grid-template-rows: auto minmax(0, 1fr);
     }
 
     .judge-lane-toolbar {
@@ -4991,6 +5155,7 @@
       gap: 12px;
       grid-template-columns: 1fr;
       align-content: start;
+      min-height: 0;
     }
 
     .mobile-score-grid {
@@ -5024,6 +5189,7 @@
       padding: 14px;
       border: 2px solid #000;
       background: #f7f7f7;
+      align-content: start;
     }
 
     .judge-score-card.runoff-card {
@@ -6325,9 +6491,10 @@
       border: 2px solid #000;
       border-radius: calc(var(--radius-panel) + 2px);
       background:
-        linear-gradient(180deg, rgba(255,255,255,0.24), rgba(228,232,236,0.34)),
-        linear-gradient(135deg, rgba(255,255,255,0.10), rgba(255,255,255,0.02));
-      box-shadow: var(--panel-shadow);
+        linear-gradient(180deg, rgba(255,255,255,0.30), rgba(228,232,236,0.38)),
+        linear-gradient(135deg, rgba(255,255,255,0.14), rgba(255,255,255,0.03)),
+        radial-gradient(circle at top center, rgba(255,255,255,0.18), transparent 58%);
+      box-shadow: var(--panel-shadow), inset 0 1px 0 rgba(255,255,255,0.42);
       overflow: visible;
       backdrop-filter: blur(7px) saturate(1.06);
       -webkit-backdrop-filter: blur(7px) saturate(1.06);
@@ -6337,11 +6504,13 @@
       content: "";
       position: absolute;
       inset: 0;
-      background-image: var(--brand-watermark-image);
-      background-repeat: no-repeat;
-      background-position: center 56%;
-      background-size: min(880px, 84%);
-      opacity: 0.12;
+      background-image:
+        linear-gradient(180deg, rgba(255,255,255,0.16), transparent 18%, transparent 82%, rgba(0,0,0,0.04)),
+        var(--brand-watermark-image);
+      background-repeat: no-repeat, no-repeat;
+      background-position: center center, center 56%;
+      background-size: 100% 100%, min(880px, 84%);
+      opacity: 0.14;
       pointer-events: none;
       z-index: 0;
       filter: none;
@@ -6543,7 +6712,7 @@
       height: var(--slot-height, 40px);
       background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(244,244,244,0.94));
       border: 2px solid #000;
-      border-radius: 16px;
+      border-radius: 24px;
       box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
       overflow: hidden;
     }
@@ -6598,7 +6767,7 @@
       gap: 2px;
       align-items: flex-start;
       justify-content: center;
-      border-radius: 12px;
+      border-radius: 18px;
     }
 
     .main-battle.right .slot-button { justify-content: center; text-align: center; }
@@ -6609,7 +6778,53 @@
       align-items: center;
       justify-content: center;
       text-align: center;
-      border-radius: 0 0 12px 12px;
+      border-radius: 0 0 18px 18px;
+    }
+
+    .main-battle.current-live-battle .main-battle-slot {
+      position: relative;
+      isolation: isolate;
+      border-color: rgba(0, 0, 0, 0.92);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.82),
+        0 0 0 2px rgba(255, 255, 255, 0.34),
+        0 0 28px rgba(var(--button-accent-rgb), 0.22),
+        0 18px 34px rgba(0, 0, 0, 0.24);
+    }
+
+    .main-battle.current-live-battle .main-battle-slot .slot-button,
+    .main-battle.current-live-battle .main-battle-slot .seed-chip {
+      position: relative;
+      z-index: 1;
+    }
+
+    .main-battle.current-live-battle .main-battle-slot::after {
+      content: "";
+      position: absolute;
+      inset: -2px;
+      border-radius: inherit;
+      padding: 4px;
+      background:
+        conic-gradient(
+          from 0deg,
+          rgba(var(--button-accent-rgb), 0.14),
+          rgba(var(--button-accent-rgb), 0.22) 10%,
+          rgba(var(--button-accent-rgb), 0.98) 24%,
+          rgba(255, 255, 255, 0.98) 34%,
+          rgba(var(--accent-cyan-rgb), 0.96) 46%,
+          rgba(var(--button-accent-rgb), 0.98) 58%,
+          rgba(var(--button-accent-rgb), 0.20) 74%,
+          rgba(var(--button-accent-rgb), 0.14) 100%
+        );
+      -webkit-mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+      filter: drop-shadow(0 0 12px rgba(var(--button-accent-rgb), 0.45));
+      animation: winnerBorderRotate 2.4s linear infinite;
+      z-index: 0;
     }
 
     .main-battle.right .slot-name,
@@ -6921,6 +7136,48 @@
 
     .driver-button + .driver-button { margin-top: 10px; }
 
+    .lower-battle-slot.current-live-battle,
+    .main-battle.current-live-battle {
+      position: relative;
+      isolation: isolate;
+    }
+
+    .lower-battle-slot.current-live-battle .driver-button,
+    .main-battle.current-live-battle .main-battle-slot {
+      position: relative;
+      isolation: isolate;
+    }
+
+    .lower-battle-slot.current-live-battle .driver-button::after,
+    .main-battle.current-live-battle .main-battle-slot::after {
+      content: "";
+      position: absolute;
+      inset: -2px;
+      border-radius: inherit;
+      padding: 4px;
+      background:
+        conic-gradient(
+          from 0deg,
+          rgba(var(--button-accent-rgb), 0.14),
+          rgba(var(--button-accent-rgb), 0.22) 10%,
+          rgba(var(--button-accent-rgb), 0.98) 24%,
+          rgba(255, 255, 255, 0.98) 34%,
+          rgba(var(--accent-cyan-rgb), 0.96) 46%,
+          rgba(var(--button-accent-rgb), 0.98) 58%,
+          rgba(var(--button-accent-rgb), 0.20) 74%,
+          rgba(var(--button-accent-rgb), 0.14) 100%
+        );
+      -webkit-mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+      filter: drop-shadow(0 0 12px rgba(var(--button-accent-rgb), 0.45));
+      animation: winnerBorderRotate 2.4s linear infinite;
+      z-index: 0;
+    }
+
     .driver-button.selected {
       background: linear-gradient(180deg, #ffffff, #dfe8d8);
       color: #0b0d0f;
@@ -6948,6 +7205,10 @@
     .driver-button.empty span { font-weight: 800; }
 
     .driver-button small { color: var(--text-soft); font-weight: 600; }
+
+    .driver-button {
+      border-radius: 20px;
+    }
 
     .champion-banner {
       margin-top: 24px;
@@ -7791,6 +8052,232 @@
       color: var(--text);
     }
 
+    .mobile-spectator-hub {
+      display: none;
+    }
+
+    .mobile-spectator-shell {
+      display: grid;
+      gap: 18px;
+    }
+
+    .mobile-spectator-band {
+      display: grid;
+      gap: 14px;
+      padding: 18px;
+      border: 1px solid rgba(16, 24, 40, 0.08);
+      border-radius: 22px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.98), rgba(246,241,234,0.94)),
+        rgba(255,255,255,0.96);
+      box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+    }
+
+    body[data-theme="dark"] .mobile-spectator-band {
+      border-color: rgba(255,255,255,0.08);
+      background:
+        linear-gradient(180deg, rgba(20,16,12,0.96), rgba(12,10,8,0.92)),
+        rgba(12,10,8,0.92);
+      box-shadow: 0 20px 48px rgba(0,0,0,0.28);
+    }
+
+    .mobile-spectator-hero {
+      gap: 12px;
+      padding: 20px 18px;
+    }
+
+    .mobile-spectator-kicker {
+      font-size: 0.72rem;
+      font-weight: 900;
+      letter-spacing: 0.11em;
+      text-transform: uppercase;
+      color: var(--text-soft);
+    }
+
+    .mobile-spectator-hero h1,
+    .mobile-spectator-band h2 {
+      margin: 0;
+      letter-spacing: 0;
+      line-height: 1.02;
+    }
+
+    .mobile-spectator-hero h1 {
+      font-size: clamp(2rem, 8vw, 2.6rem);
+    }
+
+    .mobile-spectator-band h2 {
+      font-size: 1.08rem;
+    }
+
+    .mobile-spectator-copy,
+    .mobile-spectator-band p,
+    .mobile-spectator-band small {
+      color: var(--text-soft);
+      line-height: 1.5;
+    }
+
+    .mobile-spectator-nav {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .mobile-spectator-nav .button,
+    .mobile-spectator-nav .micro-button {
+      min-height: 46px;
+      padding: 10px 12px;
+      font-size: 0.86rem;
+      border-radius: 14px;
+    }
+
+    .mobile-spectator-chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .mobile-spectator-stage-grid,
+    .mobile-spectator-stat-grid,
+    .mobile-spectator-results-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .mobile-spectator-stage-card,
+    .mobile-spectator-stat-card,
+    .mobile-spectator-results-card {
+      display: grid;
+      gap: 6px;
+      min-width: 0;
+      padding: 14px;
+      border: 1px solid rgba(16, 24, 40, 0.08);
+      border-radius: 18px;
+      background: rgba(255,255,255,0.64);
+    }
+
+    body[data-theme="dark"] .mobile-spectator-stage-card,
+    body[data-theme="dark"] .mobile-spectator-stat-card,
+    body[data-theme="dark"] .mobile-spectator-results-card {
+      border-color: rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.04);
+    }
+
+    .mobile-spectator-stage-card span,
+    .mobile-spectator-stat-card span,
+    .mobile-spectator-results-card span {
+      font-size: 0.7rem;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-soft);
+    }
+
+    .mobile-spectator-stage-card strong,
+    .mobile-spectator-stat-card strong,
+    .mobile-spectator-results-card strong {
+      min-width: 0;
+      font-size: 1rem;
+      line-height: 1.15;
+      word-break: break-word;
+    }
+
+    .mobile-spectator-timeline {
+      display: grid;
+      gap: 10px;
+    }
+
+    .mobile-spectator-timeline-item {
+      display: grid;
+      gap: 4px;
+      padding: 12px 14px;
+      border-left: 3px solid var(--button-accent);
+      border-radius: 0 16px 16px 0;
+      background: rgba(255,255,255,0.54);
+    }
+
+    body[data-theme="dark"] .mobile-spectator-timeline-item {
+      background: rgba(255,255,255,0.04);
+    }
+
+    .mobile-spectator-timeline-item span {
+      font-size: 0.68rem;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-soft);
+    }
+
+    .mobile-spectator-timeline-item strong {
+      font-size: 0.98rem;
+      line-height: 1.18;
+    }
+
+    .mobile-spectator-standing-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .mobile-spectator-standing-row {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 12px 14px;
+      border: 1px solid rgba(16, 24, 40, 0.08);
+      border-radius: 16px;
+      background: rgba(255,255,255,0.6);
+    }
+
+    body[data-theme="dark"] .mobile-spectator-standing-row {
+      border-color: rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.04);
+    }
+
+    .mobile-spectator-standing-rank {
+      width: 28px;
+      height: 28px;
+      display: inline-grid;
+      place-items: center;
+      border-radius: 999px;
+      background: rgba(17,24,39,0.08);
+      font-size: 0.82rem;
+      font-weight: 900;
+    }
+
+    body[data-theme="dark"] .mobile-spectator-standing-rank {
+      background: rgba(255,255,255,0.1);
+    }
+
+    .mobile-spectator-standing-main {
+      min-width: 0;
+      display: grid;
+      gap: 2px;
+    }
+
+    .mobile-spectator-standing-main strong,
+    .mobile-spectator-standing-score strong {
+      font-size: 0.98rem;
+      line-height: 1.15;
+    }
+
+    .mobile-spectator-standing-main small,
+    .mobile-spectator-standing-score small {
+      color: var(--text-soft);
+    }
+
+    .mobile-spectator-empty {
+      padding: 14px;
+      border: 1px dashed rgba(16, 24, 40, 0.18);
+      border-radius: 16px;
+      color: var(--text-soft);
+      text-align: center;
+    }
+
+    body[data-theme="dark"] .mobile-spectator-empty {
+      border-color: rgba(255,255,255,0.16);
+    }
+
     @media (max-width: 700px) {
       .landing-live-snapshot-grid {
         grid-template-columns: 1fr;
@@ -7962,6 +8449,17 @@
     }
 
     @media (max-width: 960px) {
+      body[data-role="spectator"] #raceControlDashboardHome {
+        display: none;
+      }
+      body[data-role="spectator"] #view-home > .public-product-hero,
+      body[data-role="spectator"] #view-home > .landing-layout {
+        display: none;
+      }
+      body[data-role="spectator"] #mobileSpectatorHub {
+        display: block;
+        margin-bottom: 18px;
+      }
       body[data-role="admin"] #view-registration > .hero,
       body[data-role="admin"] #view-qualifying > .hero {
         grid-template-columns: 1fr;
@@ -8042,6 +8540,11 @@
       }
       body[data-role^="j"] .table-wrap {
         display: none;
+      }
+      .mobile-spectator-stage-grid,
+      .mobile-spectator-stat-grid,
+      .mobile-spectator-results-grid {
+        grid-template-columns: 1fr;
       }
     }
 
@@ -8646,19 +9149,20 @@
       }
       .mobile-driver-card[data-id] {
         gap: 10px;
-        padding: 12px;
+        padding: 10px;
+        min-height: 0;
       }
       .judge-run-grid {
         gap: 10px;
       }
       .judge-score-card {
-        gap: 8px;
-        padding: 12px;
+        gap: 7px;
+        padding: 10px;
       }
       .judge-score-card input {
-        min-height: 60px;
-        padding: 10px 12px;
-        font-size: 1.5rem;
+        min-height: 54px;
+        padding: 8px 10px;
+        font-size: 1.32rem;
       }
       .judge-score-head strong {
         font-size: 0.92rem;
@@ -8673,8 +9177,8 @@
       .judge-lane-note,
       .judge-next-driver,
       .helper-text {
-        font-size: 0.74rem;
-        line-height: 1.35;
+        font-size: 0.7rem;
+        line-height: 1.26;
       }
       .judge-lane-status-pill {
         padding: 6px 8px;
@@ -8682,16 +9186,17 @@
       }
       .judge-lane-submitbar {
         gap: 8px;
-        padding: 10px 12px;
+        padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
         margin-top: 0;
+        bottom: 8px;
       }
       .judge-lane-submitbar .button {
-        min-height: 50px;
-        font-size: 0.92rem;
+        min-height: 46px;
+        font-size: 0.84rem;
       }
       .judge-run-submit {
-        min-height: 44px;
-        font-size: 0.86rem;
+        min-height: 42px;
+        font-size: 0.8rem;
       }
       .panel-header > div,
       .panel-header.compact > div,
@@ -8812,45 +9317,78 @@
 
     @media (max-width: 720px) and (max-height: 780px) {
       .judge-lane-toolbar {
-        padding: 10px;
-        gap: 8px;
+        padding: 8px;
+        gap: 6px;
       }
       .judge-lane-meta strong {
-        font-size: 1.05rem;
+        font-size: 0.96rem;
       }
       .judge-lane-progress,
       .mobile-driver-reg {
-        font-size: 0.74rem;
+        font-size: 0.68rem;
       }
       .mobile-driver-card[data-id] {
-        padding: 10px;
-        gap: 8px;
+        padding: 8px;
+        gap: 6px;
       }
       .judge-run-grid {
-        gap: 8px;
+        gap: 6px;
       }
       .judge-score-card {
-        padding: 10px;
-        gap: 7px;
+        padding: 8px;
+        gap: 6px;
       }
       .judge-score-card input {
-        min-height: 52px;
-        font-size: 1.3rem;
+        min-height: 48px;
+        font-size: 1.12rem;
       }
       .judge-score-caption,
       .judge-score-help,
       .judge-lane-note,
       .judge-next-driver,
       .helper-text {
-        font-size: 0.7rem;
-        line-height: 1.28;
+        font-size: 0.64rem;
+        line-height: 1.2;
       }
       .judge-lane-submitbar {
-        padding: 9px 10px;
+        gap: 5px;
+        padding: 7px 8px calc(7px + env(safe-area-inset-bottom));
+        bottom: 6px;
       }
       .judge-lane-submitbar .button {
-        min-height: 46px;
-        font-size: 0.88rem;
+        min-height: 42px;
+        font-size: 0.78rem;
+      }
+      .judge-run-submit {
+        min-height: 40px;
+        font-size: 0.76rem;
+      }
+    }
+
+    @media (max-width: 420px), (max-height: 700px) {
+      .judge-lane-toolbar {
+        padding: 7px;
+        gap: 5px;
+      }
+      .judge-lane-status-row {
+        gap: 4px;
+      }
+      .judge-lane-status-pill {
+        padding: 5px 6px;
+        font-size: 0.62rem;
+      }
+      .judge-score-card input,
+      .score-input {
+        min-height: 44px;
+        font-size: 1rem;
+      }
+      .judge-score-caption,
+      .judge-score-help,
+      .judge-lane-note,
+      .judge-next-driver,
+      .helper-text {
+        font-size: 0.6rem;
+        line-height: 1.15;
       }
     }
 
@@ -13980,6 +14518,30 @@
       animation: none;
     }
 
+    .twin-active-team-row {
+      position: relative;
+      background: rgba(255, 59, 48, 0.12);
+      box-shadow: inset 4px 0 0 #ff3b30;
+    }
+
+    .twin-active-team-row td {
+      font-weight: 700;
+      background: transparent;
+    }
+
+    .twin-active-team-row td:first-child {
+      color: #b42318;
+    }
+
+    body[data-theme="dark"] .twin-active-team-row {
+      background: rgba(255, 69, 58, 0.18);
+      box-shadow: inset 4px 0 0 #ff6259;
+    }
+
+    body[data-theme="dark"] .twin-active-team-row td:first-child {
+      color: #ff9d96;
+    }
+
     .slot-button.winner-just-selected,
     .driver-button.winner-just-selected {
       animation: bracketWinnerPop 620ms cubic-bezier(0.16, 1, 0.3, 1);
@@ -14844,10 +15406,10 @@
       right: auto;
       transform: translateX(-50%);
       top: calc(var(--center-stage-third-top, 0px) + 212px);
-      width: min(280px, 88%);
+      width: min(560px, calc(100vw - 20px));
       display: grid;
       gap: 10px;
-      padding: 12px;
+      padding: 16px;
       border: 2px solid rgba(0, 0, 0, 0.86);
       border-radius: 14px;
       background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(241, 240, 236, 0.96));
@@ -14861,10 +15423,10 @@
       top: 50%;
       inset-inline: auto;
       transform: translate(-50%, -50%);
-      width: min(660px, 62vw);
+      width: min(1040px, 94vw);
       max-width: 92vw;
       gap: 20px;
-      padding: 24px 26px;
+      padding: 28px 32px;
       border-width: 3px;
       border-radius: 24px;
       box-shadow: 0 26px 64px rgba(0, 0, 0, 0.36);
@@ -14999,12 +15561,12 @@
 
     .tech1-podium-reveal-row {
       width: 100%;
-      min-height: 48px;
+      min-height: 92px;
       display: grid;
-      grid-template-columns: auto 1fr;
-      gap: 10px;
+      grid-template-columns: 136px minmax(0, 1fr);
+      gap: 14px;
       align-items: center;
-      padding: 8px 10px;
+      padding: 12px 14px;
       border: 2px solid rgba(0, 0, 0, 0.76);
       border-radius: 12px;
       background: linear-gradient(180deg, rgba(253, 253, 253, 0.98), rgba(239, 239, 239, 0.95));
@@ -15014,10 +15576,10 @@
     }
 
     body.bracket-fullscreen .tech1-podium-reveal-row {
-      min-height: 82px;
-      grid-template-columns: auto 1fr;
-      gap: 16px;
-      padding: 14px 16px;
+      min-height: 132px;
+      grid-template-columns: 180px minmax(0, 1fr);
+      gap: 22px;
+      padding: 18px 22px;
       border-width: 3px;
       border-radius: 16px;
     }
@@ -15034,19 +15596,22 @@
 
     .tech1-podium-reveal-place {
       font-family: var(--font-graffiti);
-      font-size: 0.84rem;
+      font-size: 0.92rem;
       letter-spacing: 0.04em;
       text-transform: uppercase;
     }
 
     body.bracket-fullscreen .tech1-podium-reveal-place {
-      font-size: clamp(1rem, 1.2vw, 1.2rem);
+      font-size: clamp(1.15rem, 1.45vw, 1.45rem);
       letter-spacing: 0.08em;
     }
 
     .tech1-podium-reveal-body {
-      display: block;
+      display: grid;
+      gap: 8px;
+      align-content: center;
       min-width: 0;
+      justify-items: start;
     }
 
     .tech1-podium-reveal-prompt,
@@ -15054,20 +15619,17 @@
       display: block;
       font-weight: 900;
       text-transform: uppercase;
-      line-height: 1.05;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      line-height: 1.08;
     }
 
     .tech1-podium-reveal-prompt {
-      font-size: 0.68rem;
+      font-size: 0.82rem;
       letter-spacing: 0.07em;
       color: rgba(11, 13, 15, 0.76);
     }
 
     body.bracket-fullscreen .tech1-podium-reveal-prompt {
-      font-size: clamp(0.9rem, 1.04vw, 1.08rem);
+      font-size: clamp(1rem, 1.15vw, 1.18rem);
       letter-spacing: 0.08em;
     }
 
@@ -15081,15 +15643,21 @@
     }
 
     .tech1-podium-reveal-name {
-      font-size: 0.82rem;
+      font-size: 1rem;
       color: #0b0d0f;
       text-shadow: 0 0 10px rgba(255, 214, 108, 0.55);
       letter-spacing: 0.04em;
+      white-space: normal;
+      overflow: visible;
+      text-overflow: clip;
+      overflow-wrap: anywhere;
+      max-width: 100%;
     }
 
     body.bracket-fullscreen .tech1-podium-reveal-name {
-      font-size: clamp(1.08rem, 1.26vw, 1.32rem);
-      letter-spacing: 0.06em;
+      font-size: clamp(1.12rem, 1.35vw, 1.5rem);
+      letter-spacing: 0.04em;
+      line-height: 1.1;
       text-shadow: 0 0 14px rgba(255, 214, 108, 0.62);
     }
 
@@ -15661,6 +16229,146 @@
       }
     }
   </style>
+  <style id="mobile-spectator-bracket-focus">
+    @media (max-width: 960px) {
+      body[data-role="spectator"][data-active-view="registration"] #view-registration .hero-actions,
+      body[data-role="spectator"][data-active-view="registration"] #view-registration .registration-entry-panel,
+      body[data-role="spectator"][data-active-view="registration"] #view-registration .admin-register-only {
+        display: none !important;
+      }
+
+      body[data-role="spectator"][data-active-view="registration"] #view-registration .registration-layout {
+        grid-template-columns: 1fr !important;
+      }
+
+      body[data-role="spectator"][data-active-view="registration"] #view-registration .registration-roster-panel {
+        width: 100% !important;
+      }
+
+      body[data-role="spectator"] .main-topbar,
+      body[data-role="spectator"].competition-page .main-topbar {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        width: min(100% - 16px, 100%) !important;
+        margin: 0 auto !important;
+        gap: 10px !important;
+      }
+
+      body[data-role="spectator"].competition-page {
+        height: auto !important;
+        min-height: 100dvh !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+      }
+
+      body[data-role="spectator"].competition-page .page-shell {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-height: 100dvh !important;
+        height: auto !important;
+        padding: 8px 0 24px !important;
+        margin: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        overflow: visible !important;
+      }
+
+      body[data-role="spectator"] .main-topbar .topbar-left,
+      body[data-role="spectator"] .main-topbar .topbar-center,
+      body[data-role="spectator"] .main-topbar .topbar-right,
+      body[data-role="spectator"] .main-topbar .topbar-controls,
+      body[data-role="spectator"].competition-page .main-topbar .topbar-left,
+      body[data-role="spectator"].competition-page .main-topbar .topbar-center,
+      body[data-role="spectator"].competition-page .main-topbar .topbar-right,
+      body[data-role="spectator"].competition-page .main-topbar .topbar-controls {
+        width: 100% !important;
+        min-width: 0 !important;
+      }
+
+      body[data-role="spectator"] .main-topbar .topbar-right,
+      body[data-role="spectator"].competition-page .main-topbar .topbar-right {
+        overflow: visible !important;
+        padding: 0 !important;
+        border: 0 !important;
+        background: transparent !important;
+        box-shadow: none !important;
+      }
+
+      body[data-role="spectator"] .main-topbar,
+      body[data-role="spectator"].competition-page .main-topbar,
+      body[data-role="spectator"] .main-topbar .mode-tabs,
+      body[data-role="spectator"].competition-page .main-topbar .mode-tabs {
+        overflow: visible !important;
+      }
+
+      body[data-role="spectator"] .main-topbar .mode-tabs,
+      body[data-role="spectator"].competition-page .main-topbar .mode-tabs {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 8px !important;
+        width: 100% !important;
+        min-width: 0 !important;
+      }
+
+      body[data-role="spectator"] .main-topbar .mode-tab,
+      body[data-role="spectator"] .main-topbar .mode-tab:visited,
+      body[data-role="spectator"] .main-topbar .mode-tab:active {
+        min-height: 48px !important;
+        padding: 10px 8px !important;
+        white-space: normal !important;
+        text-wrap: balance !important;
+        overflow-wrap: anywhere !important;
+        font-size: 0.78rem !important;
+        line-height: 1.15 !important;
+      }
+
+      body[data-role="spectator"] .main-topbar .mode-tab[data-target="results"],
+      body[data-role="spectator"].competition-page .main-topbar .mode-tab[data-target="results"] {
+        grid-column: 1 / -1;
+      }
+
+      body[data-role="spectator"][data-active-view="bracket"] #view-bracket .bracket-header-bar,
+      body[data-role="spectator"][data-active-view="bracket"] #view-bracket #presentationFullscreenBracketBtn,
+      body[data-role="spectator"][data-active-view="bracket"] #view-bracket .mobile-bracket-back,
+      body[data-role="spectator"][data-active-view="bracket"] #view-bracket .bracket-inline-actions,
+      body[data-role="spectator"][data-active-view="bracket"] #view-bracket .command-center,
+      body[data-role="spectator"][data-active-view="bracket"] #view-bracket #summaryStrip,
+      body[data-role="spectator"][data-active-view="bracket"] #view-bracket #raceControlDashboardBracket,
+      body[data-role="spectator"][data-active-view="bracket"] #view-bracket #competitionReviewBanner,
+      body[data-role="spectator"][data-active-view="bracket"] #view-bracket #competitionDecisionPanel,
+      body[data-role="spectator"][data-active-view="bracket"] #view-bracket #competitionOmtOverlay,
+      body[data-role="spectator"][data-active-view="bracket"] #view-bracket #competitionJudgePanel,
+      body[data-role="spectator"][data-active-view="bracket"] #view-bracket .main-bracket-header,
+      body[data-role="spectator"][data-active-view="bracket"] #view-bracket #lowerBracketRuleAlert {
+        display: none !important;
+      }
+
+      body[data-role="spectator"][data-active-view="bracket"] #view-bracket .bracket-workspace {
+        padding-top: 20px;
+        padding-bottom: 20px;
+        gap: 18px;
+      }
+
+      body[data-role="spectator"][data-active-view="bracket"] #view-bracket #competitionBracketTabs {
+        margin-top: 0;
+      }
+
+      body[data-role="spectator"][data-active-view="bracket"] #view-bracket #winnerRevealOverlay:not(.hidden),
+      body[data-role="spectator"][data-active-view="bracket"] #view-bracket #championBanner:not(.hidden) {
+        margin-bottom: 12px;
+      }
+
+      body[data-role="spectator"][data-active-view="bracket"] #view-bracket .competition-bracket-page,
+      body[data-role="spectator"][data-active-view="bracket"] #view-bracket .main-bracket-board {
+        margin-top: 0;
+      }
+
+      body[data-role="spectator"][data-active-view="bracket"] #view-bracket:has(#emptyBracketState:not(.hidden)) .competition-bracket-page {
+        display: none !important;
+      }
+    }
+  </style>
   <style id="theme-legibility-normalization">
     body:not([data-theme="dark"]) {
       --bg: #f6f6f3;
@@ -15839,6 +16547,89 @@
     .topbar-brand-copy strong {
       color: var(--text) !important;
       text-shadow: none !important;
+    }
+
+    /* Contrast audit: explicitly map text to the actual surface it sits on. */
+    body:not([data-theme="dark"]) .main-bracket-panel {
+      background:
+        linear-gradient(180deg, rgba(24, 28, 36, 0.92), rgba(10, 12, 18, 0.95)),
+        linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02)),
+        radial-gradient(circle at top center, rgba(255,255,255,0.08), transparent 58%) !important;
+      border-color: rgba(255, 255, 255, 0.22) !important;
+      color: #f7f7f4 !important;
+      box-shadow: 0 28px 68px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255,255,255,0.10) !important;
+    }
+
+    body:not([data-theme="dark"]) .main-bracket-panel::before {
+      opacity: 0.16 !important;
+      mix-blend-mode: screen;
+    }
+
+    body:not([data-theme="dark"]) .main-bracket-panel :where(
+      .section-kicker,
+      .eyebrow,
+      .main-board-title,
+      .main-board-label,
+      .launch-title,
+      .launch-chip strong,
+      .final-vs
+    ) {
+      color: #f7f7f4 !important;
+      text-shadow: none !important;
+    }
+
+    body:not([data-theme="dark"]) .main-bracket-panel :where(
+      .panel-header p,
+      .hero-copy p,
+      .hero-copy-block p,
+      .battle-flow-empty,
+      .launch-chip span
+    ) {
+      color: rgba(247, 247, 244, 0.82) !important;
+      text-shadow: none !important;
+    }
+
+    body:not([data-theme="dark"]) .champion-banner {
+      color: #f7f7f4 !important;
+    }
+
+    body[data-theme="dark"] .champion-banner {
+      color: var(--text) !important;
+    }
+
+    body:not([data-theme="dark"]) .champion-banner :where(span, small) {
+      color: rgba(247, 247, 244, 0.82) !important;
+    }
+
+    body[data-theme="dark"] .champion-banner :where(span, small) {
+      color: var(--text-soft) !important;
+    }
+
+    body:not([data-theme="dark"]) :where(.modal-content, .empty-state, .command-center-note, .self-register-status),
+    body[data-theme="dark"] :where(.modal-content, .empty-state, .command-center-note, .self-register-status) {
+      color: var(--text) !important;
+    }
+
+    body:not([data-theme="dark"]) :where(.helper-text, .registration-form-note, .modal-copy, .modal-note, .empty-state small),
+    body[data-theme="dark"] :where(.helper-text, .registration-form-note, .modal-copy, .modal-note, .empty-state small) {
+      color: var(--text-soft) !important;
+    }
+
+    body:not([data-theme="dark"]) .modal-content :where(h3, label, strong, .modal-kicker, .modal-section-header h3),
+    body[data-theme="dark"] .modal-content :where(h3, label, strong, .modal-kicker, .modal-section-header h3) {
+      color: var(--text) !important;
+    }
+
+    body:not([data-theme="dark"]) .command-center-note {
+      background: rgba(255, 255, 255, 0.88) !important;
+      border-color: rgba(0, 0, 0, 0.14) !important;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
+    }
+
+    body[data-theme="dark"] .command-center-note {
+      background: rgba(255,255,255,0.08) !important;
+      border-color: rgba(255,255,255,0.16) !important;
+      color: var(--text) !important;
     }
 
     .button,
@@ -16193,8 +16984,10 @@
         z-index: 1000 !important;
         pointer-events: auto !important;
         min-height: 0 !important;
-        overflow: hidden !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
         align-items: stretch !important;
+        padding-bottom: env(safe-area-inset-bottom) !important;
       }
 
       body[data-active-view="bracket"][data-role^="j"] .competition-judge-card {
@@ -16203,8 +16996,9 @@
         height: 100% !important;
         min-height: 0 !important;
         gap: clamp(6px, 1.2svh, 10px) !important;
-        overflow: hidden !important;
-        overscroll-behavior: none !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        overscroll-behavior: contain !important;
       }
 
       body[data-active-view="bracket"][data-role^="j"] .competition-judge-card .judge-lane-toolbar {
@@ -16268,12 +17062,23 @@
         display: grid !important;
         grid-template-rows: minmax(0, 1fr) auto !important;
         min-height: 0 !important;
-        height: 100% !important;
+        height: auto !important;
         padding: clamp(8px, 1.4svh, 12px) !important;
         border-radius: 18px !important;
-        overflow: hidden !important;
+        overflow: visible !important;
         align-content: stretch !important;
-        overscroll-behavior: none !important;
+        overscroll-behavior: contain !important;
+      }
+
+      body[data-active-view="bracket"][data-role^="j"] .judge-lane-submitbar {
+        position: sticky !important;
+        bottom: max(4px, env(safe-area-inset-bottom)) !important;
+        z-index: 6 !important;
+      }
+
+      body[data-active-view="bracket"][data-role^="j"] .judge-lane-submitbar .judge-run-submit,
+      body[data-active-view="bracket"][data-role^="j"] .judge-lane-submitbar .button {
+        width: 100% !important;
       }
 
       body[data-active-view="bracket"][data-role^="j"] .competition-vote-grid {
@@ -16811,6 +17616,28 @@
       box-shadow: none;
     }
 
+    .solo-current-battle-overlay.tech1-current-battle-overlay {
+      --tech1-vs-current-top: clamp(6px, 1.2vh, 14px);
+      --solo-next-gap: clamp(22px, 3vh, 34px);
+    }
+
+    .solo-current-battle-overlay.tech1-current-battle-overlay .tech1-vs-overlay-stack {
+      pointer-events: none;
+    }
+
+    .solo-current-battle-overlay.tech1-current-battle-overlay .tech1-current-vs-panel.is-current-card {
+      top: var(--tech1-vs-current-top);
+      bottom: auto;
+    }
+
+    .solo-current-battle-overlay.tech1-current-battle-overlay .tech1-current-vs-panel.is-next-card {
+      top: auto;
+      bottom: calc(clamp(56px, 7vh, 94px) + env(safe-area-inset-bottom));
+      width: min(var(--tech1-vs-panel-width, 680px), calc(100vw - 96px));
+      max-width: calc(100vw - 96px);
+      opacity: 0.98;
+    }
+
     body.bracket-fullscreen .tech1-vs-controls {
       margin-bottom: 8px;
     }
@@ -17301,6 +18128,179 @@
       z-index: 0;
     }
 
+    .competition-bracket-page .battle-flow-card,
+    .competition-bracket-page .main-battle-slot,
+    .competition-bracket-page .final-battle-card {
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .competition-bracket-page .main-battle-slot {
+      border-width: 2px;
+    }
+
+    .competition-bracket-page .slot-button {
+      border-radius: 12px;
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.12),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.38),
+        0 4px 9px rgba(0, 0, 0, 0.2);
+    }
+
+    .competition-bracket-page .slot-button.empty {
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        0 2px 6px rgba(0, 0, 0, 0.14);
+    }
+
+    .competition-bracket-page .battle-flow-card {
+      position: relative;
+      isolation: isolate;
+      border: 2px solid rgba(255, 255, 255, 0.24);
+      background-color: rgba(18, 22, 33, 0.96);
+      background-image: linear-gradient(180deg, rgba(18, 22, 33, 0.98), rgba(11, 13, 22, 0.95));
+      box-shadow:
+        0 0 0 2px rgba(0, 0, 0, 0.88),
+        0 0 0 4px rgba(255, 255, 255, 0.12),
+        0 14px 30px rgba(0, 0, 0, 0.42);
+    }
+
+    .competition-bracket-page .battle-flow-card.current {
+      border-color: rgba(46, 143, 255, 0.46);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.16),
+        0 0 0 1px rgba(46, 143, 255, 0.24),
+        0 0 14px rgba(46, 143, 255, 0.18),
+        0 14px 30px rgba(0, 0, 0, 0.42);
+      background-image: linear-gradient(180deg, rgba(24, 29, 42, 0.98), rgba(12, 15, 24, 0.96));
+    }
+
+    .competition-bracket-page .battle-flow-card.current::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      border: 4px solid transparent;
+      background:
+        linear-gradient(rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.02)) padding-box,
+        conic-gradient(
+          from 0deg,
+          rgba(46, 143, 255, 0.08),
+          rgba(46, 143, 255, 0.08) 14%,
+          rgba(46, 143, 255, 0.98) 30%,
+          rgba(185, 236, 255, 0.98) 45%,
+          rgba(46, 143, 255, 0.98) 60%,
+          rgba(46, 143, 255, 0.08) 76%,
+          rgba(46, 143, 255, 0.08) 100%
+        ) border-box;
+      pointer-events: none;
+      opacity: 0.95;
+      filter: drop-shadow(0 0 8px rgba(46, 143, 255, 0.4));
+      animation: battleBeamSpin 2.9s linear infinite;
+      z-index: 0;
+    }
+
+    .competition-bracket-page .battle-flow-card > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .competition-bracket-page .main-battle.current-live-battle .main-battle-slot {
+      border-color: rgba(46, 143, 255, 0.5);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.74),
+        0 0 0 1px rgba(46, 143, 255, 0.28),
+        0 0 14px rgba(46, 143, 255, 0.18),
+        0 14px 26px rgba(0, 0, 0, 0.2);
+      animation: none;
+    }
+
+    .competition-bracket-page .main-battle.current-live-battle .main-battle-slot::after {
+      inset: 0;
+      border-radius: inherit;
+      border: 4px solid transparent;
+      background:
+        linear-gradient(rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.02)) padding-box,
+        conic-gradient(
+          from 0deg,
+          rgba(46, 143, 255, 0.08),
+          rgba(46, 143, 255, 0.08) 14%,
+          rgba(46, 143, 255, 0.98) 30%,
+          rgba(185, 236, 255, 0.98) 45%,
+          rgba(46, 143, 255, 0.98) 60%,
+          rgba(46, 143, 255, 0.08) 76%,
+          rgba(46, 143, 255, 0.08) 100%
+        ) border-box;
+      -webkit-mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      filter: drop-shadow(0 0 8px rgba(46, 143, 255, 0.4));
+      animation: battleBeamSpin 2.9s linear infinite;
+    }
+
+    body:not([data-theme="dark"]) .competition-bracket-page .main-battle-slot,
+    body:not([data-theme="dark"]) .competition-bracket-page .slot-button,
+    body:not([data-theme="dark"]) .competition-bracket-page .final-battle-card,
+    body:not([data-theme="dark"]) .competition-bracket-page .battle-flow-card {
+      background-color: rgba(255, 255, 255, 0.98);
+      background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(241, 240, 236, 0.97));
+      color: #111111;
+      border-color: rgba(0, 0, 0, 0.16);
+    }
+
+    body:not([data-theme="dark"]) .competition-bracket-page .slot-button.empty {
+      background-color: rgba(249, 247, 243, 0.98);
+      background-image: linear-gradient(180deg, rgba(249, 247, 243, 0.98), rgba(236, 233, 226, 0.96));
+      color: #6c7383;
+    }
+
+    body:not([data-theme="dark"]) .competition-bracket-page .main-battle-slot {
+      border-color: rgba(0, 0, 0, 0.96);
+      box-shadow:
+        0 0 0 2px rgba(255, 255, 255, 0.9),
+        0 0 0 4px rgba(0, 0, 0, 0.26),
+        0 12px 26px rgba(22, 29, 43, 0.18);
+    }
+
+    body:not([data-theme="dark"]) .competition-bracket-page .final-battle-head {
+      background: rgba(255, 255, 255, 0.72);
+      color: #111111;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.18);
+    }
+
+    body[data-theme="dark"] .competition-bracket-page .main-battle-slot,
+    body[data-theme="dark"] .competition-bracket-page .slot-button,
+    body[data-theme="dark"] .competition-bracket-page .final-battle-card,
+    body[data-theme="dark"] .competition-bracket-page .battle-flow-card {
+      background-color: rgba(18, 22, 33, 0.98);
+      background-image: linear-gradient(180deg, rgba(18, 22, 33, 0.98), rgba(11, 13, 22, 0.95));
+      color: #ffffff;
+      border-color: rgba(255, 255, 255, 0.24);
+    }
+
+    body[data-theme="dark"] .competition-bracket-page .main-battle-slot {
+      border-color: rgba(255, 255, 255, 0.82);
+      box-shadow:
+        0 0 0 2px rgba(0, 0, 0, 0.9),
+        0 0 0 4px rgba(255, 255, 255, 0.18),
+        0 14px 30px rgba(0, 0, 0, 0.52),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    }
+
+    body[data-theme="dark"] .competition-bracket-page .slot-button.empty {
+      background-color: rgba(255, 255, 255, 0.04);
+      background-image: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.03));
+      color: rgba(255,255,255,0.54);
+    }
+
+    body[data-theme="dark"] .competition-bracket-page .final-battle-head {
+      background: rgba(0, 0, 0, 0.62);
+      color: #ffffff;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.22);
+    }
+
     body:not([data-theme="dark"]) .tech1-main-bracket-panel .main-battle-slot,
     body:not([data-theme="dark"]) .tech1-main-bracket-panel .slot-button,
     body:not([data-theme="dark"]) .tech1-main-bracket-panel .final-battle-card,
@@ -17672,11 +18672,13 @@
        Keep layout/interaction intact but drop the heaviest paint/composite effects. */
     body.bracket-fullscreen {
       animation: none !important;
+      background: #ffffff !important;
     }
 
     body.bracket-fullscreen::before {
+      display: none !important;
       animation: none !important;
-      opacity: 0.24 !important;
+      opacity: 0 !important;
     }
 
     body.bracket-fullscreen .tech1-main-bracket-panel .tech1-battle-flow-card.current {
@@ -17714,6 +18716,26 @@
       width: min(100%, clamp(90px, 5.3vw, 146px));
       max-height: clamp(30px, 2.8vh, 46px);
       opacity: 1 !important;
+    }
+
+    body.bracket-fullscreen .main-bracket-panel {
+      background: #ffffff !important;
+    }
+
+    body.bracket-fullscreen .main-bracket-panel::before {
+      background-image:
+        linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.04)),
+        url("./assets/prodigy-rc-logo-transparent.png") !important;
+      background-repeat: no-repeat, no-repeat !important;
+      background-position: center center, center 56% !important;
+      background-size: 100% 100%, min(820px, 72%) !important;
+      opacity: 0.12 !important;
+      mix-blend-mode: multiply !important;
+    }
+
+    body.bracket-fullscreen .tech1-solo-bracket-panel > .main-bracket-panel .tech1-bracket-window::before {
+      background-image: none !important;
+      opacity: 0 !important;
     }
 
     body.competition-page::before,
@@ -18240,8 +19262,8 @@
       <header class="hero">
         <div class="hero-copy-block">
         <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png" alt="Prodigy RC logo" /></div>
-          <p class="eyebrow">Registration</p>
-          <h1>Driver Sign-Up</h1>
+          <p id="registrationHeroEyebrow" class="eyebrow">Registration</p>
+          <h1 id="registrationHeroTitle">Driver Sign-Up</h1>
           <div class="hero-actions">
             <button id="registrationAddDriverBtn" class="button button-accent" type="submit" form="registrationEntryForm">Add Driver</button>
             <button id="registrationToQualifyingBtn" class="button button-secondary" type="button">Go To Qualifying</button>
@@ -18261,29 +19283,6 @@
           <div id="registrationAdminAlerts" class="admin-alert-strip registration-admin-only"></div>
         </div>
       </header>
-
-      <div id="testModePanel" class="demo-sandbox-bar hidden registration-admin-only" role="region" aria-labelledby="testModePanelTitle">
-        <div class="demo-sandbox-copy">
-          <strong id="testModePanelTitle">TEST MODE</strong>
-          <span id="testModePanelStatus">Start a safe seeded event without touching production data.</span>
-        </div>
-        <div class="demo-sandbox-actions">
-          <label class="demo-judge-picker" for="testScenarioSelect">
-            <span>Scenario</span>
-            <select id="testScenarioSelect">
-              <option value="qualifying">Qualifying test</option>
-              <option value="bracket">Bracket battle test</option>
-              <option value="twin">Twin comp triple elimination</option>
-              <option value="twin-double">Twin comp double elimination</option>
-            </select>
-          </label>
-          <button id="startDemoEventBtn" class="micro-button button-accent" type="button">Start Demo Event</button>
-          <button id="resetDemoDataBtn" class="micro-button demo-reset-button" type="button">Reset Demo Data</button>
-          <button id="exitTestModeBtn" class="micro-button" type="button">Exit Test Mode</button>
-          <button id="testDebugToggleBtn" class="micro-button" type="button">Debug</button>
-        </div>
-      </div>
-      <pre id="testDebugPanel" class="empty-state hidden registration-admin-only" style="white-space: pre-wrap; overflow:auto; max-height:260px;"></pre>
 
       <section class="command-center admin-control-center admin-only" data-admin-command-center data-admin-context="registration" aria-label="Event admin command center"></section>
 
@@ -18346,6 +19345,7 @@
             </div>
             <div class="registration-form-actions">
               <div class="registration-form-note" id="registrationDraftRegLabel">Next registration number: #1</div>
+              <button id="registrationLoadSampleBtn" class="button button-secondary admin-action hidden" type="button">Load Test Sample</button>
               <button id="registrationAddDriverSecondaryBtn" class="button button-secondary" type="submit">Submit Driver</button>
             </div>
           </form>
@@ -18403,7 +19403,7 @@
           <section class="admin-register-only" style="margin-top: 18px;">
             <div class="registration-roster-head">
               <div>
-                <p class="section-kicker">Pending Payment</p>
+                <p class="section-kicker">Self Registration Queue</p>
                 <h2>Waiting For Approval</h2>
               </div>
               <div class="registration-roster-count" id="pendingRegistrationCount">0 Pending</div>
@@ -18416,6 +19416,7 @@
 
     <div id="view-home" class="view-section">
       <main id="raceControlDashboardHome" class="race-control-dashboard race-control-dashboard-home spectator-only" aria-label="Live event command center"></main>
+      <main id="mobileSpectatorHub" class="mobile-spectator-hub spectator-only" aria-label="Mobile live spectator hub"></main>
       <header class="hero hero-simple spectator-only public-product-hero">
         <div class="hero-copy-block">
         <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png" alt="Prodigy RC logo" /></div>
@@ -18550,7 +19551,7 @@
         <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png" alt="Prodigy RC logo" /></div>
           <p class="eyebrow">Driver Check-In</p>
           <h1>Self Registration</h1>
-          <p class="hero-copy">Pre-register from home, then verify your location at the venue to complete check-in before event admin moves you into the live roster.</p>
+          <p class="hero-copy">Pre-register from your phone with your name, team, and chassis. Front desk will assign your sticker number and approve you after payment.</p>
         </div>
       </header>
       <main class="registration-layout">
@@ -18558,14 +19559,14 @@
           <div class="self-register-shell">
             <div class="self-register-status is-locked" id="selfRegisterStatus">
               <strong id="selfRegisterStatusTitle">Pre-Registration Open</strong>
-              <div id="selfRegisterStatusCopy">You can pre-register now. Verify your location at the venue later to complete check-in.</div>
+              <div id="selfRegisterStatusCopy">You can pre-register now. Front desk will review payment, assign the sticker number, and approve your entry.</div>
             </div>
             <div class="self-register-status is-locked" id="selfRegisterQrArrivalPanel" hidden>
               <strong id="selfRegisterQrArrivalTitle">Venue QR Check-In</strong>
               <div id="selfRegisterQrArrivalCopy">Select your preregistered name or use saved details to confirm arrival.</div>
             </div>
             <div class="self-register-actions">
-              <button id="selfRegisterLocateBtn" class="button button-accent" type="button">Verify Venue Check-In</button>
+              <button id="selfRegisterLocateBtn" class="button button-accent" type="button" hidden>Verify Venue Check-In</button>
             </div>
             <form id="selfRegisterForm" class="registration-draft-form">
               <div id="selfRegisterQrLookupPanel" class="self-register-profile-actions" hidden>
@@ -18586,7 +19587,7 @@
                   <span id="selfRegisterNameLabel">Driver Name</span>
                   <input id="selfRegisterName" type="text" placeholder="Driver name" />
                 </label>
-                <label class="modal-field">
+                <label id="selfRegisterNumberField" class="modal-field" hidden>
                   <span id="selfRegisterNumberLabel">Driver Number</span>
                   <input id="selfRegisterNumber" type="text" placeholder="Driver number" inputmode="numeric" autocomplete="off" />
                 </label>
@@ -18599,13 +19600,13 @@
                   <input id="selfRegisterChassis" type="text" placeholder="Chassis" />
                 </label>
               </div>
-              <div id="selfRegisterModeNote" class="registration-form-note">Solo events accept one driver per pre-registration.</div>
+              <div id="selfRegisterModeNote" class="registration-form-note">Driver numbers are assigned by staff when you receive your sticker sheet.</div>
               <div id="selfRegisterTeamFields" class="self-register-form-grid" hidden>
                 <label class="modal-field">
                   <span>Driver 2</span>
                   <input id="selfRegisterName2" type="text" placeholder="Second driver name" />
                 </label>
-                <label class="modal-field">
+                <label id="selfRegisterNumberField2" class="modal-field" hidden>
                   <span>Driver 2 Number</span>
                   <input id="selfRegisterNumber2" type="text" placeholder="Second driver number" inputmode="numeric" autocomplete="off" />
                 </label>
@@ -18617,7 +19618,7 @@
                   <span>Driver 3 (Optional)</span>
                   <input id="selfRegisterName3" type="text" placeholder="Third driver name" />
                 </label>
-                <label class="modal-field">
+                <label id="selfRegisterNumberField3" class="modal-field" hidden>
                   <span>Driver 3 Number</span>
                   <input id="selfRegisterNumber3" type="text" placeholder="Third driver number" inputmode="numeric" autocomplete="off" />
                 </label>
@@ -18626,23 +19627,8 @@
                   <input id="selfRegisterChassis3" type="text" placeholder="Third driver chassis" />
                 </label>
               </div>
-              <div class="self-register-profile-actions">
-                <label class="modal-field">
-                  <span>Saved Driver Profiles</span>
-                  <select id="selfRegisterSavedProfileSelect">
-                    <option value="">No saved profiles yet</option>
-                  </select>
-                </label>
-                <div class="self-register-profile-bar">
-                  <button id="useSavedSelfRegisterProfileBtn" class="micro-button" type="button">Use Saved Details</button>
-                  <button id="saveCurrentSelfRegisterProfileBtn" class="micro-button" type="button">Save As Profile</button>
-                  <button id="clearSavedSelfRegisterProfileBtn" class="micro-button" type="button">Clear Saved Details</button>
-                  <button id="deleteSavedSelfRegisterProfileBtn" class="micro-button" type="button">Delete Selected Profile</button>
-                </div>
-                <div class="registration-form-note" id="selfRegisterSavedProfileNote">This device can remember driver details for faster check-in next time.</div>
-              </div>
               <div class="registration-form-actions">
-                <div class="registration-form-note" id="selfRegisterFormNote">Pre-register from anywhere, then tap Verify Venue Check-In when you arrive.</div>
+                <div class="registration-form-note" id="selfRegisterFormNote">Enter your name, team, and chassis. Front desk assigns your sticker number after payment.</div>
                 <button id="selfRegisterSubmitBtn" class="button button-accent" type="submit" disabled>Pre-Register</button>
               </div>
             </form>
@@ -18656,7 +19642,7 @@
             </div>
             <div class="registration-roster-count" id="selfRegisterDriverCount">0 Drivers</div>
           </div>
-          <div class="self-register-note" id="selfRegisterVenueMeta">Self-registration is disabled for this event.</div>
+          <div class="self-register-note" id="selfRegisterVenueMeta">Front desk approval is required before pre-registered drivers join the live roster.</div>
           <div id="selfRegisterProfileCard" class="self-register-profile-card"></div>
         </aside>
       </main>
@@ -19033,6 +20019,7 @@
         <div id="summaryStrip" class="summary-strip"></div>
         <main id="raceControlDashboardBracket" class="race-control-dashboard race-control-dashboard-inline spectator-only" aria-label="Live event command center"></main>
         <section id="winnerRevealOverlay" class="winner-reveal-overlay hidden" aria-live="polite"></section>
+        <section id="soloCurrentBattleOverlay" class="hidden" aria-live="polite"></section>
         <div id="competitionReviewBanner" class="competition-review-banner hidden" aria-live="polite"></div>
         <section id="competitionDecisionPanel" class="competition-decision-panel hidden admin-only" aria-live="polite"></section>
         <div id="competitionOmtOverlay" class="competition-omt-overlay hidden" aria-live="assertive"></div>

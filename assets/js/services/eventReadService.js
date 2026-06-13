@@ -33,6 +33,9 @@ export function createEventReadService({ readService, refs }) {
     subscribeJudgeSubmissions(eventId, onNext, onError) {
       return readService.subscribeCollection(refs.getJudgeSubmissionsCollectionRef(eventId), onNext, onError);
     },
+    subscribeBattleVotes(eventId, onNext, onError) {
+      return readService.subscribeCollection(refs.getBattleVotesCollectionRef(eventId), onNext, onError);
+    },
     subscribeBracket(eventId, onNext, onError) {
       return readService.subscribeDoc(refs.getBracketDocRef(eventId, "main"), onNext, onError);
     },
