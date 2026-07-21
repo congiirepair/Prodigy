@@ -14343,7 +14343,8 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, connectAuthEmulator } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, collection, doc, setDoc, onSnapshot, deleteDoc, getDoc, runTransaction, connectFirestoreEmulator } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { getFirestore, collection, doc, setDoc, onSnapshot, deleteDoc, deleteField, getDoc, runTransaction, connectFirestoreEmulator } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { getFunctions, httpsCallable, connectFunctionsEmulator } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-functions.js";
 
     const DEFAULT_CLIENT_CONFIG = Object.freeze({
       platform: {
@@ -14441,14 +14442,6 @@
         config: null,
         spectatorAliases: [],
       },
-      security: {
-        legacyPasswords: {
-          admin: "changeme-admin",
-          j1: "changeme-j1",
-          j2: "changeme-j2",
-          j3: "changeme-j3",
-        },
-      },
     });
 
     function isPlainObject(value) {
@@ -14545,7 +14538,6 @@
     const CLIENT_LANDING = CLIENT_CONFIG.landing || {};
     const CLIENT_ROUTING = CLIENT_CONFIG.routing || {};
     const CLIENT_FIREBASE = CLIENT_CONFIG.firebase || {};
-    const CLIENT_SECURITY = CLIENT_CONFIG.security || {};
 
     // ==========================================
     // DATA MODEL & STATE
@@ -14605,6 +14597,7 @@
       : "127.0.0.1";
     const FIREBASE_AUTH_EMULATOR_PORT = Number.parseInt(PAGE_SEARCH_PARAMS.get("authEmulatorPort") || "9099", 10) || 9099;
     const FIREBASE_FIRESTORE_EMULATOR_PORT = Number.parseInt(PAGE_SEARCH_PARAMS.get("firestoreEmulatorPort") || "8080", 10) || 8080;
+    const FIREBASE_FUNCTIONS_EMULATOR_PORT = Number.parseInt(PAGE_SEARCH_PARAMS.get("functionsEmulatorPort") || "5001", 10) || 5001;
     const STANDALONE_DEMO_MODE = PAGE_SEARCH_PARAMS.get("demoWindow") === "1";
     const STANDALONE_DEMO_SESSION_PARAM = PAGE_SEARCH_PARAMS.get("demoSession") || "";
     const DEMO_PREVIEW_SESSION_ID = "preview-live-demo";
@@ -14735,12 +14728,6 @@
       j1: "Judge 1",
       j2: "Judge 2",
       j3: "Judge 3",
-    };
-    const LEGACY_PASSWORDS = {
-      admin: CLIENT_SECURITY?.legacyPasswords?.admin || "changeme-admin",
-      j1: CLIENT_SECURITY?.legacyPasswords?.j1 || "changeme-j1",
-      j2: CLIENT_SECURITY?.legacyPasswords?.j2 || "changeme-j2",
-      j3: CLIENT_SECURITY?.legacyPasswords?.j3 || "changeme-j3",
     };
     const PDF_RECOVERY_EVENT_NAME = "SDC Round 3 | Las Vegas";
     const PDF_RECOVERY_PLAN_DESCRIPTION = "SDC Top 16. 10 drivers in the lower bracket; winner fills seed 15 against the #2 qualifier.";
@@ -15396,53 +15383,12 @@
         .filter((entry) => Boolean(entry.name.trim()));
     }
 
-    async function hashSecret(value) {
-      if (!value) return null;
-      const bytes = new TextEncoder().encode(value.trim());
-      const hashBuffer = await crypto.subtle.digest("SHA-256", bytes);
-      return Array.from(new Uint8Array(hashBuffer)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
-    }
-
-    let configuredMasterPasswordHashPromise = null;
-
-    function getConfiguredWebsiteAdminPassword() {
-      return String(LEGACY_PASSWORDS.admin || "changeme-admin").trim() || "changeme-admin";
-    }
-
-    function getConfiguredMasterPasswordHash() {
-      if (!configuredMasterPasswordHashPromise) {
-        configuredMasterPasswordHashPromise = hashSecret(getConfiguredWebsiteAdminPassword());
-      }
-      return configuredMasterPasswordHashPromise;
-    }
-
-    async function isMasterPasswordHash(hashValue) {
-      const configuredHash = await getConfiguredMasterPasswordHash();
-      return Boolean(hashValue) && Boolean(configuredHash) && hashValue === configuredHash;
-    }
-
     async function createRoleAccessFromInvites(invites) {
       const entries = await Promise.all(ROLE_ORDER.map(async (role) => [
         role,
         {
-          inviteCode: null,
-          inviteHash: null,
-          passwordHash: null,
+          passwordConfigured: false,
           claimedAt: null,
-        },
-      ]));
-      return Object.fromEntries(entries);
-    }
-
-    async function createRoleAccessFromPasswords(passwords) {
-      const now = new Date().toISOString();
-      const entries = await Promise.all(ROLE_ORDER.map(async (role) => [
-        role,
-        {
-          inviteCode: null,
-          inviteHash: null,
-          passwordHash: await hashSecret(passwords[role]),
-          claimedAt: now,
         },
       ]));
       return Object.fromEntries(entries);
@@ -15772,6 +15718,42 @@
       };
     }
 
+    async function commitRound3PdfRestore({ eventId, eventMeta, eventPayload, archivedRecord, syncStamp }) {
+      if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE && prodigyActionCallable) {
+        const result = await callProdigyAction("commitEventSnapshot", {
+          eventId,
+          eventMeta,
+          eventPayload,
+          expectedSyncStamp: lastRemoteEventSyncStamp,
+          publishSyncStamp: syncStamp,
+          archivedResultRecord: normalizeArchivedResultsRecord(archivedRecord, eventId),
+        });
+        if (!result?.ok) throw new Error("Newer server data arrived before the PDF restore could be saved.");
+        return;
+      }
+      await runTransaction(db, async (transaction) => {
+        transaction.set(getEventDocRef(eventId), {
+          ...eventPayload,
+          syncStamp,
+        });
+        transaction.set(getDirectoryDocRef(), {
+          events: {
+            [eventId]: cloneEventMeta(eventMeta),
+          },
+          deletedEventIds: {
+            [eventId]: deleteField(),
+          },
+          syncStamp,
+        }, { merge: true });
+        transaction.set(getArchivedResultsDocRef(), {
+          events: {
+            [eventId]: normalizeArchivedResultsRecord(archivedRecord, eventId),
+          },
+          syncStamp,
+        }, { merge: true });
+      });
+    }
+
     async function restoreRound3FromPdf() {
       if (!isWebsiteAdmin) {
         window.alert("Unlock website admin access before using the PDF recovery tool.");
@@ -15783,6 +15765,10 @@
       }
       if (!isRound3PdfRecoveryEvent(activeEventMeta)) {
         window.alert(`This recovery tool is only enabled for ${PDF_RECOVERY_EVENT_NAME}.`);
+        return;
+      }
+      if (db && (!auth?.currentUser || !activeEventServerReady || !hasLoadedRemoteDirectory)) {
+        window.alert("PDF recovery is waiting for authoritative cloud data. Nothing was changed; wait for Sync Online and try again.");
         return;
       }
       const confirmed = window.confirm("Restore SDC Round 3 from the exported PDF? This will replace the current roster, qualifying scores, and saved podium summary for the selected event.");
@@ -15800,13 +15786,7 @@
       };
       const restoredResults = buildRecoveredRound3Results();
       const updatedAt = new Date().toISOString();
-
-      setActiveDriversState(restoredDrivers);
-      setActiveEventFormatState(restoredFormatMode);
-      setActiveEventLowerCountState(restoredLowerCount);
-      setTournamentStateState(restoredBracket);
-      setQualifyingFlowState(restoredFlow);
-      setActiveEventMetaState({
+      const restoredEventMeta = {
         ...activeEventMeta,
         status: EVENT_STATUS_COMPLETED,
         updatedAt,
@@ -15814,59 +15794,50 @@
           ...restoredResults,
           updatedAt,
         },
-      });
+      };
+      const archivedRecord = buildArchivedResultsRecord(restoredEventMeta, restoredEventMeta.results);
+
+      if (db) {
+        lastLocalPush = Date.now();
+        restoredEventMeta.syncStamp = lastLocalPush;
+
+        try {
+          await commitRound3PdfRestore({
+            eventId: activeEventId,
+            eventMeta: restoredEventMeta,
+            eventPayload: {
+              ...restoredEventMeta,
+              drivers: restoredDrivers,
+              bracket: restoredBracket,
+              qualifyingFlow: restoredFlow,
+              formatMode: restoredFormatMode,
+              lowerCount: restoredLowerCount,
+            },
+            archivedRecord,
+            syncStamp: lastLocalPush,
+          });
+          lastRemoteEventSyncStamp = lastLocalPush;
+        } catch (error) {
+          console.error("Round 3 PDF restore failed:", error);
+          window.alert("The PDF restore could not save to cloud sync. Nothing was changed in this browser; check the connection and try again.");
+          return;
+        }
+      }
+
+      setActiveDriversState(restoredDrivers);
+      setActiveEventFormatState(restoredFormatMode);
+      setActiveEventLowerCountState(restoredLowerCount);
+      setTournamentStateState(restoredBracket);
+      setQualifyingFlowState(restoredFlow);
+      setActiveEventMetaState(restoredEventMeta);
       setDeletedEventId(activeEventId, false);
-      eventDirectory[activeEventId] = cloneEventMeta(activeEventMeta);
-      const archivedRecord = buildArchivedResultsRecord(activeEventMeta, activeEventMeta.results);
+      eventDirectory[activeEventId] = cloneEventMeta(restoredEventMeta);
       if (archivedRecord) {
         archivedResultsDirectory[activeEventId] = archivedRecord;
       }
       saveDirectoryCache();
       saveEventStateCache();
       saveArchivedResultsCache();
-
-      if (db) {
-        lastLocalPush = Date.now();
-        activeEventMeta.syncStamp = lastLocalPush;
-        eventDirectory[activeEventId] = cloneEventMeta(activeEventMeta);
-        saveDirectoryCache();
-
-        const publishMeta = cloneEventMeta(activeEventMeta);
-        const publishDrivers = JSON.parse(JSON.stringify(appDrivers));
-        const publishBracket = JSON.parse(JSON.stringify(tournamentState));
-        const publishQualifyingFlow = JSON.parse(JSON.stringify(qualifyingFlow));
-        const directoryPayload = buildDirectorySyncPayload({
-          [activeEventId]: publishMeta,
-        });
-
-        try {
-          await Promise.all([
-            setDoc(getEventDocRef(activeEventId), {
-              ...publishMeta,
-              drivers: publishDrivers,
-              bracket: publishBracket,
-              qualifyingFlow: publishQualifyingFlow,
-              formatMode: restoredFormatMode,
-              lowerCount: restoredLowerCount,
-              syncStamp: lastLocalPush,
-            }),
-            setDoc(getDirectoryDocRef(), directoryPayload),
-            setDoc(getActiveEventSelectionDocRef(), {
-              activeEventId,
-              eventMeta: cloneEventMeta(directoryPayload.events[activeEventId] || publishMeta),
-              syncStamp: lastLocalPush,
-            }, { merge: true }),
-            setDoc(getArchivedResultsDocRef(), {
-              events: getArchivedResultsSnapshot(),
-              syncStamp: lastLocalPush,
-            }),
-          ]);
-        } catch (error) {
-          console.error("Round 3 PDF restore failed:", error);
-          window.alert("The PDF restore could not finish saving to cloud sync. Stay on this event and let me patch the recovery one more time.");
-          return;
-        }
-      }
 
       renderDriversTable();
       renderBracket();
@@ -15923,7 +15894,7 @@
         pendingRegistrations: [],
         latestApprovalToast: null,
         judgeRoleClaims: createEmptyJudgeRoleClaims(),
-        roleAccess: await createRoleAccessFromPasswords(LEGACY_PASSWORDS),
+        roleAccess: await createRoleAccessFromInvites({}),
         results: buildEmptyEventResults(),
       };
     }
@@ -16402,13 +16373,52 @@
         return true;
       }
 
+      if (!auth?.currentUser || !activeEventServerReady) {
+        const rollbackRestored = restoreJudgeSubmissionRollback(rollbackState);
+        window.alert(rollbackRestored
+          ? "Cloud sync is not connected yet. Your previous submitted score has been restored; wait for Sync Online and try again."
+          : "Cloud sync is not connected yet. Reload the latest event, wait for Sync Online, and try again.");
+        return false;
+      }
+
       const localDriver = appDrivers.find((entry) => entry.id === driverId);
       if (!localDriver) {
         window.alert("This driver is no longer in the current qualifying queue. Reload the latest event state before submitting again.");
         return false;
       }
 
+      if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE && prodigyActionCallable) {
+        const remoteRevisionAtSubmit = remoteEventSnapshotRevision;
+        setJudgeSubmissionInFlightState(true);
+        try {
+          const result = await callProdigyAction("submitJudgeQualifying", {
+            eventId: activeEventId,
+            role,
+            deviceId: getJudgeDeviceId(),
+            driverId,
+            runKey: runRef ? getRunKey(runRef) : null,
+            scores: localDriver.scores?.[role] || {},
+          });
+          if (!result?.eventPayload) throw new Error("The server did not return the saved qualifying state.");
+          const localJudgeDrafts = captureJudgeDraftScores(role);
+          applyRemoteEventState(result.eventPayload);
+          setActiveDriversState(restoreJudgeDraftScores(appDrivers, role, localJudgeDrafts));
+          renderAfterRemoteSync();
+          return true;
+        } catch (error) {
+          console.error("Secure judge submission failed:", error);
+          const rollbackRestored = restoreJudgeSubmissionRollback(rollbackState, remoteRevisionAtSubmit);
+          window.alert(rollbackRestored
+            ? `${error?.message || "Your score could not be saved."} Your previous submitted score has been restored.`
+            : `${error?.message || "Your score could not be saved."} The latest event state is now shown.`);
+          return false;
+        } finally {
+          setJudgeSubmissionInFlightState(false);
+        }
+      }
+
       clearTimeout(syncTimeout);
+      syncTimeout = null;
       const runKey = runRef ? getRunKey(runRef) : null;
       const localRoleScores = JSON.parse(JSON.stringify(localDriver.scores?.[role] || {}));
       lastLocalPush = Date.now();
@@ -16593,7 +16603,9 @@
         } else if (result.control?.status === "review_hold") {
           clearWinnerAnimationState();
         }
-        await publishStateImmediately();
+        if (!await publishStateImmediately()) {
+          return failedVote("This local vote could not be saved. Review the latest battle and try again.");
+        }
         renderBracket();
         return savedVote();
       };
@@ -16602,7 +16614,43 @@
         return applyLocalVote();
       }
 
+      if (!auth?.currentUser || !activeEventServerReady) {
+        return failedVote("Cloud sync is not connected yet. Wait for Sync Online, then tap again on the latest battle.");
+      }
+
+      if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE && prodigyActionCallable) {
+        setJudgeSubmissionInFlightState(true);
+        try {
+          const result = await callProdigyAction("submitJudgeVote", {
+            eventId: activeEventId,
+            role,
+            deviceId: getJudgeDeviceId(),
+            side,
+            expectedEntryKey,
+          });
+          if (!result?.eventPayload) throw new Error("The server did not return the saved battle state.");
+          applyRemoteEventState(result.eventPayload);
+          if (result.resolution?.winnerSide && result.entry?.match?.[result.resolution.winnerSide]) {
+            triggerWinnerAnimation(buildWinnerAnimationState(
+              result.entry.bracketKey,
+              result.entry.roundIndex,
+              result.entry.matchIndex,
+              result.resolution.winnerSide,
+              result.entry.match[result.resolution.winnerSide],
+            ));
+          }
+          renderBracket();
+          return savedVote();
+        } catch (error) {
+          console.error("Secure competition vote failed:", error);
+          return failedVote(error?.message || "Your vote could not reach the event server. Check the connection and try again.");
+        } finally {
+          setJudgeSubmissionInFlightState(false);
+        }
+      }
+
       clearTimeout(syncTimeout);
+      syncTimeout = null;
       lastLocalPush = Date.now();
       let transactionResult = null;
       let remoteJudgeLocked = false;
@@ -16762,7 +16810,7 @@
         } else if (result.control?.status === "review_hold" || result.resolution?.omtMajority) {
           clearWinnerAnimationState();
         }
-        await publishStateImmediately();
+        if (!await publishStateImmediately()) return false;
         renderBracket();
         return true;
       };
@@ -16771,7 +16819,45 @@
         return applyLocalScorecard();
       }
 
+      if (!auth?.currentUser || !activeEventServerReady) {
+        window.alert("Cloud sync is not connected yet. Wait for Sync Online, then submit the Team Tandem score again on the latest battle.");
+        return false;
+      }
+
+      if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE && prodigyActionCallable) {
+        setJudgeSubmissionInFlightState(true);
+        try {
+          const result = await callProdigyAction("submitJudgeScorecard", {
+            eventId: activeEventId,
+            role,
+            deviceId: getJudgeDeviceId(),
+            submission: normalizedSubmission,
+            expectedEntryKey,
+          });
+          if (!result?.eventPayload) throw new Error("The server did not return the saved Team Tandem state.");
+          applyRemoteEventState(result.eventPayload);
+          if (result.resolution?.winnerSide && result.entry?.match?.[result.resolution.winnerSide]) {
+            triggerWinnerAnimation(buildWinnerAnimationState(
+              result.entry.bracketKey,
+              result.entry.roundIndex,
+              result.entry.matchIndex,
+              result.resolution.winnerSide,
+              result.entry.match[result.resolution.winnerSide],
+            ));
+          }
+          renderBracket();
+          return true;
+        } catch (error) {
+          console.error("Secure Team Tandem score submission failed:", error);
+          window.alert(error?.message || "Your Team Tandem score could not reach the event server. Check the connection and try again.");
+          return false;
+        } finally {
+          setJudgeSubmissionInFlightState(false);
+        }
+      }
+
       clearTimeout(syncTimeout);
+      syncTimeout = null;
       lastLocalPush = Date.now();
       let transactionResult = null;
       let remoteJudgeLocked = false;
@@ -16910,7 +16996,7 @@
         updatedAt: new Date().toISOString(),
       };
       clearWinnerAnimationState();
-      await publishStateImmediately();
+      if (!await publishStateImmediately()) return false;
       renderBracket();
       return true;
     }
@@ -16931,7 +17017,7 @@
         return false;
       }
 
-      await publishStateImmediately();
+      if (!await publishStateImmediately()) return false;
       renderBracket();
       return true;
     }
@@ -17211,7 +17297,7 @@
       }
 
       invalidateBracketFromAdminChanges();
-      await publishStateImmediately();
+      if (!await publishStateImmediately()) return;
       hideAdminScoreEditModal();
       renderDriversTable();
     }
@@ -18986,8 +19072,13 @@
       : (isPlainObject(CLIENT_FIREBASE.config) ? CLIENT_FIREBASE.config : null);
     let db = null;
     let auth = null;
+    let functionsApi = null;
+    let prodigyActionCallable = null;
+    let cloudClaims = {};
+    let ownerClaimExpiryTimer = null;
     let syncTimeout = null;
     let lastLocalPush = 0;
+    let activeEventServerReady = false;
     let eventDocUnsubscribe = null;
     let directoryDocUnsubscribe = null;
     let activeEventSelectionUnsubscribe = null;
@@ -19003,8 +19094,85 @@
     let testScenarioSeedInFlight = false;
     let archivedResultsDirectory = {};
     let deletedEventIds = new Set();
+    const eventDeletionInFlight = new Set();
+    let registrationSubmissionInFlight = false;
+    let selfRegistrationSubmissionInFlight = false;
+    let activeEventSelectionRequestRevision = 0;
+    let activeEventSelectionPublishQueue = Promise.resolve(true);
     let autoEventSwitchTimer = null;
     let lastAutoEventSwitchDateKey = "";
+
+    function normalizeCloudRole(role) {
+      if (role === "eventAdmin") return "admin";
+      if (role === "stream" || role === "streamer") return "streamOperator";
+      return String(role || "");
+    }
+
+    function cloudOwnerClaimActive(claims = cloudClaims) {
+      return (claims?.owner === true || claims?.websiteAdmin === true)
+        && Number(claims?.ownerExpiresAt || 0) > Date.now();
+    }
+
+    function scheduleOwnerClaimExpiry(claims = cloudClaims) {
+      if (ownerClaimExpiryTimer) window.clearTimeout(ownerClaimExpiryTimer);
+      ownerClaimExpiryTimer = null;
+      const expiresAt = Number(claims?.ownerExpiresAt || 0);
+      if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) return;
+      ownerClaimExpiryTimer = window.setTimeout(() => {
+        ownerClaimExpiryTimer = null;
+        if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE) setWebsiteAdminAccess(false, { persist: false });
+      }, Math.max(0, expiresAt - Date.now() + 250));
+    }
+
+    function cloudClaimsIncludeRole(role, eventId = activeEventId, claims = cloudClaims) {
+      const normalizedRole = normalizeCloudRole(role);
+      if (!normalizedRole) return false;
+      if (cloudOwnerClaimActive(claims)) return true;
+      const eventRoles = Array.isArray(claims?.eventRoles?.[eventId])
+        ? new Set(claims.eventRoles[eventId].map(normalizeCloudRole))
+        : new Set();
+      if (eventRoles.has(normalizedRole)) {
+        const expectedVersion = (eventId === activeEventId ? activeEventMeta : eventDirectory[eventId])?.roleAccess?.[normalizedRole]?.accessVersion;
+        const claimVersion = claims?.eventRoleVersions?.[eventId]?.[normalizedRole];
+        return Boolean(expectedVersion && claimVersion && claimVersion === expectedVersion);
+      }
+      return false;
+    }
+
+    function applyAuthorizedRoleVersion(eventId, role, accessVersion) {
+      const normalizedRole = normalizeCloudRole(role);
+      if (!eventId || !normalizedRole || !accessVersion) return false;
+      const eventMeta = eventId === activeEventId ? activeEventMeta : eventDirectory[eventId];
+      if (!eventMeta) return false;
+      eventMeta.roleAccess = {
+        ...(eventMeta.roleAccess || {}),
+        [normalizedRole]: {
+          ...(eventMeta.roleAccess?.[normalizedRole] || {}),
+          accessVersion,
+        },
+      };
+      eventDirectory[eventId] = cloneEventMeta(eventMeta);
+      return true;
+    }
+
+    async function refreshCloudClaims(forceRefresh = false) {
+      if (!auth?.currentUser) {
+        cloudClaims = {};
+        scheduleOwnerClaimExpiry(cloudClaims);
+        return cloudClaims;
+      }
+      const tokenResult = await auth.currentUser.getIdTokenResult(forceRefresh);
+      cloudClaims = tokenResult?.claims && typeof tokenResult.claims === "object" ? tokenResult.claims : {};
+      scheduleOwnerClaimExpiry(cloudClaims);
+      return cloudClaims;
+    }
+
+    async function callProdigyAction(action, payload = {}) {
+      if (!prodigyActionCallable) throw new Error("Secure cloud operations are not initialized.");
+      if (!await ensureCloudAuthReady()) throw new Error("Cloud authentication is not ready.");
+      const response = await prodigyActionCallable({ action, appId, ...payload });
+      return response?.data || {};
+    }
 
     function syncUiStateBindings() {
       uiState.competitionJudgeDraftState = uiState.competitionJudgeDraftState || createEmptyCompetitionJudgeDraftState();
@@ -19831,7 +19999,7 @@
       const untouchedDrivers = normalizeDriverList(appDrivers).filter((driver) => !randomizedIds.has(driver.id));
       setActiveDriversState(resequenceDrivers([...randomizedDrivers, ...untouchedDrivers], true));
       invalidateBracketFromAdminChanges();
-      await publishStateImmediately();
+      if (!await publishStateImmediately()) return false;
       renderDriversTable();
       return true;
     }
@@ -19941,21 +20109,6 @@
       });
     }
 
-    async function persistArchivedResultsDirectory() {
-      saveArchivedResultsCache();
-      if (!db) return;
-      lastLocalPush = Date.now();
-      try {
-        await setDoc(getArchivedResultsDocRef(), {
-          events: getArchivedResultsSnapshot(),
-          syncStamp: lastLocalPush,
-        });
-      } catch (error) {
-        console.error("Results archive sync failed:", error);
-        throw error;
-      }
-    }
-
     function readRoleSessionMap() {
       const raw = sessionStorage.getItem(EVENT_ROLE_SESSION_KEY) || localStorage.getItem(EVENT_ROLE_PERSIST_KEY);
       if (!raw) return {};
@@ -20019,6 +20172,9 @@
 
     function isRoleUnlockedForEvent(eventId, role) {
       if (!eventId || !role || role === "spectator") return false;
+      if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE) {
+        return cloudClaimsIncludeRole(role, eventId);
+      }
       const unlockMap = readRoleUnlockMap();
       return Boolean(unlockMap?.[eventId]?.[role]);
     }
@@ -20157,7 +20313,9 @@
           updatedAt: nowIso,
         }, { syncQualifying: false });
         eventDirectory[activeEventId] = cloneEventMeta(activeEventMeta);
-        await publishStateImmediately();
+        if (!await publishStateImmediately()) {
+          return { success: false, claimedRole: getClaimedJudgeRoleForDevice() };
+        }
         return {
           success: true,
           claimedRole: targetRole,
@@ -20165,11 +20323,49 @@
         };
       };
 
+      if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE && prodigyActionCallable) {
+        if (!auth?.currentUser || !activeEventServerReady) {
+          const message = "Cloud sync is not connected yet. Wait for Sync Online, then choose your judge assignment again.";
+          if (!options.silent) window.alert(message);
+          return { success: false, claimedRole: getClaimedJudgeRoleForDevice(), syncUnavailable: true, message };
+        }
+        try {
+          const result = await callProdigyAction("claimJudgeRole", {
+            eventId: activeEventId,
+            role: targetRole || role,
+            deviceId,
+            release: releaseOnly,
+          });
+          if (result?.eventPayload) {
+            applyRemoteEventState(result.eventPayload);
+            renderAfterRemoteSync();
+          }
+          return { success: true, claimedRole: result?.claimedRole || null, remoteMeta: cloneEventMeta(activeEventMeta) };
+        } catch (error) {
+          console.error("Secure judge role claim failed:", error);
+          const message = error?.message || "Your judge assignment could not reach the event server. Check the connection and try again.";
+          if (!options.silent) window.alert(message);
+          return { success: false, claimedRole: getClaimedJudgeRoleForDevice(), message };
+        }
+      }
+
       if (!db) {
         return applyLocalClaimUpdate();
       }
 
+      if (!auth?.currentUser || !activeEventServerReady) {
+        const message = "Cloud sync is not connected yet. Wait for Sync Online, then choose your judge assignment again.";
+        if (!options.silent) window.alert(message);
+        return {
+          success: false,
+          claimedRole: getClaimedJudgeRoleForDevice(),
+          syncUnavailable: true,
+          message,
+        };
+      }
+
       clearTimeout(syncTimeout);
+      syncTimeout = null;
       lastLocalPush = Date.now();
       let transactionResult = null;
 
@@ -20266,7 +20462,9 @@
         return transactionResult || { success: true, claimedRole: targetRole };
       } catch (error) {
         console.error("Judge role claim sync failed:", error);
-        return { success: false, claimedRole: null };
+        const message = "Your judge assignment could not reach the event server. Check the connection, wait for Sync Online, and try again.";
+        if (!options.silent) window.alert(message);
+        return { success: false, claimedRole: getClaimedJudgeRoleForDevice(), message };
       }
     }
 
@@ -20281,7 +20479,7 @@
       if (!activeEventId || !activeEventMeta || !shouldUseJudgeRoleClaims(activeEventMeta)) return false;
       const claimedRole = getClaimedJudgeRoleForDevice();
       if (!claimedRole || !currentRole?.startsWith("j")) return false;
-      const result = await syncJudgeRoleClaimSelection(claimedRole);
+      const result = await syncJudgeRoleClaimSelection(claimedRole, { silent: true });
       return Boolean(result?.success);
     }
 
@@ -20313,7 +20511,8 @@
 
     async function initLocalState() {
       localStorage.removeItem(WEBSITE_ADMIN_STORAGE_KEY);
-      isWebsiteAdmin = sessionStorage.getItem(WEBSITE_ADMIN_STORAGE_KEY) === "true";
+      sessionStorage.removeItem(WEBSITE_ADMIN_STORAGE_KEY);
+      isWebsiteAdmin = false;
       try {
         deletedEventIds = new Set(normalizeDeletedEventIds(JSON.parse(localStorage.getItem(DELETED_EVENT_IDS_STORAGE_KEY) || "[]")));
       } catch (error) {
@@ -20571,39 +20770,77 @@
       if (cachedLifecycle.archivedResultsChanged) saveArchivedResultsCache();
     }
 
-    function buildDirectorySyncPayload(nextOverrides = {}) {
-      return {
-        events: getPersistableDirectorySnapshot(nextOverrides),
-        activeEventId,
-        deletedEventIds: getDeletedEventIdsSnapshot(),
-        syncStamp: lastLocalPush,
-      };
-    }
-
-    function publishActiveEventSelection() {
-      if (!db || !activeEventId) return;
+    async function publishActiveEventSelection() {
+      if (!db || !activeEventId) return false;
       if (!auth?.currentUser) {
         pendingCloudBootstrapSync = true;
-        return;
+        return false;
       }
-      lastLocalPush = Date.now();
-      saveDirectoryCache();
-      const directoryPayload = buildDirectorySyncPayload({
-        [activeEventId]: eventDirectory[activeEventId] || activeEventMeta,
-      });
-      const activeEventPayload = {
-        activeEventId,
-        eventMeta: cloneEventMeta(directoryPayload.events[activeEventId] || activeEventMeta),
-        syncStamp: lastLocalPush,
+      const selectedEventId = activeEventId;
+      const requestRevision = ++activeEventSelectionRequestRevision;
+      const publishSyncStamp = Date.now();
+      const executeSelectionPublish = async () => {
+        if (requestRevision !== activeEventSelectionRequestRevision) return false;
+        let activeEventPayload = null;
+        let superseded = false;
+        try {
+          if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE && prodigyActionCallable) {
+            const result = await callProdigyAction("setActiveSelection", {
+              eventId: selectedEventId,
+              syncStamp: publishSyncStamp,
+            });
+            activeEventPayload = {
+              activeEventId: selectedEventId,
+              eventMeta: cloneEventMeta(eventDirectory[selectedEventId]),
+              syncStamp: result.syncStamp || publishSyncStamp,
+            };
+          } else await runTransaction(db, async (transaction) => {
+            activeEventPayload = null;
+            superseded = requestRevision !== activeEventSelectionRequestRevision;
+            if (superseded) return;
+            const directoryRef = getDirectoryDocRef();
+            const directorySnap = await transaction.get(directoryRef);
+            const directoryData = directorySnap.data() || {};
+            const remoteEventMeta = directoryData.events?.[selectedEventId];
+            const remoteDeletedEventIds = new Set(normalizeDeletedEventIds(directoryData.deletedEventIds || []));
+            if (!remoteEventMeta || remoteDeletedEventIds.has(selectedEventId)) return;
+
+            activeEventPayload = {
+              activeEventId: selectedEventId,
+              eventMeta: cloneEventMeta(remoteEventMeta),
+              syncStamp: publishSyncStamp,
+            };
+            transaction.set(getActiveEventSelectionDocRef(), activeEventPayload, { merge: true });
+            transaction.set(directoryRef, {
+              activeEventId: selectedEventId,
+              syncStamp: publishSyncStamp,
+            }, { merge: true });
+          });
+        } catch (error) {
+          console.error("Active event sync failed:", error);
+          showSyncRecoveryNotice();
+          return false;
+        }
+
+        if (superseded || requestRevision !== activeEventSelectionRequestRevision) return false;
+        if (!activeEventPayload) {
+          console.error("Active event sync was blocked because the event is no longer present in the authoritative directory.");
+          showSyncRecoveryNotice();
+          return false;
+        }
+
+        lastLocalPush = publishSyncStamp;
+        if (activeEventId === selectedEventId) {
+          lastKnownRemoteActiveEventSelection = normalizeActiveEventSelectionSnapshot(activeEventPayload);
+          saveCachedActiveEventSelection(activeEventPayload);
+          saveDirectoryCache();
+        }
+        return true;
       };
-      lastKnownRemoteActiveEventSelection = normalizeActiveEventSelectionSnapshot(activeEventPayload);
-      saveCachedActiveEventSelection(activeEventPayload);
-      Promise.all([
-        setDoc(getActiveEventSelectionDocRef(), activeEventPayload, { merge: true }),
-        setDoc(getDirectoryDocRef(), directoryPayload),
-      ]).catch((error) => {
-        console.error("Active event sync failed:", error);
-      });
+
+      const queuedPublish = activeEventSelectionPublishQueue.then(executeSelectionPublish);
+      activeEventSelectionPublishQueue = queuedPublish.catch(() => false);
+      return await queuedPublish;
     }
 
     function resolveRoleForActiveEventSwitch(nextActiveEventId, preferredRole = currentRole) {
@@ -20703,6 +20940,19 @@
       const normalizedSelection = normalizeActiveEventSelectionSnapshot(data);
       if (!normalizedSelection?.activeEventId) return false;
       const nextActiveEventId = normalizedSelection.activeEventId;
+      const selectionIsDeleted = isDeletedEventId(nextActiveEventId);
+      const selectionMissingFromAuthoritativeDirectory = hasLoadedRemoteDirectory
+        && !lastRemoteDirectoryEvents[nextActiveEventId];
+      if (selectionIsDeleted || selectionMissingFromAuthoritativeDirectory) {
+        if (lastKnownRemoteActiveEventSelection?.activeEventId === nextActiveEventId) {
+          lastKnownRemoteActiveEventSelection = null;
+        }
+        if (readCachedActiveEventSelection()?.activeEventId === nextActiveEventId) {
+          saveCachedActiveEventSelection(null);
+        }
+        console.warn("Ignored an active-event selection that is deleted or absent from the authoritative directory.", nextActiveEventId);
+        return false;
+      }
       const nextSyncStamp = Number(data.syncStamp || 0);
       lastRemoteActiveEventSyncStamp = nextSyncStamp;
       lastKnownRemoteActiveEventSelection = normalizedSelection;
@@ -20735,25 +20985,125 @@
     }
 
     function subscribeToActiveEvent() {
+      if (syncTimeout) {
+        clearTimeout(syncTimeout);
+        syncTimeout = null;
+        pendingCloudBootstrapSync = true;
+      }
+      lastRemoteEventSyncStamp = 0;
+      activeEventServerReady = false;
+      syncNetworkStatusIndicator();
       if (!db || !auth?.currentUser || !activeEventId) return;
       if (eventDocUnsubscribe) eventDocUnsubscribe();
       subscribeToNativeLiveStream();
 
       const eventDoc = getEventDocRef(activeEventId);
       const subscribedEventId = activeEventId;
-      eventDocUnsubscribe = onSnapshot(eventDoc, (snap) => {
+      eventDocUnsubscribe = onSnapshot(eventDoc, { includeMetadataChanges: true }, (snap) => {
+        if (subscribedEventId !== activeEventId) return;
+        activeEventServerReady = snap.metadata?.fromCache === false;
+        syncNetworkStatusIndicator();
         if (testScenarioSeedInFlight) return;
         if (!snap.exists()) return;
         const data = snap.data();
-        if (subscribedEventId !== activeEventId) return;
         applyRemoteEventState(data);
         renderAfterRemoteSync();
+        if (activeEventServerReady && pendingCloudBootstrapSync) {
+          pendingCloudBootstrapSync = false;
+          showSyncRecoveryNotice();
+        }
       }, (error) => {
+        activeEventServerReady = false;
         const statusEl = document.getElementById('syncStatus');
         statusEl.textContent = "Sync Error";
         statusEl.classList.remove("online");
+        statusEl.classList.add("offline-protected");
         console.error(error);
       });
+    }
+
+    function showSyncRecoveryNotice() {
+      document.getElementById("syncRecoveryNotice")?.classList.remove("hidden");
+    }
+
+    async function commitActiveEventSnapshot({
+      eventId,
+      eventPayload,
+      eventMeta,
+      expectedSyncStamp,
+      publishSyncStamp,
+      archivedResultsChanged = false,
+      archivedResultRecord = undefined,
+    }) {
+      if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE && prodigyActionCallable) {
+        const securePayload = {
+          eventId,
+          eventPayload,
+          eventMeta,
+          expectedSyncStamp,
+          publishSyncStamp,
+          archivedResultsChanged,
+        };
+        if (archivedResultRecord !== undefined) securePayload.archivedResultRecord = archivedResultRecord;
+        const result = await callProdigyAction("commitEventSnapshot", securePayload);
+        if (!result?.ok) {
+          if (result?.eventPayload) {
+            applyRemoteEventState(result.eventPayload);
+            renderAfterRemoteSync();
+          }
+          showSyncRecoveryNotice();
+          return false;
+        }
+        if (eventId === activeEventId) lastRemoteEventSyncStamp = Number(result.syncStamp || publishSyncStamp);
+        return true;
+      }
+      let staleWriteBlocked = false;
+      await runTransaction(db, async (transaction) => {
+        staleWriteBlocked = false;
+        const eventRef = getEventDocRef(eventId);
+        const eventSnap = await transaction.get(eventRef);
+        const remoteSyncStamp = Number(eventSnap.data()?.syncStamp || 0);
+        if (eventSnap.exists() && remoteSyncStamp !== Number(expectedSyncStamp || 0)) {
+          staleWriteBlocked = true;
+          return;
+        }
+
+        transaction.set(eventRef, {
+          ...eventPayload,
+          syncStamp: publishSyncStamp,
+        });
+
+        if (!STANDALONE_DEMO_MODE) {
+          transaction.set(getDirectoryDocRef(), {
+            events: {
+              [eventId]: cloneEventMeta(eventMeta),
+            },
+            syncStamp: publishSyncStamp,
+          }, { merge: true });
+
+          if (archivedResultsChanged || archivedResultRecord !== undefined) {
+            transaction.set(getArchivedResultsDocRef(), {
+              events: {
+                [eventId]: archivedResultsChanged
+                  ? deleteField()
+                  : normalizeArchivedResultsRecord(archivedResultRecord, eventId),
+              },
+              syncStamp: publishSyncStamp,
+            }, { merge: true });
+          }
+        }
+      });
+
+      if (staleWriteBlocked) {
+        showSyncRecoveryNotice();
+        return false;
+      }
+
+      if (eventId === activeEventId) {
+        lastRemoteEventSyncStamp = publishSyncStamp;
+      }
+
+      return true;
     }
 
     function publishState() {
@@ -20777,6 +21127,7 @@
         pendingCloudBootstrapSync = true;
         return;
       }
+      const expectedSyncStamp = lastRemoteEventSyncStamp;
       lastLocalPush = Date.now();
       activeEventMeta.syncStamp = lastLocalPush;
       eventDirectory[activeEventId] = cloneEventMeta(activeEventMeta);
@@ -20791,16 +21142,14 @@
       const publishQualifyingFlow = JSON.parse(JSON.stringify(persistableState.qualifyingFlow));
       const publishFormatMode = persistableState.formatMode;
       const publishLowerCount = persistableState.lowerCount;
-      const directoryPayload = buildDirectorySyncPayload({
-        [publishEventId]: publishEventMeta,
-      });
       const publishSyncStamp = lastLocalPush;
-
       clearTimeout(syncTimeout);
       syncTimeout = setTimeout(async () => {
+        syncTimeout = null;
         try {
-          const syncTasks = [
-            setDoc(getEventDocRef(publishEventId), {
+          await commitActiveEventSnapshot({
+            eventId: publishEventId,
+            eventPayload: {
               ...publishEventMeta,
               drivers: publishDrivers,
               bracket: publishBracket,
@@ -20808,35 +21157,26 @@
               qualifyingFlow: publishQualifyingFlow,
               formatMode: publishFormatMode,
               lowerCount: publishLowerCount,
-              syncStamp: publishSyncStamp,
-            }),
-          ];
-          if (!STANDALONE_DEMO_MODE) {
-            syncTasks.push(setDoc(getDirectoryDocRef(), {
-              ...directoryPayload,
-              activeEventId: publishEventId,
-              syncStamp: publishSyncStamp,
-            }));
-            if (lifecycle.archivedResultsChanged) {
-              syncTasks.push(setDoc(getArchivedResultsDocRef(), {
-                events: getArchivedResultsSnapshot(),
-                syncStamp: publishSyncStamp,
-              }));
-            }
-          }
-          await Promise.all(syncTasks);
+            },
+            eventMeta: publishEventMeta,
+            expectedSyncStamp,
+            publishSyncStamp,
+            archivedResultsChanged: lifecycle.archivedResultsChanged,
+          });
         } catch (e) {
           console.error("Cloud sync failed:", e);
+          showSyncRecoveryNotice();
         }
       }, 800);
     }
 
-    async function publishStateImmediately() {
-      if (!activeEventId || !activeEventMeta) return;
+    async function publishStateImmediately({ archivedResultRecord = undefined } = {}) {
+      if (!activeEventId || !activeEventMeta) return false;
       syncQualifyingFlowState();
       syncActiveEventStateFromControls();
 
       clearTimeout(syncTimeout);
+      syncTimeout = null;
 
       const updatedAt = new Date().toISOString();
       setActiveEventMetaState({
@@ -20849,58 +21189,42 @@
       saveEventStateCache();
       if (lifecycle.archivedResultsChanged) saveArchivedResultsCache();
 
-      if (!db) return;
+      if (!db) return true;
       if (!auth?.currentUser) {
         pendingCloudBootstrapSync = true;
-        return;
+        return false;
       }
+      const expectedSyncStamp = lastRemoteEventSyncStamp;
       lastLocalPush = Date.now();
       activeEventMeta.syncStamp = lastLocalPush;
       eventDirectory[activeEventId] = cloneEventMeta(activeEventMeta);
       saveDirectoryCache();
       const persistableState = getPersistableActiveEventState();
-      const directoryPayload = buildDirectorySyncPayload({
-        [activeEventId]: activeEventMeta,
-      });
-
+      const publishEventId = activeEventId;
+      const publishEventMeta = cloneEventMeta(activeEventMeta);
+      const publishSyncStamp = lastLocalPush;
       try {
-        const syncTasks = [
-          setDoc(getEventDocRef(activeEventId), {
-            ...activeEventMeta,
+        return await commitActiveEventSnapshot({
+          eventId: publishEventId,
+          eventPayload: {
+            ...publishEventMeta,
             drivers: persistableState.drivers,
             bracket: persistableState.bracket,
             twinComp: persistableState.twinComp,
             qualifyingFlow: persistableState.qualifyingFlow,
             formatMode: persistableState.formatMode,
             lowerCount: persistableState.lowerCount,
-            syncStamp: lastLocalPush,
-          }),
-        ];
-        if (!STANDALONE_DEMO_MODE) {
-          lastKnownRemoteActiveEventSelection = normalizeActiveEventSelectionSnapshot({
-            activeEventId,
-            eventMeta: cloneEventMeta(directoryPayload.events[activeEventId] || activeEventMeta),
-            syncStamp: lastLocalPush,
-          });
-          saveCachedActiveEventSelection(lastKnownRemoteActiveEventSelection);
-          syncTasks.push(
-            setDoc(getDirectoryDocRef(), directoryPayload),
-            setDoc(getActiveEventSelectionDocRef(), {
-              activeEventId,
-              eventMeta: cloneEventMeta(directoryPayload.events[activeEventId] || activeEventMeta),
-              syncStamp: lastLocalPush,
-            }, { merge: true }),
-          );
-          if (lifecycle.archivedResultsChanged) {
-            syncTasks.push(setDoc(getArchivedResultsDocRef(), {
-              events: getArchivedResultsSnapshot(),
-              syncStamp: lastLocalPush,
-            }));
-          }
-        }
-        await Promise.all(syncTasks);
+          },
+          eventMeta: publishEventMeta,
+          expectedSyncStamp,
+          publishSyncStamp,
+          archivedResultsChanged: lifecycle.archivedResultsChanged,
+          archivedResultRecord,
+        });
       } catch (e) {
         console.error("Immediate cloud sync failed:", e);
+        showSyncRecoveryNotice();
+        return false;
       }
     }
 
@@ -20915,7 +21239,7 @@
       try {
         const eventSnap = await getDoc(getEventDocRef(activeEventId));
         if (!eventSnap.exists()) {
-          await publishStateImmediately();
+          if (!await publishStateImmediately()) return;
           return;
         }
         applyRemoteEventState(eventSnap.data());
@@ -20971,9 +21295,7 @@
 
       subscribeToActiveEvent();
       if (pendingCloudBootstrapSync && activeEventId && activeEventMeta) {
-        pendingCloudBootstrapSync = false;
-        const recoveryNotice = document.getElementById("syncRecoveryNotice");
-        recoveryNotice?.classList.remove("hidden");
+        syncNetworkStatusIndicator();
       }
     }
 
@@ -20982,10 +21304,13 @@
       const app = initializeApp(firebaseConfig);
       auth = getAuth(app);
       db = getFirestore(app);
+      functionsApi = getFunctions(app, "us-central1");
+      prodigyActionCallable = httpsCallable(functionsApi, "prodigyAction", { timeout: 30000 });
 
       if (USE_FIREBASE_EMULATORS) {
         connectAuthEmulator(auth, `http://${FIREBASE_EMULATOR_HOST}:${FIREBASE_AUTH_EMULATOR_PORT}`, { disableWarnings: true });
         connectFirestoreEmulator(db, FIREBASE_EMULATOR_HOST, FIREBASE_FIRESTORE_EMULATOR_PORT);
+        connectFunctionsEmulator(functionsApi, FIREBASE_EMULATOR_HOST, FIREBASE_FUNCTIONS_EMULATOR_PORT);
       }
 
       const initAuth = async () => {
@@ -20997,14 +21322,30 @@
       };
 
       initAuth().then(() => {
-        onAuthStateChanged(auth, (user) => {
+        onAuthStateChanged(auth, async (user) => {
           if (user) {
+            try {
+              await refreshCloudClaims();
+              setWebsiteAdminAccess(cloudOwnerClaimActive(cloudClaims), { persist: false });
+            } catch (error) {
+              cloudClaims = {};
+              console.error("Firebase claim refresh failed:", error);
+            }
             setupCloudSync(user);
             if (nativeStreamActive && activeEventId && nativeStreamSessionId && !nativeStreamViewerUnsubscribe) {
               listenForNativeStreamViewers().catch((error) => console.error("Native viewer listener bootstrap failed:", error));
             }
           }
         });
+      }).catch((error) => {
+        activeEventServerReady = false;
+        const statusEl = document.getElementById("syncStatus");
+        if (statusEl) {
+          statusEl.textContent = isOfflineMode() ? "Offline Protected" : "Sync Error";
+          statusEl.classList.remove("online");
+          statusEl.classList.add("offline-protected");
+        }
+        console.error("Firebase auth initialization failed:", error);
       });
     }
 
@@ -21029,6 +21370,7 @@
     }
 
     window.addEventListener("online", () => {
+      activeEventServerReady = false;
       syncNetworkStatusIndicator();
       if (db && auth?.currentUser) {
         setupCloudSync(auth.currentUser);
@@ -21036,6 +21378,7 @@
     });
 
     window.addEventListener("offline", () => {
+      activeEventServerReady = false;
       syncNetworkStatusIndicator();
     });
 
@@ -21740,6 +22083,7 @@
       unlocked: false,
       lastDistanceMeters: null,
     };
+    let selfRegistrationArrivalCoordinates = null;
     let venueLocationLookupInFlight = false;
     let venueLocationLookupTone = "info";
     let venueLocationLookupMessage = "Capture the current device position at the venue to set the geofence center, or open the manual backup fields if GPS permission is unavailable.";
@@ -21875,12 +22219,14 @@
       return activeEventMeta?.roleAccess?.[role] || null;
     }
 
-    function setWebsiteAdminAccess(enabled) {
-      isWebsiteAdmin = Boolean(enabled);
+    function setWebsiteAdminAccess(enabled, options = {}) {
+      const canUseClaim = TEST_MODE_ENABLED || STANDALONE_DEMO_MODE || cloudOwnerClaimActive(cloudClaims);
+      isWebsiteAdmin = Boolean(enabled && canUseClaim);
       document.body.dataset.siteAdmin = String(isWebsiteAdmin);
       syncWebsiteAdminButtonVisibility();
       if (isWebsiteAdmin) {
-        sessionStorage.setItem(WEBSITE_ADMIN_STORAGE_KEY, "true");
+        if (options.persist !== false) sessionStorage.setItem(WEBSITE_ADMIN_STORAGE_KEY, "true");
+        else sessionStorage.removeItem(WEBSITE_ADMIN_STORAGE_KEY);
       } else {
         sessionStorage.removeItem(WEBSITE_ADMIN_STORAGE_KEY);
         localStorage.removeItem(WEBSITE_ADMIN_STORAGE_KEY);
@@ -23920,7 +24266,7 @@
       try {
         let existing = localStorage.getItem(SELF_REGISTER_DEVICE_ID_KEY);
         if (existing) return existing;
-        existing = generateId();
+        existing = globalThis.crypto?.randomUUID?.() || `${generateId()}${generateId()}${generateId()}`;
         localStorage.setItem(SELF_REGISTER_DEVICE_ID_KEY, existing);
         return existing;
       } catch (error) {
@@ -24338,7 +24684,7 @@
     }
 
     function syncRegistrationDraftForm() {
-      const canEditRegistration = registrationCanEdit();
+      const canEditRegistration = registrationCanEdit() && !registrationSubmissionInFlight;
       const teamMode = isTeamCompetitionMode();
       const twinTripleMode = isTwinTripleMode();
       if (registrationDraftNameLabel) registrationDraftNameLabel.textContent = teamMode ? "Driver 1" : "Driver Name";
@@ -24364,9 +24710,9 @@
       if (registrationTeamFields) registrationTeamFields.hidden = !teamMode;
       if (registrationSoloFields) registrationSoloFields.hidden = false;
       if (registrationAddDriverBtn) registrationAddDriverBtn.disabled = !canEditRegistration;
-      if (registrationAddDriverBtn) registrationAddDriverBtn.textContent = teamMode ? "Add Team" : "Add Driver";
+      if (registrationAddDriverBtn) registrationAddDriverBtn.textContent = registrationSubmissionInFlight ? "Saving..." : teamMode ? "Add Team" : "Add Driver";
       if (registrationAddDriverSecondaryBtn) registrationAddDriverSecondaryBtn.disabled = !canEditRegistration;
-      if (registrationAddDriverSecondaryBtn) registrationAddDriverSecondaryBtn.textContent = teamMode ? "Submit Team" : "Submit Driver";
+      if (registrationAddDriverSecondaryBtn) registrationAddDriverSecondaryBtn.textContent = registrationSubmissionInFlight ? "Saving..." : teamMode ? "Submit Team" : "Submit Driver";
       if (registrationEntryIntro) {
         registrationEntryIntro.textContent = teamMode
           ? `${twinTripleMode ? "Twin Comp" : "Team Tandem"} registers one team at a time. Team name is required, Driver 1 and Driver 2 are required, and Driver 3 is optional.`
@@ -24481,7 +24827,7 @@
       const hasDraftName = teamMode
         ? Boolean((selfRegistrationDraft.teamName || "").trim()) && namedDraftMembers.length >= TEAM_TANDEM_MIN_DRIVERS && !draftSlots.some((member) => member.chassis && !member.name)
         : Boolean((selfRegistrationDraft.name || "").trim());
-      const canSubmit = venueIsValid && !isEventReadOnly() && !isClosedByQualifying && hasDraftName;
+      const canSubmit = venueIsValid && !isEventReadOnly() && !isClosedByQualifying && hasDraftName && !selfRegistrationSubmissionInFlight;
       const effectiveCopy = qrMode
         ? (qrValidation.valid
           ? selfRegistrationState.copy || qrValidation.copy
@@ -24507,20 +24853,22 @@
       if (selfRegisterChassis2) selfRegisterChassis2.value = selfRegistrationDraft.teammate2Chassis || "";
       if (selfRegisterName3) selfRegisterName3.value = selfRegistrationDraft.teammate3Name || "";
       if (selfRegisterChassis3) selfRegisterChassis3.value = selfRegistrationDraft.teammate3Chassis || "";
-      if (selfRegisterName) selfRegisterName.disabled = !venueIsValid || isEventReadOnly() || isClosedByQualifying;
-      if (selfRegisterTeam) selfRegisterTeam.disabled = !venueIsValid || isEventReadOnly() || isClosedByQualifying;
-      if (selfRegisterChassis) selfRegisterChassis.disabled = !venueIsValid || isEventReadOnly() || isClosedByQualifying;
-      if (selfRegisterName2) selfRegisterName2.disabled = !venueIsValid || isEventReadOnly() || isClosedByQualifying;
-      if (selfRegisterChassis2) selfRegisterChassis2.disabled = !venueIsValid || isEventReadOnly() || isClosedByQualifying;
-      if (selfRegisterName3) selfRegisterName3.disabled = !venueIsValid || isEventReadOnly() || isClosedByQualifying;
-      if (selfRegisterChassis3) selfRegisterChassis3.disabled = !venueIsValid || isEventReadOnly() || isClosedByQualifying;
+      if (selfRegisterName) selfRegisterName.disabled = !venueIsValid || isEventReadOnly() || isClosedByQualifying || selfRegistrationSubmissionInFlight;
+      if (selfRegisterTeam) selfRegisterTeam.disabled = !venueIsValid || isEventReadOnly() || isClosedByQualifying || selfRegistrationSubmissionInFlight;
+      if (selfRegisterChassis) selfRegisterChassis.disabled = !venueIsValid || isEventReadOnly() || isClosedByQualifying || selfRegistrationSubmissionInFlight;
+      if (selfRegisterName2) selfRegisterName2.disabled = !venueIsValid || isEventReadOnly() || isClosedByQualifying || selfRegistrationSubmissionInFlight;
+      if (selfRegisterChassis2) selfRegisterChassis2.disabled = !venueIsValid || isEventReadOnly() || isClosedByQualifying || selfRegistrationSubmissionInFlight;
+      if (selfRegisterName3) selfRegisterName3.disabled = !venueIsValid || isEventReadOnly() || isClosedByQualifying || selfRegistrationSubmissionInFlight;
+      if (selfRegisterChassis3) selfRegisterChassis3.disabled = !venueIsValid || isEventReadOnly() || isClosedByQualifying || selfRegistrationSubmissionInFlight;
       if (selfRegisterTeamFields) selfRegisterTeamFields.hidden = !teamMode;
       if (selfRegisterSoloFields) selfRegisterSoloFields.hidden = false;
       if (selfRegisterSubmitBtn) {
         selfRegisterSubmitBtn.disabled = !canSubmit;
-        selfRegisterSubmitBtn.textContent = pendingCheckInEntry
-          ? teamMode ? "Update Team Pre-Registration" : "Update Pre-Registration"
-          : teamMode ? "Pre-Register Team" : "Pre-Register";
+        selfRegisterSubmitBtn.textContent = selfRegistrationSubmissionInFlight
+          ? "Saving..."
+          : pendingCheckInEntry
+            ? teamMode ? "Update Team Pre-Registration" : "Update Pre-Registration"
+            : teamMode ? "Pre-Register Team" : "Pre-Register";
       }
       if (selfRegisterQrArrivalPanel) {
         selfRegisterQrArrivalPanel.hidden = !qrMode;
@@ -24583,9 +24931,9 @@
               : "No preregistered entry matches your current name yet. Search by name or use saved details.";
       }
       if (selfRegisterLocateBtn) {
-        selfRegisterLocateBtn.disabled = qrMode
+        selfRegisterLocateBtn.disabled = selfRegistrationSubmissionInFlight || (qrMode
           ? !qrLocateReady || isEventReadOnly()
-          : !venueIsValid || isEventReadOnly() || isClosedByQualifying;
+          : !venueIsValid || isEventReadOnly() || isClosedByQualifying);
         selfRegisterLocateBtn.textContent = qrMode
           ? pendingCheckInEntry?.checkedInAt
             ? "Already Checked In"
@@ -25335,13 +25683,7 @@
       saveDirectoryCache();
       saveEventStateCache();
       saveArchivedResultsCache();
-      await publishStateImmediately();
-      try {
-        await persistArchivedResultsDirectory();
-      } catch (error) {
-        window.alert("The event was finalized locally, but the past-events archive could not sync to the cloud yet. Keep this page open and retry once your connection is stable.");
-        return;
-      }
+      if (!await publishStateImmediately({ archivedResultRecord: archivedRecord })) return;
       renderEventDirectory();
       renderRoleAdminPanel();
       renderDriversTable();
@@ -25647,7 +25989,7 @@
         pendingRegistrations: [],
         latestApprovalToast: null,
         judgeRoleClaims: createEmptyJudgeRoleClaims(),
-        roleAccess: await createRoleAccessFromPasswords(LEGACY_PASSWORDS),
+        roleAccess: await createRoleAccessFromInvites({}),
         results: results || buildEmptyEventResults(),
         testMode: true,
       };
@@ -25739,7 +26081,6 @@
 
     async function buildTestDemoScenario(scenario = "qualifying") {
       const normalizedScenario = normalizeTestScenario(scenario);
-      const now = Date.now();
       const completedDrivers = buildTestSampleDrivers(true).slice(0, 8);
       const completedMeta = await buildDemoEventMeta({
         id: "demo-completed-reference",
@@ -25752,7 +26093,7 @@
         const drivers = buildTestSampleDrivers(true).slice(0, 16);
         const bracket = buildDemoBracketState(drivers);
         const meta = await buildDemoEventMeta({
-          id: `demo-bracket-${now}`,
+          id: "demo-bracket-current",
           name: "DEMO Bracket Battle Test",
           results: {
             ...buildEmptyEventResults(),
@@ -25783,7 +26124,7 @@
         const drivers = buildDemoTeamDrivers(8);
         const twinComp = buildDemoTwinCompState(drivers);
         const meta = await buildDemoEventMeta({
-          id: `demo-twin-${now}`,
+          id: "demo-twin-current",
           name: "DEMO Twin Comp Triple Elimination",
           competitionMode: COMPETITION_MODE_TWIN_TRIPLE,
           judgeCount: 3,
@@ -25814,7 +26155,7 @@
 
       const drivers = buildTestSampleDrivers(false).slice(0, 16);
       const meta = await buildDemoEventMeta({
-        id: `demo-qualifying-${now}`,
+        id: "demo-qualifying-current",
         name: "DEMO Qualifying Judge Test",
         judgeCount: 3,
         results: {
@@ -25842,6 +26183,90 @@
       };
     }
 
+    async function commitTestDemoScenario(demo) {
+      if (!TEST_MODE_ENABLED || !db || !auth?.currentUser) {
+        throw new Error("Test scenario cloud reset requires authenticated test mode.");
+      }
+
+      const syncStamp = Date.now();
+      const demoEventIds = Object.keys(demo.directory);
+      const locallyRecoveredEventIds = Object.keys(getRecoveredDirectorySnapshot());
+      const seededDirectory = Object.fromEntries(demoEventIds.map((eventId) => [
+        eventId,
+        cloneEventMeta({ ...demo.directory[eventId], syncStamp }),
+      ]));
+      const seededArchive = Object.fromEntries(Object.entries(demo.archived || {}).map(([eventId, record]) => [
+        eventId,
+        normalizeArchivedResultsRecord(record, eventId),
+      ]));
+      let nextDeletedEventIds = [];
+
+      await runTransaction(db, async (transaction) => {
+        const directoryRef = getDirectoryDocRef();
+        const directorySnap = await transaction.get(directoryRef);
+        const directoryData = directorySnap.data() || {};
+        const remoteEventIds = Object.keys(directoryData.events || {});
+        const staleEventIds = [...new Set([...remoteEventIds, ...locallyRecoveredEventIds])]
+          .filter((eventId) => !demoEventIds.includes(eventId));
+        nextDeletedEventIds = normalizeDeletedEventIds([
+          ...normalizeDeletedEventIds(directoryData.deletedEventIds || []),
+          ...staleEventIds,
+        ]).filter((eventId) => !demoEventIds.includes(eventId));
+
+        staleEventIds.forEach((eventId) => transaction.delete(getEventDocRef(eventId)));
+        demoEventIds.forEach((eventId) => {
+          const eventMeta = seededDirectory[eventId];
+          const isActiveDemoEvent = eventId === demo.activeEventId;
+          transaction.set(getEventDocRef(eventId), isActiveDemoEvent ? {
+            ...eventMeta,
+            drivers: JSON.parse(JSON.stringify(demo.state.drivers || [])),
+            bracket: demo.state.bracket ? JSON.parse(JSON.stringify(demo.state.bracket)) : null,
+            twinComp: demo.state.twinComp ? JSON.parse(JSON.stringify(demo.state.twinComp)) : null,
+            qualifyingFlow: JSON.parse(JSON.stringify(demo.state.qualifyingFlow || createEmptyQualifyingFlow())),
+            formatMode: demo.state.formatMode || FORMAT_CLASSIC,
+            lowerCount: demo.state.lowerCount || "0",
+            syncStamp,
+          } : {
+            ...eventMeta,
+            drivers: [],
+            bracket: null,
+            twinComp: null,
+            qualifyingFlow: { currentDriverId: null, readyRoles: {}, started: true, completed: true },
+            formatMode: FORMAT_CLASSIC,
+            lowerCount: "0",
+            syncStamp,
+          });
+        });
+        transaction.set(directoryRef, {
+          events: seededDirectory,
+          activeEventId: demo.activeEventId,
+          deletedEventIds: nextDeletedEventIds,
+          syncStamp,
+        });
+        transaction.set(getActiveEventSelectionDocRef(), {
+          activeEventId: demo.activeEventId,
+          eventMeta: cloneEventMeta(seededDirectory[demo.activeEventId]),
+          syncStamp,
+        });
+        transaction.set(getArchivedResultsDocRef(), {
+          events: seededArchive,
+          syncStamp,
+        });
+      });
+
+      return {
+        activeEventId: demo.activeEventId,
+        activeState: {
+          ...demo.state,
+          meta: cloneEventMeta(seededDirectory[demo.activeEventId]),
+        },
+        archive: seededArchive,
+        deletedEventIds: nextDeletedEventIds,
+        directory: seededDirectory,
+        syncStamp,
+      };
+    }
+
     async function seedTestDemoScenario(scenario = "qualifying") {
       const normalizedScenario = normalizeTestScenario(scenario);
       if (!TEST_MODE_ENABLED) {
@@ -25852,29 +26277,31 @@
       try {
         await ensureCloudAuthReady();
         const demo = await buildTestDemoScenario(normalizedScenario);
-        const demoEventIds = new Set(Object.keys(demo.directory));
-        const staleTestEventIds = Object.keys(getRecoveredDirectorySnapshot())
-          .filter((eventId) => !demoEventIds.has(eventId));
-        deletedEventIds = new Set([...deletedEventIds, ...staleTestEventIds]);
-        demoEventIds.forEach((eventId) => setDeletedEventId(eventId, false));
-        lastRemoteDirectoryEvents = {};
-        hasLoadedRemoteDirectory = false;
-        lastRemoteDirectorySyncStamp = 0;
-        lastRemoteActiveEventSyncStamp = 0;
-        lastRemoteArchivedResultsSyncStamp = 0;
-        lastKnownRemoteActiveEventSelection = null;
+        const seeded = await commitTestDemoScenario(demo);
 
-        activeEventId = demo.activeEventId;
-        eventDirectory = demo.directory;
-        archivedResultsDirectory = demo.archived;
-        applyActiveEventState(demo.state, { syncQualifying: false });
+        activeEventId = seeded.activeEventId;
+        eventDirectory = seeded.directory;
+        archivedResultsDirectory = seeded.archive;
+        deletedEventIds = new Set(seeded.deletedEventIds);
+        lastRemoteDirectoryEvents = mergeDirectoryMaps(seeded.directory);
+        hasLoadedRemoteDirectory = true;
+        lastRemoteDirectorySyncStamp = seeded.syncStamp;
+        lastRemoteActiveEventSyncStamp = seeded.syncStamp;
+        lastRemoteArchivedResultsSyncStamp = seeded.syncStamp;
+        lastRemoteEventSyncStamp = seeded.syncStamp;
+        lastLocalPush = seeded.syncStamp;
+        lastKnownRemoteActiveEventSelection = normalizeActiveEventSelectionSnapshot({
+          activeEventId: seeded.activeEventId,
+          eventMeta: seeded.directory[seeded.activeEventId],
+          syncStamp: seeded.syncStamp,
+        });
+        saveCachedActiveEventSelection(lastKnownRemoteActiveEventSelection);
+        applyActiveEventState(seeded.activeState, { syncQualifying: false });
         currentRole = "admin";
         setRoleUnlockedForEvent(activeEventId, "admin", true);
         saveDirectoryCache();
         saveArchivedResultsCache();
         saveEventStateCache();
-        await publishStateImmediately();
-        syncScheduledActiveEventSelection({ publishSelection: true });
         applyRoleChange("admin");
         switchView(demo.view);
         renderEventDirectory();
@@ -27463,7 +27890,7 @@
       if (nativeStreamRemoteSessionId === streamState.sessionId && nativeStreamViewerPeer) return;
       closeNativeViewerConnection({ deleteDoc: true });
       nativeStreamRemoteSessionId = streamState.sessionId;
-      nativeStreamViewerId = nativeStreamViewerId || `viewer-${Date.now()}-${generateId()}`;
+      nativeStreamViewerId = auth?.currentUser?.uid || nativeStreamViewerId || `viewer-${Date.now()}-${generateId()}`;
       const viewerId = nativeStreamViewerId;
       const pc = new RTCPeerConnection(getNativeRtcConfiguration());
       const remoteStream = new MediaStream();
@@ -28178,6 +28605,11 @@
         statusEl.classList.add("offline-protected");
         return;
       }
+      if (firebaseConfig && activeEventId && (!auth?.currentUser || !activeEventServerReady)) {
+        statusEl.textContent = "Sync Connecting";
+        statusEl.classList.remove("online", "offline-protected");
+        return;
+      }
       statusEl.textContent = "Sync Online";
       statusEl.classList.add("online");
       statusEl.classList.remove("offline-protected");
@@ -28608,7 +29040,154 @@
       }
     }
 
-    function submitRegistrationDraft() {
+    async function commitDirectRosterRegistration(candidateDrivers) {
+      const eventId = activeEventId;
+      const publishSyncStamp = Date.now();
+      let transactionResult = null;
+
+      if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE && prodigyActionCallable) {
+        try {
+          const result = await callProdigyAction("adminRegistration", {
+            eventId,
+            operation: "direct",
+            entries: candidateDrivers,
+          });
+          return {
+            status: "registered",
+            committedDrivers: candidateDrivers,
+            eventPayload: result.eventPayload,
+            publishSyncStamp: result.syncStamp || publishSyncStamp,
+          };
+        } catch (error) {
+          const duplicate = error?.code?.includes?.("already-exists") || /already registered|already exists/i.test(error?.message || "");
+          return {
+            status: duplicate ? "duplicate" : "server-error",
+            duplicateName: candidateDrivers[0]?.name || "This driver",
+            duplicateType: "roster",
+            eventPayload: null,
+            message: error?.message || "Secure registration failed.",
+          };
+        }
+      }
+
+      await runTransaction(db, async (transaction) => {
+        transactionResult = null;
+        const eventRef = getEventDocRef(eventId);
+        const eventSnap = await transaction.get(eventRef);
+        if (!eventSnap.exists()) {
+          transactionResult = { status: "missing-event", eventPayload: null };
+          return;
+        }
+
+        const remotePayload = eventSnap.data() || {};
+        const remoteEventMeta = extractEventMeta(remotePayload, eventId);
+        const remoteDrivers = sanitizeLoadedDrivers(remotePayload.drivers || []);
+        const remoteMetaWithPending = {
+          ...remoteEventMeta,
+          pendingRegistrations: normalizePendingRegistrationList(remotePayload.pendingRegistrations || []),
+        };
+        const candidateNames = [...new Set(candidateDrivers.flatMap((driver) => [
+          driver.name,
+          ...(Array.isArray(driver.tandemMembers) ? driver.tandemMembers : []),
+        ]).map((name) => String(name || "").trim()).filter(Boolean))];
+
+        for (const candidateName of candidateNames) {
+          const duplicate = findDuplicateDriverEntry(candidateName, {
+            drivers: remoteDrivers,
+            eventMeta: remoteMetaWithPending,
+          });
+          if (duplicate) {
+            transactionResult = {
+              status: "duplicate",
+              duplicateName: candidateName,
+              duplicateType: duplicate.type,
+              eventPayload: remotePayload,
+            };
+            return;
+          }
+        }
+
+        const nextPosition = getNextSignUpPosition(remoteDrivers);
+        const committedDrivers = candidateDrivers.map((driver, index) => ({
+          ...JSON.parse(JSON.stringify(driver)),
+          reg: nextPosition + index,
+          signUpPosition: nextPosition + index,
+        }));
+        const nextRoster = resequenceDrivers([...getRegisteredDrivers(remoteDrivers), ...committedDrivers], true);
+        const updatedAt = new Date().toISOString();
+        const eventUpdates = {
+          drivers: nextRoster,
+          bracket: remotePayload.bracket?.mainBracket?.rounds?.length ? null : (remotePayload.bracket || null),
+          updatedAt,
+          syncStamp: publishSyncStamp,
+        };
+        const nextEventPayload = {
+          ...remotePayload,
+          ...eventUpdates,
+        };
+
+        transaction.set(eventRef, eventUpdates, { merge: true });
+        transaction.set(getDirectoryDocRef(), {
+          events: {
+            [eventId]: cloneEventMeta(extractEventMeta(nextEventPayload, eventId)),
+          },
+          syncStamp: publishSyncStamp,
+        }, { merge: true });
+        transactionResult = {
+          status: "registered",
+          committedDrivers,
+          eventPayload: nextEventPayload,
+          publishSyncStamp,
+        };
+      });
+
+      return transactionResult || { status: "unknown", eventPayload: null };
+    }
+
+    function applyDirectRosterRegistrationResult(result) {
+      if (result?.eventPayload && result.eventPayload.id === activeEventId) {
+        applyRemoteEventState(result.eventPayload);
+        renderAfterRemoteSync();
+      }
+      if (result?.status === "registered") return true;
+      if (result?.status === "duplicate") {
+        window.alert(`${result.duplicateName} already exists in the ${result.duplicateType === "roster" ? "live roster" : "pending list"}.`);
+        return false;
+      }
+      window.alert(result?.status === "missing-event"
+        ? "This event no longer exists on the server. Reload Event Admin before registering another driver."
+        : "This registration could not be saved from the latest server state. Review the roster and try again.");
+      return false;
+    }
+
+    async function submitDirectRosterRegistrationToCloud(candidateDrivers) {
+      if (registrationSubmissionInFlight) return false;
+      if (!auth?.currentUser || !activeEventServerReady) {
+        window.alert("Driver registration is waiting for authoritative cloud data. Wait for Sync Online and submit again.");
+        return false;
+      }
+
+      const submissionEventId = activeEventId;
+      registrationSubmissionInFlight = true;
+      syncRegistrationDraftForm();
+      try {
+        const result = await commitDirectRosterRegistration(candidateDrivers);
+        if (!applyDirectRosterRegistrationResult(result)) return false;
+        if (activeEventId !== submissionEventId) return true;
+        renderDriversTable();
+        resetRegistrationDraft();
+        return true;
+      } catch (error) {
+        console.error("Direct roster registration failed:", error);
+        window.alert("This registration could not reach cloud sync. Nothing was changed; check the connection and submit again.");
+        return false;
+      } finally {
+        registrationSubmissionInFlight = false;
+        syncRegistrationDraftForm();
+      }
+    }
+
+    async function submitRegistrationDraft() {
       if (!registrationCanEdit()) return false;
       const nextDraft = normalizeRegistrationDraftState(registrationDraft);
       if (isTeamCompetitionMode()) {
@@ -28652,6 +29231,8 @@
               return nextDriver;
             });
 
+        if (db) return await submitDirectRosterRegistrationToCloud(nextDrivers);
+
         setActiveDriversState(resequenceDrivers([...getRegisteredDrivers(appDrivers), ...nextDrivers], true));
         invalidateBracketFromAdminChanges();
         publishState();
@@ -28678,6 +29259,7 @@
       nextDriver.chassis = (nextDraft.chassis || "").trim();
       nextDriver.reg = nextPosition;
       nextDriver.signUpPosition = nextPosition;
+      if (db) return await submitDirectRosterRegistrationToCloud([nextDriver]);
       setActiveDriversState(resequenceDrivers([...getRegisteredDrivers(appDrivers), nextDriver], true));
       invalidateBracketFromAdminChanges();
       publishState();
@@ -28769,10 +29351,98 @@
       return true;
     }
 
+    async function commitPendingRegistrationGroupMutation(entryId, { transform = null, remove = false } = {}) {
+      const eventId = activeEventId;
+      const publishSyncStamp = Date.now();
+      let transactionResult = null;
+
+      await runTransaction(db, async (transaction) => {
+        transactionResult = null;
+        const eventRef = getEventDocRef(eventId);
+        const eventSnap = await transaction.get(eventRef);
+        if (!eventSnap.exists()) {
+          transactionResult = { status: "missing-event", eventPayload: null };
+          return;
+        }
+
+        const remotePayload = eventSnap.data() || {};
+        const remoteEventMeta = extractEventMeta(remotePayload, eventId);
+        const remotePendingEntries = normalizePendingRegistrationList(remotePayload.pendingRegistrations || []);
+        const remoteMetaWithPending = {
+          ...remoteEventMeta,
+          pendingRegistrations: remotePendingEntries,
+        };
+        const entryGroup = getPendingRegistrationGroupEntries(entryId, remoteMetaWithPending);
+        if (!entryGroup.length) {
+          transactionResult = { status: "missing-entry", eventPayload: remotePayload };
+          return;
+        }
+
+        const entryIds = new Set(entryGroup.map((entry) => entry.id));
+        const nextPendingEntries = remove
+          ? remotePendingEntries.filter((entry) => !entryIds.has(entry.id))
+          : remotePendingEntries.map((entry) => {
+              if (!entryIds.has(entry.id)) return entry;
+              return normalizePendingRegistrationList([transform(entry, entryGroup)])[0];
+            });
+        const updatedAt = new Date().toISOString();
+        const eventUpdates = {
+          pendingRegistrations: nextPendingEntries,
+          updatedAt,
+          syncStamp: publishSyncStamp,
+        };
+        const nextEventPayload = {
+          ...remotePayload,
+          ...eventUpdates,
+        };
+        transaction.set(eventRef, eventUpdates, { merge: true });
+        transaction.set(getDirectoryDocRef(), {
+          events: {
+            [eventId]: cloneEventMeta(extractEventMeta(nextEventPayload, eventId)),
+          },
+          syncStamp: publishSyncStamp,
+        }, { merge: true });
+        transactionResult = {
+          status: remove ? "removed" : "updated",
+          eventPayload: nextEventPayload,
+          entryGroup,
+          publishSyncStamp,
+        };
+      });
+
+      return transactionResult || { status: "unknown", eventPayload: null };
+    }
+
+    function applyPendingRegistrationMutationResult(result, successStatus) {
+      if (result?.eventPayload && result.eventPayload.id === activeEventId) {
+        applyRemoteEventState(result.eventPayload);
+        renderAfterRemoteSync();
+      }
+      return result?.status === successStatus;
+    }
+
     async function updatePendingRegistrationGroupState(entryId, transform) {
       if (!registrationCanEdit() || !activeEventMeta || typeof transform !== "function") return false;
       const entryGroup = getPendingRegistrationGroupEntries(entryId);
       if (!entryGroup.length) return false;
+      if (db) {
+        if (!auth?.currentUser || !activeEventServerReady) {
+          window.alert("This registration update is waiting for authoritative cloud data. Wait for Sync Online and try again.");
+          return false;
+        }
+        try {
+          const result = await commitPendingRegistrationGroupMutation(entryId, { transform });
+          if (applyPendingRegistrationMutationResult(result, "updated")) return true;
+          window.alert(result?.status === "missing-entry"
+            ? "This registration was already approved, removed, or changed on another device. The latest event state has been loaded."
+            : "This registration update could not be applied to the latest server state. Review the entry and try again.");
+          return false;
+        } catch (error) {
+          console.error("Pending registration update failed:", error);
+          window.alert("This registration update could not reach cloud sync. Nothing was changed; check the connection and try again.");
+          return false;
+        }
+      }
       const pendingEntries = getPendingRegistrations();
       const nextEntries = pendingEntries.map((entry) => {
         if (!entryGroup.some((member) => member.id === entry.id)) return entry;
@@ -28785,14 +29455,38 @@
       eventDirectory[activeEventId] = cloneEventMeta(activeEventMeta);
       saveDirectoryCache();
       saveEventStateCache();
-      await publishStateImmediately();
+      if (!await publishStateImmediately()) return false;
       renderDriversTable();
       syncSelfRegisterForm();
       syncSelfRegisterQrPanel();
       return true;
     }
 
+    async function commitSecurePendingRegistrationOperation(entryId, operation, details = {}) {
+      if (TEST_MODE_ENABLED || STANDALONE_DEMO_MODE || !prodigyActionCallable) return null;
+      try {
+        const result = await callProdigyAction("adminRegistration", {
+          eventId: activeEventId,
+          operation,
+          entryId,
+          ...details,
+        });
+        if (result?.eventPayload) {
+          applyRemoteEventState(result.eventPayload);
+          renderAfterRemoteSync();
+        }
+        return { status: "updated", eventPayload: result?.eventPayload };
+      } catch (error) {
+        console.error(`Secure pending registration ${operation} failed:`, error);
+        window.alert(error?.message || "This registration update could not be saved securely.");
+        return { status: "server-error", eventPayload: null };
+      }
+    }
+
     async function markPendingRegistrationNeedsReview(entryId, reason = "Duplicate or identity mismatch at check-in.") {
+      if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE && prodigyActionCallable) {
+        return (await commitSecurePendingRegistrationOperation(entryId, "needsReview", { reason }))?.status === "updated";
+      }
       return updatePendingRegistrationGroupState(entryId, (entry) => ({
         ...entry,
         needsReviewAt: entry.needsReviewAt || new Date().toISOString(),
@@ -28803,6 +29497,9 @@
     }
 
     async function rejectPendingRegistration(entryId, reason = "Rejected by event admin.") {
+      if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE && prodigyActionCallable) {
+        return (await commitSecurePendingRegistrationOperation(entryId, "reject", { reason }))?.status === "updated";
+      }
       return updatePendingRegistrationGroupState(entryId, (entry) => ({
         ...entry,
         rejectedAt: entry.rejectedAt || new Date().toISOString(),
@@ -28813,6 +29510,9 @@
     }
 
     async function resetPendingArrivalState(entryId) {
+      if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE && prodigyActionCallable) {
+        return (await commitSecurePendingRegistrationOperation(entryId, "resetArrival"))?.status === "updated";
+      }
       return updatePendingRegistrationGroupState(entryId, (entry) => ({
         ...entry,
         arrivedAt: null,
@@ -28827,7 +29527,44 @@
       }));
     }
 
+    function getSelfRegistrationArrivalProof(source = "") {
+      if (!source && !selfRegistrationState.unlocked) return null;
+      if (source === "qr" || (!source && getVenueQrCheckInRequest().qrMode)) {
+        const request = getVenueQrCheckInRequest();
+        return request.qrToken ? { source: "qr", qrToken: request.qrToken } : null;
+      }
+      const coordinates = selfRegistrationArrivalCoordinates;
+      if ((!source || source === "geofence") && coordinates?.eventId === activeEventId) {
+        return { source: "geofence", latitude: coordinates.latitude, longitude: coordinates.longitude };
+      }
+      return null;
+    }
+
+    async function commitSecureSpectatorArrival(source, distanceMeters = null, coordinates = null) {
+      try {
+        if (coordinates && source === "geofence") {
+          selfRegistrationArrivalCoordinates = { eventId: activeEventId, ...coordinates };
+        }
+        const result = await callProdigyAction("spectatorArrival", {
+          eventId: activeEventId,
+          arrivalProof: getSelfRegistrationArrivalProof(source),
+          deviceToken: getSelfRegisterDeviceId(),
+        });
+        if (result?.eventPayload) {
+          applyRemoteEventState(result.eventPayload);
+          renderAfterRemoteSync();
+        }
+        return true;
+      } catch (error) {
+        console.error(`Secure ${source} arrival failed:`, error);
+        updateSelfRegistrationState("error", error?.message || "Venue arrival could not be saved securely. Try again.", false, distanceMeters);
+        syncSelfRegisterForm();
+        return false;
+      }
+    }
+
     async function confirmSelfRegistrationQrArrival() {
+      const arrivalEventId = activeEventId;
       const request = getVenueQrCheckInRequest();
       const validation = getVenueQrCheckInValidation();
       if (!request.qrMode || !validation.valid || !activeEventMeta) {
@@ -28861,6 +29598,66 @@
 
       const venueConfig = getVenueConfig();
       const arrivedAt = new Date().toISOString();
+      if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE && prodigyActionCallable) {
+        if (!await commitSecureSpectatorArrival("qr")) return false;
+        updateSelfRegistrationState(
+          "ready",
+          venueConfig.qrApprovalMode
+            ? `${leader.teamName || leader.name} is marked arrived and pending front-desk approval.`
+            : `${leader.teamName || leader.name} is checked in and ready for front-desk approval.`,
+          true,
+        );
+        renderDriversTable();
+        syncSelfRegisterForm();
+        syncSelfRegisterQrPanel();
+        return true;
+      }
+      if (db) {
+        if (!auth?.currentUser || !activeEventServerReady) {
+          updateSelfRegistrationState("error", "Arrival check-in is waiting for the event server. Wait for Sync Online and try again.", false);
+          syncSelfRegisterForm();
+          return false;
+        }
+        try {
+          const result = await commitPendingRegistrationGroupMutation(leader.id, {
+            transform: (entry) => ({
+              ...entry,
+              arrivedAt,
+              checkedInAt: arrivedAt,
+              arrivalSource: "qr",
+              approvalRequired: venueConfig.qrApprovalMode,
+              needsReviewAt: null,
+              reviewReason: null,
+              rejectedAt: null,
+              rejectedReason: null,
+            }),
+          });
+          if (!applyPendingRegistrationMutationResult(result, "updated")) {
+            updateSelfRegistrationState("error", result?.status === "missing-entry"
+              ? "This registration was already approved, removed, or changed on another device. Reload the event before checking in."
+              : "This arrival could not be saved from the latest event state. Review the entry and try again.", false);
+            syncSelfRegisterForm();
+            return false;
+          }
+          if (activeEventId !== arrivalEventId) return true;
+        } catch (error) {
+          console.error("QR arrival sync failed:", error);
+          updateSelfRegistrationState("error", "Arrival check-in could not reach the event server. Nothing was changed; check the connection and try again.", false);
+          syncSelfRegisterForm();
+          return false;
+        }
+        updateSelfRegistrationState(
+          "ready",
+          venueConfig.qrApprovalMode
+            ? `${leader.teamName || leader.name} is marked arrived and pending front-desk approval.`
+            : `${leader.teamName || leader.name} is checked in and ready for front-desk approval.`,
+          true,
+        );
+        renderDriversTable();
+        syncSelfRegisterForm();
+        syncSelfRegisterQrPanel();
+        return true;
+      }
       const pendingEntries = getPendingRegistrations();
       setActiveEventMetaState({
         ...activeEventMeta,
@@ -28888,7 +29685,11 @@
           : `${leader.teamName || leader.name} is checked in and ready for front-desk approval.`,
         true,
       );
-      await publishStateImmediately();
+      if (!await publishStateImmediately()) {
+        updateSelfRegistrationState("error", "A newer registration update reached the event first. Your arrival was not saved; reload the latest event and try again.", false);
+        syncSelfRegisterForm();
+        return false;
+      }
       renderDriversTable();
       syncSelfRegisterForm();
       syncSelfRegisterQrPanel();
@@ -28896,6 +29697,7 @@
     }
 
     async function checkSelfRegistrationLocation() {
+      const locationEventId = activeEventId;
       const venueConfig = getVenueConfig();
       if (!hasValidVenueConfig()) {
         updateSelfRegistrationState("error", "Venue check-in is not configured for this event yet.", false);
@@ -28909,9 +29711,15 @@
       }
 
       updateSelfRegistrationState("locked", "Checking your location against the venue geofence...", false);
+      selfRegistrationArrivalCoordinates = null;
       syncSelfRegisterForm();
 
-      navigator.geolocation.getCurrentPosition((position) => {
+      navigator.geolocation.getCurrentPosition(async (position) => {
+        if (activeEventId !== locationEventId) {
+          updateSelfRegistrationState("error", "The active event changed while location was being checked. Review the current event and try again.", false);
+          syncSelfRegisterForm();
+          return;
+        }
         const distanceMeters = calculateDistanceMeters(
           position.coords.latitude,
           position.coords.longitude,
@@ -28920,6 +29728,7 @@
         );
         const withinRadius = distanceMeters <= Number(venueConfig.radiusMeters);
         if (!withinRadius) {
+          selfRegistrationArrivalCoordinates = null;
           updateSelfRegistrationState(
             "error",
             `You are ${formatDistanceMeters(distanceMeters)} away. Move inside the ${Math.round(Number(venueConfig.radiusMeters) || 0)} meter event zone and try again.`,
@@ -28930,9 +29739,73 @@
           return;
         }
 
+        selfRegistrationArrivalCoordinates = {
+          eventId: locationEventId,
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        };
+
         const pendingGroup = getPendingEntryGroupForCheckIn();
         const pendingEntry = getPendingRegistrationGroupLeader(pendingGroup);
         if (pendingEntry && pendingGroup.some((entry) => !entry.checkedInAt)) {
+          const checkedInAt = new Date().toISOString();
+          if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE && prodigyActionCallable) {
+            if (!await commitSecureSpectatorArrival("geofence", distanceMeters, selfRegistrationArrivalCoordinates)) return;
+            updateSelfRegistrationState(
+              "ready",
+              `${pendingEntry.teamName || pendingEntry.name} is now checked in at ${venueConfig.label || activeEventMeta?.name || "the venue"}. Event admin can approve ${pendingGroup.length > 1 ? "this team" : "this driver"} after payment.`,
+              true,
+              distanceMeters,
+            );
+            renderDriversTable();
+            syncSelfRegisterForm();
+            return;
+          }
+          if (db) {
+            if (!auth?.currentUser || !activeEventServerReady) {
+              updateSelfRegistrationState("error", "Venue check-in is waiting for the event server. Wait for Sync Online and try again.", false, distanceMeters);
+              syncSelfRegisterForm();
+              return;
+            }
+            try {
+              const result = await commitPendingRegistrationGroupMutation(pendingEntry.id, {
+                transform: (entry) => ({
+                  ...entry,
+                  arrivedAt: entry.arrivedAt || checkedInAt,
+                  checkedInAt,
+                  checkedInDistanceMeters: distanceMeters,
+                  arrivalSource: "geofence",
+                  approvalRequired: createDefaultVenueConfig(activeEventMeta?.venueConfig || {}).qrApprovalMode,
+                  needsReviewAt: null,
+                  reviewReason: null,
+                  rejectedAt: null,
+                  rejectedReason: null,
+                }),
+              });
+              if (!applyPendingRegistrationMutationResult(result, "updated")) {
+                updateSelfRegistrationState("error", result?.status === "missing-entry"
+                  ? "This registration was already approved, removed, or changed on another device. Reload the event before checking in."
+                  : "Venue check-in could not be saved from the latest event state. Review the entry and try again.", false, distanceMeters);
+                syncSelfRegisterForm();
+                return;
+              }
+            } catch (error) {
+              console.error("Geofence arrival sync failed:", error);
+              updateSelfRegistrationState("error", "Venue check-in could not reach the event server. Nothing was changed; check the connection and try again.", false, distanceMeters);
+              syncSelfRegisterForm();
+              return;
+            }
+            updateSelfRegistrationState(
+              "ready",
+              `${pendingEntry.teamName || pendingEntry.name} is now checked in at ${venueConfig.label || activeEventMeta?.name || "the venue"}. Event admin can approve ${pendingGroup.length > 1 ? "this team" : "this driver"} after payment.`,
+              true,
+              distanceMeters,
+            );
+            renderDriversTable();
+            syncSelfRegisterForm();
+            syncSelfRegisterQrPanel();
+            return;
+          }
           const pendingEntries = getPendingRegistrations();
           setActiveEventMetaState({
             ...activeEventMeta,
@@ -28940,8 +29813,8 @@
               ? entry
               : {
                   ...entry,
-                  arrivedAt: entry.arrivedAt || new Date().toISOString(),
-                  checkedInAt: new Date().toISOString(),
+                  arrivedAt: entry.arrivedAt || checkedInAt,
+                  checkedInAt,
                   checkedInDistanceMeters: distanceMeters,
                   arrivalSource: "geofence",
                   approvalRequired: createDefaultVenueConfig(activeEventMeta?.venueConfig || {}).qrApprovalMode,
@@ -28987,8 +29860,183 @@
       });
     }
 
+    async function commitSelfRegistrationEntries(candidateEntries, { replacePendingIds = [], deviceToken = "" } = {}) {
+      const eventId = activeEventId;
+      const publishSyncStamp = Date.now();
+      let transactionResult = null;
+
+      if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE && prodigyActionCallable) {
+        try {
+          const result = await callProdigyAction("submitSelfRegistration", {
+            eventId,
+            entries: candidateEntries,
+            groupId: candidateEntries[0]?.registrationGroupId || candidateEntries[0]?.teamRegistrationId || "",
+            deviceToken,
+            arrivalProof: getSelfRegistrationArrivalProof(),
+          });
+          return { status: "registered", eventPayload: result.eventPayload, publishSyncStamp: result.syncStamp || publishSyncStamp };
+        } catch (error) {
+          const message = error?.message || "Registration could not be saved securely.";
+          return {
+            status: /already registered|already pending|already exists/i.test(message) ? "duplicate" : /closed|started/i.test(message) ? "qualifying-live" : "server-error",
+            duplicateName: candidateEntries[0]?.name || "This driver",
+            duplicateType: "pending",
+            eventPayload: null,
+            message,
+          };
+        }
+      }
+
+      await runTransaction(db, async (transaction) => {
+        transactionResult = null;
+        const eventRef = getEventDocRef(eventId);
+        const eventSnap = await transaction.get(eventRef);
+        if (!eventSnap.exists()) {
+          transactionResult = { status: "missing-event", eventPayload: null };
+          return;
+        }
+
+        const remotePayload = eventSnap.data() || {};
+        const remoteEventMeta = extractEventMeta(remotePayload, eventId);
+        const remoteDrivers = sanitizeLoadedDrivers(remotePayload.drivers || []);
+        const remotePendingEntries = normalizePendingRegistrationList(remotePayload.pendingRegistrations || []);
+        const remoteMetaWithPending = {
+          ...remoteEventMeta,
+          pendingRegistrations: remotePendingEntries,
+        };
+        if (!hasValidVenueConfig(remoteMetaWithPending)) {
+          transactionResult = { status: "venue-disabled", eventPayload: remotePayload };
+          return;
+        }
+        const closeReason = getSelfRegistrationCloseReason(
+          remoteMetaWithPending,
+          remotePayload.qualifyingFlow || createEmptyQualifyingFlow(),
+          remoteDrivers,
+        );
+        if (closeReason) {
+          transactionResult = { status: closeReason, eventPayload: remotePayload };
+          return;
+        }
+
+        const replacementIds = new Set([
+          ...replacePendingIds,
+          ...candidateEntries.map((entry) => entry.id),
+        ]);
+        const conflictingDeviceEntry = remotePendingEntries.find((entry) =>
+          deviceToken
+          && entry.deviceToken === deviceToken
+          && !replacementIds.has(entry.id)
+        );
+        if (conflictingDeviceEntry) {
+          transactionResult = {
+            status: "device-conflict",
+            conflictName: conflictingDeviceEntry.teamName || conflictingDeviceEntry.name,
+            eventPayload: remotePayload,
+          };
+          return;
+        }
+
+        const candidateNames = [...new Set([
+          ...candidateEntries.map((candidate) => candidate.name),
+          ...(isTwinTripleMode(remoteMetaWithPending) ? candidateEntries.map((candidate) => candidate.teamName) : []),
+        ].map((name) => String(name || "").trim()).filter(Boolean))];
+        for (const candidateName of candidateNames) {
+          const duplicate = findDuplicateDriverEntry(candidateName, {
+            drivers: remoteDrivers,
+            eventMeta: remoteMetaWithPending,
+            excludePendingIds: [...replacementIds],
+          });
+          if (duplicate) {
+            transactionResult = {
+              status: "duplicate",
+              duplicateName: candidateName,
+              duplicateType: duplicate.type,
+              eventPayload: remotePayload,
+            };
+            return;
+          }
+        }
+
+        const nextPendingEntries = normalizePendingRegistrationList([
+          ...remotePendingEntries.filter((entry) => !replacementIds.has(entry.id)),
+          ...candidateEntries,
+        ]);
+        const updatedAt = new Date().toISOString();
+        const eventUpdates = {
+          pendingRegistrations: nextPendingEntries,
+          updatedAt,
+          syncStamp: publishSyncStamp,
+        };
+        const nextEventPayload = {
+          ...remotePayload,
+          ...eventUpdates,
+        };
+        transaction.set(eventRef, eventUpdates, { merge: true });
+        transaction.set(getDirectoryDocRef(), {
+          events: {
+            [eventId]: cloneEventMeta(extractEventMeta(nextEventPayload, eventId)),
+          },
+          syncStamp: publishSyncStamp,
+        }, { merge: true });
+        transactionResult = {
+          status: "registered",
+          eventPayload: nextEventPayload,
+          publishSyncStamp,
+        };
+      });
+
+      return transactionResult || { status: "unknown", eventPayload: null };
+    }
+
+    function applySelfRegistrationCommitResult(result) {
+      if (result?.eventPayload && result.eventPayload.id === activeEventId) {
+        applyRemoteEventState(result.eventPayload);
+        renderAfterRemoteSync();
+      }
+      if (result?.status === "registered") return true;
+
+      const message = ({
+        "missing-event": "This event is no longer available for registration.",
+        "venue-disabled": "Public registration is no longer enabled for this event.",
+        "qualifying-live": "Registration closed because qualifying has started.",
+        "qualifying-complete": "Registration closed because qualifying is complete.",
+        "scheduled-close": "Registration closed because the scheduled close time has passed.",
+        "device-conflict": `This device already has a pending registration for ${result?.conflictName || "another entry"}. Ask event staff for help before submitting a different entry.`,
+        duplicate: result?.duplicateType === "roster"
+          ? `${result?.duplicateName || "This driver"} is already in the live roster.`
+          : `${result?.duplicateName || "This driver"} is already in the pending registration list.`,
+      })[result?.status] || "Registration could not be saved from the latest event state. Review the form and try again.";
+      updateSelfRegistrationState("error", message, false);
+      syncSelfRegisterForm();
+      return false;
+    }
+
+    async function submitSelfRegistrationEntriesToCloud(candidateEntries, options = {}) {
+      if (selfRegistrationSubmissionInFlight) return false;
+      if (!auth?.currentUser || !activeEventServerReady) {
+        updateSelfRegistrationState("error", "Registration is waiting for the event server. Wait for Sync Online and submit again.", false);
+        syncSelfRegisterForm();
+        return false;
+      }
+      selfRegistrationSubmissionInFlight = true;
+      syncSelfRegisterForm();
+      try {
+        const result = await commitSelfRegistrationEntries(candidateEntries, options);
+        return applySelfRegistrationCommitResult(result);
+      } catch (error) {
+        console.error("Self-registration sync failed:", error);
+        updateSelfRegistrationState("error", "Registration could not reach the event server. Your form is still here; check the connection and submit again.", false);
+        syncSelfRegisterForm();
+        return false;
+      } finally {
+        selfRegistrationSubmissionInFlight = false;
+        syncSelfRegisterForm();
+      }
+    }
+
     async function submitSelfRegistration() {
       if (!hasValidVenueConfig() || !activeEventMeta) return false;
+      const submissionEventId = activeEventId;
       const nextDraft = normalizeRegistrationDraftState(selfRegistrationDraft);
       const teamMode = isTeamCompetitionMode();
       const name = (nextDraft.name || "").trim();
@@ -29089,14 +30137,22 @@
           };
         });
 
-        setActiveEventMetaState({
-          ...activeEventMeta,
-          pendingRegistrations: [
-            ...getPendingRegistrations().filter((entry) => !excludedPendingIds.includes(entry.id)),
-            ...nextPendingEntries,
-          ],
-        }, { syncQualifying: false });
-        eventDirectory[activeEventId] = cloneEventMeta(activeEventMeta);
+        if (db) {
+          if (!await submitSelfRegistrationEntriesToCloud(nextPendingEntries, {
+            replacePendingIds: excludedPendingIds,
+            deviceToken,
+          })) return false;
+          if (activeEventId !== submissionEventId) return true;
+        } else {
+          setActiveEventMetaState({
+            ...activeEventMeta,
+            pendingRegistrations: [
+              ...getPendingRegistrations().filter((entry) => !excludedPendingIds.includes(entry.id)),
+              ...nextPendingEntries,
+            ],
+          }, { syncQualifying: false });
+          eventDirectory[activeEventId] = cloneEventMeta(activeEventMeta);
+        }
         saveCurrentSelfRegisterProfile();
         selfRegistrationDraft = createEmptyRegistrationDraft();
         writeLastSelfRegisterSubmitMeta({ submittedAt, name: submissionKey, deviceToken });
@@ -29108,7 +30164,6 @@
           false,
           selfRegistrationState.lastDistanceMeters,
         );
-        await publishStateImmediately();
         renderDriversTable();
         syncSelfRegisterForm();
         return true;
@@ -29189,13 +30244,21 @@
         rejectedAt: existingEntry?.rejectedAt || null,
         rejectedReason: existingEntry?.rejectedReason || null,
       };
-      setActiveEventMetaState({
-        ...activeEventMeta,
-        pendingRegistrations: existingEntry
-          ? getPendingRegistrations().map((entry) => entry.id === existingEntry.id ? nextPendingEntry : entry)
-          : [...getPendingRegistrations(), nextPendingEntry],
-      }, { syncQualifying: false });
-      eventDirectory[activeEventId] = cloneEventMeta(activeEventMeta);
+      if (db) {
+        if (!await submitSelfRegistrationEntriesToCloud([nextPendingEntry], {
+          replacePendingIds: existingEntry ? [existingEntry.id] : [],
+          deviceToken,
+        })) return false;
+        if (activeEventId !== submissionEventId) return true;
+      } else {
+        setActiveEventMetaState({
+          ...activeEventMeta,
+          pendingRegistrations: existingEntry
+            ? getPendingRegistrations().map((entry) => entry.id === existingEntry.id ? nextPendingEntry : entry)
+            : [...getPendingRegistrations(), nextPendingEntry],
+        }, { syncQualifying: false });
+        eventDirectory[activeEventId] = cloneEventMeta(activeEventMeta);
+      }
       saveCurrentSelfRegisterProfile();
       selfRegistrationDraft = createEmptyRegistrationDraft();
       writeLastSelfRegisterSubmitMeta({ submittedAt, name, deviceToken });
@@ -29207,16 +30270,15 @@
         false,
         selfRegistrationState.lastDistanceMeters,
       );
-      await publishStateImmediately();
       renderDriversTable();
       syncSelfRegisterForm();
       return true;
     }
 
-    function buildApprovedRosterDrivers(entryGroup, nextPosition, approvedAt, paidAtOverride = undefined) {
+    function buildApprovedRosterDrivers(entryGroup, nextPosition, approvedAt, paidAtOverride = undefined, eventMeta = activeEventMeta) {
       const leader = getPendingRegistrationGroupLeader(entryGroup);
       if (!leader) return [];
-      if (isTwinTripleMode()) {
+      if (isTwinTripleMode(eventMeta)) {
         return [buildTwinCompRosterDriver({
           teamName: leader.teamName || leader.name || "Twin Team",
           members: entryGroup.map((entry, index) => ({
@@ -29251,6 +30313,159 @@
       });
     }
 
+    async function commitPendingRegistrationApproval(entryId, { markPaid = false } = {}) {
+      const eventId = activeEventId;
+      const publishSyncStamp = Date.now();
+      let transactionResult = null;
+
+      if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE && prodigyActionCallable) {
+        try {
+          const result = await callProdigyAction("adminRegistration", {
+            eventId,
+            operation: "approve",
+            entryId,
+            markPaid,
+          });
+          const leader = getPendingRegistrationGroupLeader(getPendingRegistrationGroupEntries(entryId));
+          return {
+            status: "approved",
+            eventPayload: result.eventPayload,
+            leader,
+            publishSyncStamp: result.syncStamp || publishSyncStamp,
+          };
+        } catch (error) {
+          return {
+            status: /check-in/i.test(error?.message || "") ? "not-checked-in" : /review/i.test(error?.message || "") ? "needs-review" : /rejected/i.test(error?.message || "") ? "rejected" : /already/i.test(error?.message || "") ? "duplicate" : "server-error",
+            eventPayload: null,
+            message: error?.message || "Secure approval failed.",
+          };
+        }
+      }
+
+      await runTransaction(db, async (transaction) => {
+        transactionResult = null;
+        const eventRef = getEventDocRef(eventId);
+        const eventSnap = await transaction.get(eventRef);
+        if (!eventSnap.exists()) {
+          transactionResult = { status: "missing-event", eventPayload: null };
+          return;
+        }
+
+        const remotePayload = eventSnap.data() || {};
+        const remoteEventMeta = extractEventMeta(remotePayload, eventId);
+        const remoteDrivers = sanitizeLoadedDrivers(remotePayload.drivers || []);
+        const remotePendingEntries = normalizePendingRegistrationList(remotePayload.pendingRegistrations || []);
+        const remoteMetaWithPending = {
+          ...remoteEventMeta,
+          pendingRegistrations: remotePendingEntries,
+        };
+        const entryGroup = getPendingRegistrationGroupEntries(entryId, remoteMetaWithPending);
+        const leader = getPendingRegistrationGroupLeader(entryGroup);
+        const baseResult = { eventPayload: remotePayload, leader };
+
+        if (!leader || !entryGroup.length) {
+          transactionResult = { ...baseResult, status: "missing-entry" };
+          return;
+        }
+        if (entryGroup.some((entry) => !entry.checkedInAt)) {
+          transactionResult = { ...baseResult, status: "not-checked-in" };
+          return;
+        }
+        if (entryGroup.some((entry) => isPendingRegistrationRejected(entry))) {
+          transactionResult = { ...baseResult, status: "rejected" };
+          return;
+        }
+        if (entryGroup.some((entry) => isPendingRegistrationNeedsReview(entry))) {
+          transactionResult = { ...baseResult, status: "needs-review" };
+          return;
+        }
+
+        const entryIds = entryGroup.map((entry) => entry.id);
+        for (const entry of entryGroup) {
+          const duplicate = findDuplicateDriverEntry(entry.name, {
+            drivers: remoteDrivers,
+            eventMeta: remoteMetaWithPending,
+            excludePendingIds: entryIds,
+          });
+          if (duplicate) {
+            transactionResult = {
+              ...baseResult,
+              status: "duplicate",
+              duplicateName: entry.name,
+              duplicateType: duplicate.type,
+            };
+            return;
+          }
+        }
+
+        const approvedAt = new Date().toISOString();
+        const nextPosition = getNextSignUpPosition(remoteDrivers);
+        const nextDrivers = buildApprovedRosterDrivers(
+          entryGroup,
+          nextPosition,
+          approvedAt,
+          markPaid ? approvedAt : undefined,
+          remoteMetaWithPending,
+        );
+        const nextRoster = resequenceDrivers([...getRegisteredDrivers(remoteDrivers), ...nextDrivers], true);
+        const nextPendingEntries = remotePendingEntries.filter((entry) => !entryIds.includes(entry.id));
+        const eventUpdates = {
+          drivers: nextRoster,
+          pendingRegistrations: nextPendingEntries,
+          latestApprovalToast: {
+            id: `${nextDrivers[0].id}:${approvedAt}`,
+            name: entryGroup.length > 1 ? `${leader.teamName || leader.name} (${entryGroup.length} drivers)` : nextDrivers[0].name,
+            reg: nextDrivers[0].reg,
+            approvedAt,
+          },
+          bracket: remotePayload.bracket?.mainBracket?.rounds?.length ? null : (remotePayload.bracket || null),
+          updatedAt: approvedAt,
+          syncStamp: publishSyncStamp,
+        };
+        const nextEventPayload = {
+          ...remotePayload,
+          ...eventUpdates,
+        };
+
+        transaction.set(eventRef, eventUpdates, { merge: true });
+        transaction.set(getDirectoryDocRef(), {
+          events: {
+            [eventId]: cloneEventMeta(extractEventMeta(nextEventPayload, eventId)),
+          },
+          syncStamp: publishSyncStamp,
+        }, { merge: true });
+        transactionResult = {
+          status: "approved",
+          eventPayload: nextEventPayload,
+          leader,
+          nextDrivers,
+          publishSyncStamp,
+        };
+      });
+
+      return transactionResult || { status: "unknown", eventPayload: null };
+    }
+
+    function applyPendingRegistrationCommitResult(result) {
+      if (result?.eventPayload && result.eventPayload.id === activeEventId) {
+        applyRemoteEventState(result.eventPayload);
+        renderAfterRemoteSync();
+      }
+      if (result?.status === "approved") return true;
+
+      const displayName = result?.leader?.teamName || result?.leader?.name || "This registration";
+      const message = ({
+        "missing-event": "This event no longer exists on the server. Reload Event Admin before continuing.",
+        "missing-entry": "This registration was already approved, removed, or changed on another device. The latest roster has been loaded.",
+        "not-checked-in": `${displayName} has not completed venue check-in yet.`,
+        rejected: `${displayName} is marked rejected. Reset or correct that arrival before approving it.`,
+        "needs-review": `${displayName} still needs review. Clear the review flag before approving it.`,
+        duplicate: `${result?.duplicateName || displayName} already exists in the ${result?.duplicateType === "roster" ? "live roster" : "pending list"}.`,
+      })[result?.status] || "This registration could not be approved from the latest server state. Review the roster and try again.";
+      window.alert(message);
+      return false;
+    }
+
     async function approvePendingRegistration(entryId) {
       if (!registrationCanEdit() || !activeEventMeta) return false;
       const pendingEntries = getPendingRegistrations();
@@ -29278,6 +30493,21 @@
         }
       }
 
+      if (db) {
+        if (!auth?.currentUser || !activeEventServerReady) {
+          window.alert("Roster approval is waiting for authoritative cloud data. Wait for Sync Online and try again.");
+          return false;
+        }
+        try {
+          const result = await commitPendingRegistrationApproval(entryId);
+          return applyPendingRegistrationCommitResult(result);
+        } catch (error) {
+          console.error("Pending registration approval failed:", error);
+          window.alert("This registration could not be approved because cloud sync failed. Nothing was changed; check the connection and try again.");
+          return false;
+        }
+      }
+
       const nextPosition = getNextSignUpPosition(appDrivers);
       const approvedAt = new Date().toISOString();
       const nextDrivers = buildApprovedRosterDrivers(entryGroup, nextPosition, approvedAt);
@@ -29295,7 +30525,7 @@
         },
       }, { syncQualifying: false });
       eventDirectory[activeEventId] = cloneEventMeta(activeEventMeta);
-      await publishStateImmediately();
+      if (!await publishStateImmediately()) return false;
       renderDriversTable();
       return true;
     }
@@ -29324,6 +30554,21 @@
         }
       }
 
+      if (db) {
+        if (!auth?.currentUser || !activeEventServerReady) {
+          window.alert("Payment approval is waiting for authoritative cloud data. Wait for Sync Online and try again.");
+          return false;
+        }
+        try {
+          const result = await commitPendingRegistrationApproval(entryId, { markPaid: true });
+          return applyPendingRegistrationCommitResult(result);
+        } catch (error) {
+          console.error("Pending payment approval failed:", error);
+          window.alert("Payment approval could not reach cloud sync. Nothing was changed; check the connection and try again.");
+          return false;
+        }
+      }
+
       const paidAt = new Date().toISOString();
       const nextPosition = getNextSignUpPosition(appDrivers);
       const nextDrivers = buildApprovedRosterDrivers(entryGroup, nextPosition, paidAt, paidAt);
@@ -29341,7 +30586,7 @@
         },
       }, { syncQualifying: false });
       eventDirectory[activeEventId] = cloneEventMeta(activeEventMeta);
-      await publishStateImmediately();
+      if (!await publishStateImmediately()) return false;
       renderDriversTable();
       return true;
     }
@@ -29351,12 +30596,33 @@
       const pendingEntries = getPendingRegistrations();
       const entryGroup = getPendingRegistrationGroupEntries(entryId);
       if (!entryGroup.length) return false;
+      if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE && prodigyActionCallable) {
+        return (await commitSecurePendingRegistrationOperation(entryId, "remove"))?.status === "updated";
+      }
+      if (db) {
+        if (!auth?.currentUser || !activeEventServerReady) {
+          window.alert("Registration removal is waiting for authoritative cloud data. Wait for Sync Online and try again.");
+          return false;
+        }
+        try {
+          const result = await commitPendingRegistrationGroupMutation(entryId, { remove: true });
+          if (applyPendingRegistrationMutationResult(result, "removed")) return true;
+          window.alert(result?.status === "missing-entry"
+            ? "This registration was already approved or removed on another device. The latest event state has been loaded."
+            : "This registration could not be removed from the latest server state. Review the entry and try again.");
+          return false;
+        } catch (error) {
+          console.error("Pending registration removal failed:", error);
+          window.alert("This registration could not be removed because cloud sync failed. Nothing was changed; check the connection and try again.");
+          return false;
+        }
+      }
       setActiveEventMetaState({
         ...activeEventMeta,
         pendingRegistrations: pendingEntries.filter((entry) => !entryGroup.some((member) => member.id === entry.id)),
       }, { syncQualifying: false });
       eventDirectory[activeEventId] = cloneEventMeta(activeEventMeta);
-      await publishStateImmediately();
+      if (!await publishStateImmediately()) return false;
       renderDriversTable();
       return true;
     }
@@ -29582,7 +30848,7 @@
       roleAdminPanel.classList.remove("empty-state");
       const cards = ROLE_ORDER.filter((role) => isRoleAvailableForEvent(role, activeEventMeta)).map((role) => {
         const access = getRoleAccess(role) || {};
-        const hasPassword = Boolean(access.passwordHash);
+        const hasPassword = Boolean(access.passwordConfigured);
         const claimedText = hasPassword ? `Password set | ${formatClaimedAt(access.claimedAt)}` : "Password not set yet";
         const routeUrl = buildRoleRouteUrl(role);
         return `
@@ -29634,7 +30900,7 @@
       hideWebsiteAdminModal({ syncRoute: false });
       pendingRole = role;
       const access = getRoleAccess(role);
-      const hasPassword = Boolean(access?.passwordHash);
+      const hasPassword = Boolean(access?.passwordConfigured);
       pendingAuthMode = "login";
       const roleDisplayName = shouldUseJudgeRoleClaims(activeEventMeta) && role?.startsWith("j")
         ? buildJudgeRoleClaimLabel(role, activeEventMeta)
@@ -29677,7 +30943,23 @@
       }
     }
 
-    function requestRoleAccess(role) {
+    async function revokeCloudEventRole(eventId, role, { silent = false } = {}) {
+      if (!eventId || !role || role === "spectator") return true;
+      try {
+        if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE) {
+          await callProdigyAction("revokeAccess", { eventId, role });
+          await refreshCloudClaims(true);
+        }
+        setRoleUnlockedForEvent(eventId, role, false);
+        return true;
+      } catch (error) {
+        console.error("Event role sign-out failed:", error);
+        if (!silent) window.alert("This role could not be signed out securely. Check the connection and try again.");
+        return false;
+      }
+    }
+
+    async function requestRoleAccess(role) {
       if (!isRoleAllowedForHost(role)) {
         globalRoleSelect.value = currentRole;
         return;
@@ -29687,6 +30969,10 @@
         return;
       }
       if (role === "spectator") {
+        if (!await revokeCloudEventRole(activeEventId, currentRole)) {
+          globalRoleSelect.value = currentRole;
+          return;
+        }
         applyRoleChange("spectator");
         return;
       }
@@ -29836,27 +31122,43 @@
         return;
       }
 
+      let accessVersion = activeEventMeta.roleAccess?.[role]?.accessVersion || null;
+      if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE) {
+        try {
+          const result = await callProdigyAction("manageRoleSecret", { eventId: activeEventId, role, password: nextPassword });
+          accessVersion = result?.accessVersion || null;
+        } catch (error) {
+          console.error("Role password update failed:", error);
+          window.alert(error?.message || "The role password could not be saved securely. Try again.");
+          return;
+        }
+      }
       activeEventMeta.roleAccess[role] = {
         ...(activeEventMeta.roleAccess[role] || {}),
-        inviteCode: null,
-        inviteHash: null,
-        passwordHash: await hashSecret(nextPassword),
+        passwordConfigured: true,
         claimedAt: new Date().toISOString(),
+        accessVersion,
       };
-
-      publishState();
       renderEventDirectory();
       renderRoleAdminPanel();
     }
 
     async function resetRoleAccess(role) {
       if (!activeEventMeta || !activeEventMeta.roleAccess?.[role]) return;
+      if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE) {
+        try {
+          await callProdigyAction("manageRoleSecret", { eventId: activeEventId, role, clear: true });
+        } catch (error) {
+          console.error("Role password reset failed:", error);
+          window.alert(error?.message || "The role password could not be cleared securely. Try again.");
+          return;
+        }
+      }
       activeEventMeta.roleAccess[role] = {
         ...(activeEventMeta.roleAccess[role] || {}),
-        inviteCode: null,
-        inviteHash: null,
-        passwordHash: null,
+        passwordConfigured: false,
         claimedAt: null,
+        accessVersion: null,
       };
       if (activeEventMeta.judgeRoleClaims?.[role]) {
         activeEventMeta.judgeRoleClaims[role] = null;
@@ -29867,7 +31169,6 @@
         applyRoleChange("spectator");
       }
 
-      publishState();
       renderEventDirectory();
       renderRoleAdminPanel();
     }
@@ -29875,11 +31176,18 @@
     async function resetAllJudgeAccess() {
       if (!activeEventMeta) return;
       for (const role of getActiveJudgeRoles(activeEventMeta)) {
+        if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE) {
+          try {
+            await callProdigyAction("manageRoleSecret", { eventId: activeEventId, role, clear: true });
+          } catch (error) {
+            console.error("Judge password reset failed:", error);
+            window.alert(error?.message || "One of the judge passwords could not be cleared securely.");
+            return;
+          }
+        }
         activeEventMeta.roleAccess[role] = {
           ...(activeEventMeta.roleAccess[role] || {}),
-          inviteCode: null,
-          inviteHash: null,
-          passwordHash: null,
+          passwordConfigured: false,
           claimedAt: null,
         };
         if (activeEventMeta.judgeRoleClaims?.[role]) {
@@ -29890,7 +31198,6 @@
           applyRoleChange("spectator");
         }
       }
-      publishState();
       renderEventDirectory();
       renderRoleAdminPanel();
     }
@@ -29924,7 +31231,7 @@
         updatedAt: new Date().toISOString(),
       }, { syncQualifying: false });
       eventDirectory[activeEventId] = cloneEventMeta(activeEventMeta);
-      await publishStateImmediately();
+      if (!await publishStateImmediately()) return false;
       renderEventDirectory();
       renderLandingView();
       updateEventChrome();
@@ -30108,8 +31415,99 @@
       renderDriversTable();
     }
 
+    async function commitEventDeletion(eventId, preferredReplacementId = null) {
+      const publishSyncStamp = Date.now();
+      let transactionResult = null;
+      if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE && prodigyActionCallable) {
+        const result = await callProdigyAction("deleteEvent", {
+          eventId,
+          replacementEventId: preferredReplacementId,
+          syncStamp: publishSyncStamp,
+        });
+        const remainingIds = Object.keys(eventDirectory).filter((candidateId) => candidateId !== eventId);
+        const replacementEventId = preferredReplacementId && remainingIds.includes(preferredReplacementId)
+          ? preferredReplacementId
+          : remainingIds[0] || null;
+        return {
+          blockedLastEvent: false,
+          replacementEventId,
+          replacementEventMeta: replacementEventId ? cloneEventMeta(eventDirectory[replacementEventId]) : null,
+          nextDeletedEventIds: normalizeDeletedEventIds([...deletedEventIds, eventId]),
+          selectionChanged: activeEventId === eventId,
+          publishSyncStamp: result.syncStamp || publishSyncStamp,
+        };
+      }
+      await runTransaction(db, async (transaction) => {
+        const directoryRef = getDirectoryDocRef();
+        const selectionRef = getActiveEventSelectionDocRef();
+        const [directorySnap, selectionSnap] = await Promise.all([
+          transaction.get(directoryRef),
+          transaction.get(selectionRef),
+        ]);
+        const directoryData = directorySnap.data() || {};
+        const remoteEvents = directoryData.events && typeof directoryData.events === "object"
+          ? directoryData.events
+          : {};
+        const remoteDeletedEventIds = normalizeDeletedEventIds(directoryData.deletedEventIds || []);
+        const remainingEventIds = Object.keys(remoteEvents)
+          .filter((candidateId) => candidateId !== eventId && !remoteDeletedEventIds.includes(candidateId));
+
+        if (remoteEvents[eventId] && remainingEventIds.length === 0) {
+          transactionResult = { blockedLastEvent: true };
+          return;
+        }
+
+        const replacementEventId = remainingEventIds.includes(preferredReplacementId)
+          ? preferredReplacementId
+          : remainingEventIds[0] || null;
+        const replacementEventMeta = replacementEventId
+          ? cloneEventMeta(remoteEvents[replacementEventId])
+          : null;
+        const nextDeletedEventIds = normalizeDeletedEventIds([...remoteDeletedEventIds, eventId]);
+        const directoryMutation = {
+          events: {
+            [eventId]: deleteField(),
+          },
+          deletedEventIds: nextDeletedEventIds,
+          syncStamp: publishSyncStamp,
+        };
+        if (directoryData.activeEventId === eventId) {
+          directoryMutation.activeEventId = replacementEventId;
+        }
+
+        transaction.delete(getEventDocRef(eventId));
+        transaction.set(directoryRef, directoryMutation, { merge: true });
+        transaction.set(getArchivedResultsDocRef(), {
+          events: {
+            [eventId]: deleteField(),
+          },
+          syncStamp: publishSyncStamp,
+        }, { merge: true });
+
+        const remoteSelection = normalizeActiveEventSelectionSnapshot(selectionSnap.data());
+        const selectionChanged = remoteSelection?.activeEventId === eventId;
+        if (selectionChanged) {
+          transaction.set(selectionRef, {
+            activeEventId: replacementEventId,
+            eventMeta: replacementEventMeta,
+            syncStamp: publishSyncStamp,
+          }, { merge: true });
+        }
+
+        transactionResult = {
+          blockedLastEvent: false,
+          replacementEventId,
+          replacementEventMeta,
+          nextDeletedEventIds,
+          selectionChanged,
+          publishSyncStamp,
+        };
+      });
+      return transactionResult || { blockedLastEvent: false };
+    }
+
     async function deleteEventById(eventId) {
-      if (!isWebsiteAdmin || !eventDirectory[eventId]) return;
+      if (!isWebsiteAdmin || !eventDirectory[eventId] || eventDeletionInFlight.has(eventId)) return;
       const eventIds = Object.keys(eventDirectory);
       if (eventIds.length <= 1) {
         window.alert("Create another event before deleting the last remaining event.");
@@ -30119,74 +31517,108 @@
       const eventName = eventDirectory[eventId].name || "this event";
       const confirmed = window.confirm(`Delete "${eventName}" permanently? This removes its saved results and bracket data.`);
       if (!confirmed) return;
+      const deletingActiveEvent = activeEventId === eventId;
+      const preferredReplacementId = deletingActiveEvent
+        ? sortEventsForDisplay().find((eventMeta) => eventMeta.id !== eventId)?.id || null
+        : activeEventId;
 
-      if (activeEventId === eventId && eventDocUnsubscribe) {
-        eventDocUnsubscribe();
-        eventDocUnsubscribe = null;
-      }
-
-      delete eventDirectory[eventId];
-      delete archivedResultsDirectory[eventId];
-      setDeletedEventId(eventId, true);
-      localStorage.removeItem(getEventStateStorageKey(eventId));
-
-      if (eventId === DEFAULT_EVENT_ID) {
-        localStorage.removeItem("rc-drift-drivers-v7");
-        localStorage.removeItem("rc-drift-drivers-v6");
-        localStorage.removeItem("rc-drift-bracket-state-v7");
-        localStorage.removeItem("rc-drift-bracket-state-v6");
-      }
-
-      const roleSessionMap = readRoleSessionMap();
-      if (roleSessionMap[eventId]) {
-        delete roleSessionMap[eventId];
-        writeRoleSessionMap(roleSessionMap);
-      }
-
-      const roleUnlockMap = readRoleUnlockMap();
-      if (roleUnlockMap[eventId]) {
-        delete roleUnlockMap[eventId];
-        writeRoleUnlockMap(roleUnlockMap);
-      }
-
-      if (activeEventId === eventId) {
-        setActiveEventIdState(sortEventsForDisplay()[0]?.id || Object.keys(eventDirectory)[0] || null);
-        setActiveEventMetaState(activeEventId ? cloneEventMeta(eventDirectory[activeEventId]) : null, { syncQualifying: false });
-        loadActiveEventStateFromCache();
-        applyRoleChange("spectator");
-      }
-
-      saveDirectoryCache();
-      saveArchivedResultsCache();
-      renderEventDirectory();
-      renderRoleAdminPanel();
-      renderDriversTable();
-      if (document.getElementById('view-bracket').classList.contains('is-active')) {
-        renderBracket();
-      }
-
-      if (!db) return;
-
-      lastLocalPush = Date.now();
-      const directoryPayload = buildDirectorySyncPayload();
+      eventDeletionInFlight.add(eventId);
+      let cloudDeletionResult = null;
+      let deletionCommitted = !db;
       try {
-        const syncTasks = [
-          deleteDoc(getEventDocRef(eventId)),
-          setDoc(getActiveEventSelectionDocRef(), {
-            activeEventId,
-            eventMeta: activeEventId ? cloneEventMeta(eventDirectory[activeEventId] || activeEventMeta) : null,
-            syncStamp: lastLocalPush,
-          }, { merge: true }),
-          setDoc(getDirectoryDocRef(), directoryPayload),
-          persistArchivedResultsDirectory(),
-        ];
-        await Promise.all(syncTasks);
+        if (db) {
+          if (!auth?.currentUser || !activeEventServerReady || !hasLoadedRemoteDirectory) {
+            window.alert("Event deletion is waiting for authoritative cloud data. Nothing was removed; wait for Sync Online and try again.");
+            return;
+          }
+          cloudDeletionResult = await commitEventDeletion(eventId, preferredReplacementId);
+          if (cloudDeletionResult.blockedLastEvent) {
+            window.alert("Create another synced event before deleting the last remaining cloud event.");
+            return;
+          }
+          deletionCommitted = true;
+        }
+
+        if (cloudDeletionResult?.replacementEventId && cloudDeletionResult.replacementEventMeta) {
+          eventDirectory[cloudDeletionResult.replacementEventId] = cloneEventMeta(cloudDeletionResult.replacementEventMeta);
+        }
+        if (deletingActiveEvent && eventDocUnsubscribe) {
+          eventDocUnsubscribe();
+          eventDocUnsubscribe = null;
+        }
+
+        delete eventDirectory[eventId];
+        delete archivedResultsDirectory[eventId];
+        if (cloudDeletionResult?.nextDeletedEventIds) {
+          deletedEventIds = new Set(cloudDeletionResult.nextDeletedEventIds);
+          lastLocalPush = cloudDeletionResult.publishSyncStamp;
+        } else {
+          setDeletedEventId(eventId, true);
+        }
+        localStorage.removeItem(getEventStateStorageKey(eventId));
+
+        if (eventId === DEFAULT_EVENT_ID) {
+          localStorage.removeItem("rc-drift-drivers-v7");
+          localStorage.removeItem("rc-drift-drivers-v6");
+          localStorage.removeItem("rc-drift-bracket-state-v7");
+          localStorage.removeItem("rc-drift-bracket-state-v6");
+        }
+
+        const roleSessionMap = readRoleSessionMap();
+        if (roleSessionMap[eventId]) {
+          delete roleSessionMap[eventId];
+          writeRoleSessionMap(roleSessionMap);
+        }
+
+        const roleUnlockMap = readRoleUnlockMap();
+        if (roleUnlockMap[eventId]) {
+          delete roleUnlockMap[eventId];
+          writeRoleUnlockMap(roleUnlockMap);
+        }
+
+        if (deletingActiveEvent) {
+          const replacementEventId = cloudDeletionResult?.replacementEventId
+            || sortEventsForDisplay()[0]?.id
+            || Object.keys(eventDirectory)[0]
+            || null;
+          setActiveEventIdState(replacementEventId);
+          setActiveEventMetaState(activeEventId ? cloneEventMeta(eventDirectory[activeEventId]) : null, { syncQualifying: false });
+          loadActiveEventStateFromCache();
+          applyRoleChange("spectator");
+        }
+
+        if (cloudDeletionResult?.selectionChanged && cloudDeletionResult.replacementEventId) {
+          const activeEventPayload = {
+            activeEventId: cloudDeletionResult.replacementEventId,
+            eventMeta: cloneEventMeta(cloudDeletionResult.replacementEventMeta),
+            syncStamp: cloudDeletionResult.publishSyncStamp,
+          };
+          lastKnownRemoteActiveEventSelection = normalizeActiveEventSelectionSnapshot(activeEventPayload);
+          saveCachedActiveEventSelection(activeEventPayload);
+        }
+
+        saveDirectoryCache();
+        saveArchivedResultsCache();
+        renderEventDirectory();
+        renderRoleAdminPanel();
+        renderDriversTable();
+        if (document.getElementById('view-bracket').classList.contains('is-active')) {
+          renderBracket();
+        }
+
+        if (activeEventId) {
+          subscribeToActiveEvent();
+        }
       } catch (error) {
         console.error("Event delete sync failed:", error);
-      }
-
-      if (activeEventId) {
-        subscribeToActiveEvent();
+        if (deletionCommitted) {
+          showSyncRecoveryNotice();
+          window.alert("The event was deleted from the cloud, but this browser could not finish refreshing. Reload Event Admin to continue from authoritative server data.");
+        } else {
+          window.alert("Event deletion could not reach the cloud. Nothing was removed; check the connection and try again.");
+        }
+      } finally {
+        eventDeletionInFlight.delete(eventId);
       }
     }
 
@@ -30271,41 +31703,35 @@
       if (requestedRoleRoute?.kind === "role" && requestedRoleRoute.role === selectedRole) {
         setPendingRouteViewState(normalizeRouteViewForRole(selectedRole, requestedRoleRoute.view));
       }
-      const access = getRoleAccess(pendingRole);
       const passwordValue = passwordInput.value.trim();
-      const passwordHash = await hashSecret(passwordValue);
       const shouldClaimSelectedJudgeRole = selectedRole?.startsWith("j")
         && shouldUseJudgeRoleClaims(activeEventMeta)
         && pendingJudgeRoleSelection === selectedRole;
-
-      if (await isMasterPasswordHash(passwordHash)) {
-        setRoleUnlockedForEvent(activeEventId, selectedRole, true);
-        if (shouldClaimSelectedJudgeRole) {
-          const claimResult = await syncJudgeRoleClaimSelection(selectedRole);
-          if (!claimResult?.success) {
-            hidePasswordModal();
-            renderEventDirectory();
-            renderRoleAdminPanel();
-            renderDriversTable();
-            return;
+      try {
+        if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE) {
+          const authorization = await callProdigyAction("authorizeAccess", {
+            kind: "eventRole",
+            eventId: activeEventId,
+            role: selectedRole,
+            password: passwordValue,
+          });
+          applyAuthorizedRoleVersion(activeEventId, selectedRole, authorization.accessVersion);
+          await refreshCloudClaims(true);
+          if (!cloudClaimsIncludeRole(selectedRole, activeEventId)) {
+            throw new Error("The refreshed session did not include this event role.");
           }
         }
-        hidePasswordModal({ clearPendingRoute: false, syncRoute: false });
-        applyRoleChange(selectedRole);
-        renderEventDirectory();
-        renderRoleAdminPanel();
-        return;
-      }
-
-      if (!access?.passwordHash || passwordHash !== access.passwordHash) {
-        passwordError.textContent = "Incorrect password.";
+        setRoleUnlockedForEvent(activeEventId, selectedRole, true);
+      } catch (error) {
+        console.error("Secure role login failed:", error);
+        passwordError.textContent = error?.message?.includes("Too many")
+          ? error.message
+          : "Incorrect password or this role is not available.";
         passwordError.style.display = "block";
         passwordSubmitInFlight = false;
         passwordSubmitBtn.disabled = false;
         return;
       }
-
-      setRoleUnlockedForEvent(activeEventId, selectedRole, true);
       if (shouldClaimSelectedJudgeRole) {
         const claimResult = await syncJudgeRoleClaimSelection(selectedRole);
         if (!claimResult?.success) {
@@ -30315,6 +31741,10 @@
           renderDriversTable();
           return;
         }
+      }
+      const previousRole = currentRole;
+      if (previousRole !== selectedRole && previousRole !== "spectator") {
+        await revokeCloudEventRole(activeEventId, previousRole, { silent: true });
       }
       hidePasswordModal({ clearPendingRoute: false, syncRoute: false });
       applyRoleChange(selectedRole);
@@ -30433,7 +31863,11 @@
           setRoleUnlockedForEvent(activeEventId, role, false);
         });
 
-        await publishStateImmediately();
+        if (!await publishStateImmediately()) {
+          createEventError.textContent = "Newer server data arrived before these settings could be saved. Review the current event and try again.";
+          createEventError.style.display = "block";
+          return;
+        }
         syncScheduledActiveEventSelection({ publishSelection: Boolean(isWebsiteAdmin && !localEventPreviewMode) });
         renderEventDirectory();
         renderRoleAdminPanel();
@@ -30447,21 +31881,41 @@
       }
 
       const eventMeta = await createEventRecord({ name, date, invites, roleNames, judgeCount, judgingMode, competitionMode, venueConfig });
-      setDeletedEventId(eventMeta.id, false);
-      eventDirectory[eventMeta.id] = eventMeta;
-      saveDirectoryCache();
-      hideCreateEventModal();
-      openEventById(eventMeta.id, "registration", true);
-      applyActiveEventState({
+      const initialEventState = {
         drivers: createDriverSet(),
         bracket: null,
         twinComp: null,
         qualifyingFlow: createEmptyQualifyingFlow(),
         formatMode: FORMAT_CLASSIC,
         lowerCount: "0",
-      });
+      };
+      if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE && prodigyActionCallable) {
+        try {
+          const created = await callProdigyAction("createEvent", {
+            eventId: eventMeta.id,
+            eventPayload: { ...eventMeta, ...initialEventState },
+            eventMeta,
+            publishSyncStamp: eventMeta.syncStamp,
+            makeActive: true,
+          });
+          if (created?.eventMeta) Object.assign(eventMeta, created.eventMeta);
+        } catch (error) {
+          console.error("Secure event creation failed:", error);
+          createEventError.textContent = error?.message || "The event could not be created securely.";
+          createEventError.style.display = "block";
+          return;
+        }
+      }
+      setDeletedEventId(eventMeta.id, false);
+      eventDirectory[eventMeta.id] = eventMeta;
+      saveDirectoryCache();
+      hideCreateEventModal();
+      openEventById(eventMeta.id, "registration", false);
+      applyActiveEventState(initialEventState);
       saveEventStateCache();
-      await publishStateImmediately();
+      if ((TEST_MODE_ENABLED || STANDALONE_DEMO_MODE || !prodigyActionCallable) && !await publishStateImmediately()) return;
+      setLocalEventPreviewModeState(false);
+      if (TEST_MODE_ENABLED || STANDALONE_DEMO_MODE || !prodigyActionCallable) await publishActiveEventSelection();
       applyRoleChange("spectator");
       renderDriversTable();
       globalRoleSelect.value = "admin";
@@ -30503,7 +31957,17 @@
       await restoreRound3FromPdf();
     });
     websiteAdminBackBtn.addEventListener("click", () => switchView("registration"));
-    websiteAdminSignOutBtn.addEventListener("click", () => setWebsiteAdminAccess(false));
+    websiteAdminSignOutBtn.addEventListener("click", async () => {
+      try {
+        if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE) {
+          await callProdigyAction("revokeAccess", { kind: "websiteAdmin" });
+          await refreshCloudClaims(true);
+        }
+      } catch (error) {
+        console.error("Website admin sign-out failed:", error);
+      }
+      setWebsiteAdminAccess(false);
+    });
     websiteAdminClearCacheBtn?.addEventListener("click", () => {
       if (!isWebsiteAdmin) return;
       const confirmed = window.confirm("Reset all saved event caches on this device and reload from cloud sync? Use this on laptops, phones, or tablets that look stuck on an old event.");
@@ -30512,15 +31976,29 @@
       window.location.reload();
     });
     websiteAdminSubmitBtn.addEventListener("click", async () => {
-      const enteredHash = await hashSecret(websiteAdminPasswordInput.value.trim());
-      const configuredHash = await getConfiguredMasterPasswordHash();
-      if (!enteredHash || enteredHash !== configuredHash) {
+      websiteAdminSubmitBtn.disabled = true;
+      try {
+        if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE) {
+          await callProdigyAction("authorizeAccess", {
+            kind: "websiteAdmin",
+            password: websiteAdminPasswordInput.value.trim(),
+          });
+          await refreshCloudClaims(true);
+          if (!cloudOwnerClaimActive(cloudClaims)) {
+            throw new Error("The refreshed session did not include website administrator access.");
+          }
+        }
+      } catch (error) {
+        console.error("Website admin login failed:", error);
+        websiteAdminError.textContent = error?.message?.includes("Too many") ? error.message : "Incorrect password.";
         websiteAdminError.style.display = "block";
+        websiteAdminSubmitBtn.disabled = false;
         return;
       }
       hideWebsiteAdminModal();
       setWebsiteAdminAccess(true);
       switchView("website-admin");
+      websiteAdminSubmitBtn.disabled = false;
     });
     websiteAdminCancelBtn.addEventListener("click", hideWebsiteAdminModal);
     websiteAdminPasswordInput.addEventListener("keydown", (e) => {
@@ -30584,6 +32062,7 @@
         if (nextView) switchView(nextView);
         return;
       }
+      const originatingRoute = parseRouteFromLocation();
       setLocalEventPreviewModeState(!publishSelection);
       setActiveEventIdState(nextId);
       loadActiveEventStateFromCache();
@@ -30597,10 +32076,22 @@
       }
       subscribeToActiveEvent();
       if (publishSelection) {
-        publishActiveEventSelection();
+        const selectionPublishPromise = publishActiveEventSelection();
+        const selectionRequestRevision = activeEventSelectionRequestRevision;
+        selectionPublishPromise.then((published) => {
+          if (published
+            || selectionRequestRevision !== activeEventSelectionRequestRevision
+            || activeEventId !== nextId) return;
+          setLocalEventPreviewModeState(true);
+          renderWebsiteAdminSyncDiagnostics();
+        }).catch((error) => {
+          console.error("Active event selection follow-up failed:", error);
+        });
       }
       if (nextView) {
         switchView(nextView);
+      } else if (originatingRoute?.kind === "website-admin") {
+        switchView("website-admin");
       }
     }
 
@@ -31162,7 +32653,7 @@
         window.alert("Add drivers before starting qualifying.");
         return;
       }
-      await publishStateImmediately();
+      if (!await publishStateImmediately()) return;
       renderDriversTable();
     });
 
@@ -31722,9 +33213,7 @@
          updateQualifying();
          return;
       }
-      if (readinessCleared) {
-        publishState();
-      }
+      // Judge drafts stay local until an explicit server-validated submission.
       const submitButton = tr.querySelector("[data-action='submit-judge-scores']");
       if (submitButton) {
         submitButton.textContent = getJudgeSubmitButtonLabel(driver, currentRole);
@@ -31753,9 +33242,7 @@
           : Number.parseInt(deductionButton.dataset.deduction, 10);
         if (deduction !== "crash" && !Number.isFinite(deduction)) return;
         if (!applyJudgeScoreDeduction(id, deductionButton.dataset.col, deduction, currentRole)) return;
-        if (readinessCleared) {
-          publishState();
-        }
+        // Judge deductions stay local until an explicit server-validated submission.
         const driver = appDrivers.find((entry) => entry.id === id);
         refreshJudgeDraftUi(tr, driver, currentRole);
         return;
@@ -31858,9 +33345,7 @@
         updateQualifying();
         return;
       }
-      if (readinessCleared) {
-        publishState();
-      }
+      // Judge drafts stay local until an explicit server-validated submission.
       const submitButton = card.querySelector("[data-action='submit-judge-scores']");
       if (submitButton) {
         submitButton.textContent = getJudgeSubmitButtonLabel(driver, currentRole);
@@ -31934,7 +33419,7 @@
           : Number.parseInt(deductionButton.dataset.deduction, 10);
         if (deduction !== "crash" && !Number.isFinite(deduction)) return;
         if (!applyJudgeScoreDeduction(card.dataset.id, deductionButton.dataset.col, deduction, currentRole)) return;
-        if (readinessCleared) publishState();
+        // Judge deductions stay local until an explicit server-validated submission.
         const driver = appDrivers.find((entry) => entry.id === card.dataset.id);
         refreshJudgeDraftUi(card, driver, currentRole);
         return;
@@ -31960,7 +33445,7 @@
         driver.scores[currentRole][runKey] = null;
         driver.runFlags[runKey] = null;
         clearJudgeDeductionHistory(driver, currentRole, runKey);
-        if (readinessCleared) publishState();
+        // Clearing a draft remains local until the judge submits.
         renderDriversTable();
         return;
       }
@@ -31999,7 +33484,7 @@
       const runFlagButton = e.target.closest("[data-action='set-run-flag']");
       if (runFlagButton) {
         if (!userCanEdit() || currentRole === "admin" || currentRole === "spectator") return;
-        if (readinessCleared) publishState();
+        // Run flags are represented by the submitted zero score on the server.
         setRunFlag(card.dataset.id, runFlagButton.dataset.run, runFlagButton.dataset.reason);
         return;
       }
@@ -32011,7 +33496,7 @@
         if (!driver) return;
         const runKey = clearRunFlagButton.dataset.run;
         driver.scores[currentRole][runKey] = null;
-        if (readinessCleared) publishState();
+        // Clearing a draft remains local until the judge submits.
         renderDriversTable();
       }
     });
@@ -32321,9 +33806,9 @@
       }
     });
 
-    registrationEntryForm?.addEventListener("submit", (e) => {
+    registrationEntryForm?.addEventListener("submit", async (e) => {
       e.preventDefault();
-      submitRegistrationDraft();
+      await submitRegistrationDraft();
     });
 
     saveVenueConfigBtn?.addEventListener("click", () => {
@@ -32475,7 +33960,7 @@
         venueConfig,
       }, { syncQualifying: false });
       eventDirectory[activeEventId] = cloneEventMeta(activeEventMeta);
-      await publishStateImmediately();
+      if (!await publishStateImmediately()) return;
       syncVenueConfigForm();
       syncSelfRegisterQrPanel();
       window.alert("Venue QR token rotated. Share the new QR screen with front desk.");
@@ -32628,7 +34113,7 @@
       });
       setCompetitionBracketPageState("main");
       saveBracketPagePreference(activeEventId, activeCompetitionBracketPage);
-      await publishStateImmediately();
+      if (!await publishStateImmediately()) return;
       renderDriversTable();
     });
 
@@ -34672,6 +36157,10 @@
       syncBracketFullscreenSizing();
       syncForcedHostContext();
       initializeTheme();
+      if (auth) {
+        await ensureCloudAuthReady();
+        await refreshCloudClaims().catch((error) => console.error("Initial claim refresh failed:", error));
+      }
       await initLocalState();
       const initialExplicitRoute = parseRouteFromLocation()
         || (String(window.location.hash || "").toLowerCase() === "#/website-admin" ? { kind: "website-admin" } : null);
@@ -34681,7 +36170,7 @@
       }
       const seededTestScenario = await maybeRunPendingTestScenario();
       renderEventDirectory();
-      setWebsiteAdminAccess(isWebsiteAdmin);
+      setWebsiteAdminAccess(cloudClaims?.owner === true || cloudClaims?.websiteAdmin === true, { persist: false });
       const hasExplicitInitialRoute = Boolean(initialExplicitRoute) && !seededTestScenario;
       if (hasExplicitInitialRoute) {
         applyResolvedRoute(initialExplicitRoute);

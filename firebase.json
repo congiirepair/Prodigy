@@ -2,6 +2,10 @@
   "firestore": {
     "rules": "firestore.rules"
   },
+  "functions": {
+    "source": "functions",
+    "runtime": "nodejs22"
+  },
   "hosting": {
     "public": ".",
     "ignore": [
@@ -10,6 +14,9 @@
       "DEPLOY_SUBDOMAINS.md",
       "FIREBASE_SETUP.md",
       "LOCAL_TESTING.md",
+      "firestore.rules",
+      "firestore-debug.log",
+      "functions/**",
       "docs/**",
       "**/*.mjs",
       "package.json",
@@ -20,6 +27,10 @@
       ".emulator-data/**",
       "index-Chuck.html",
       "**/*-Chuck.*",
+      "client-config.backup.*",
+      "client-config.revert-safety.*",
+      "index.backup.*",
+      "index.revert-safety.*",
       "**/.*",
       "**/node_modules/**"
     ],

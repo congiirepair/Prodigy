@@ -2,21 +2,76 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // App sync data for a specific client project.
-    // Anonymous auth is enabled for the app, so signed-in devices can
-    // read and write live event state without exposing the database publicly.
-    match /artifacts/{appId}/public/{scope}/{document=**} {
-      allow read, write: if request.auth != null
-        && scope in ['data', 'testData'];
+    function signedIn() {
+      return request.auth != null;
     }
 
-    // Legacy explicit production path kept for clarity. The scoped rule above
-    // is the active rule for both production and test data.
-    match /artifacts/{appId}/public/data/{document=**} {
-      allow read, write: if request.auth != null;
+    function scopedRoles(eventId) {
+      return signedIn()
+        && request.auth.token.get('eventRoles', {}) is map
+        && request.auth.token.get('eventRoles', {}).get(eventId, []) is list
+        ? request.auth.token.get('eventRoles', {}).get(eventId, [])
+        : [];
     }
 
-    // Deny everything else by default.
+    function isOwner() {
+      return signedIn()
+        && (request.auth.token.get('owner', false) == true
+            || request.auth.token.get('websiteAdmin', false) == true)
+        && request.auth.token.get('ownerExpiresAt', 0) > request.time.toMillis();
+    }
+
+    function hasCurrentScopedRole(appId, eventId, role) {
+      return scopedRoles(eventId).hasAny([role])
+        && request.auth.token.get('eventRoleVersions', {}) is map
+        && request.auth.token.get('eventRoleVersions', {}).get(eventId, {}) is map
+        && request.auth.token.get('eventRoleVersions', {}).get(eventId, {}).get(role, '')
+          == get(/databases/$(database)/documents/artifacts/$(appId)/public/data/events/$(eventId)).data.roleAccess.get(role, {}).get('accessVersion', '');
+    }
+
+    function isEventAdmin(appId, eventId) {
+      return isOwner()
+        || hasCurrentScopedRole(appId, eventId, 'admin');
+    }
+
+    function isStreamOperator(appId, eventId) {
+      return isEventAdmin(appId, eventId);
+    }
+
+    // QA data is isolated by path and remains writable to authenticated local
+    // emulator clients. Production writes must use trusted callable functions.
+    match /artifacts/{appId}/public/testData/{document=**} {
+      allow read, write: if signedIn();
+    }
+
+    match /artifacts/{appId}/public/data/events/{eventId} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    match /artifacts/{appId}/public/data/demoEvents/{eventId} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    match /artifacts/{appId}/public/data/meta/{documentId} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    match /artifacts/{appId}/public/data/liveStreams/{eventId} {
+      allow read: if signedIn();
+      allow write: if isStreamOperator(appId, eventId);
+
+      match /sessions/{sessionId}/viewers/{viewerId} {
+        allow read: if isStreamOperator(appId, eventId)
+          || (signedIn() && viewerId == request.auth.uid);
+        allow write: if isStreamOperator(appId, eventId)
+          || (signedIn() && viewerId == request.auth.uid);
+      }
+    }
+
+    // Role secrets, rate-limit records, and all unrecognized paths are server-only.
     match /{document=**} {
       allow read, write: if false;
     }
