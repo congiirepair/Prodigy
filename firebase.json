@@ -122,6 +122,20 @@
     ],
     "rewrites": [
       {
+        "source": "/api/parse-voice-deductions",
+        "function": {
+          "functionId": "parseVoiceDeductions",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/email-event-results",
+        "function": {
+          "functionId": "emailEventResultsSummary",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }

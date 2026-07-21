@@ -4768,6 +4768,12 @@
       color: #fff;
     }
 
+    .voice-deduction-btn.is-listening {
+      border-color: var(--prodigy-gold, #b3812f);
+      background: color-mix(in srgb, var(--prodigy-gold, #b3812f) 18%, var(--surface));
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--prodigy-gold, #b3812f) 22%, transparent);
+    }
+
     .judge-score-help {
       color: var(--text-soft);
       font-size: 0.8rem;
@@ -14588,9 +14594,10 @@
   </div>
 
   <!-- APP LOGIC -->
-  <script src="./client-config.js?v=20260415a"></script>
+  <script src="./client-config.js?v=20260721a"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script type="module">
+    import { parseVoiceCommandsWithFallback, sendResultsSummaryEmail } from "./assets/js/legacy-client-features.js";
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, connectAuthEmulator } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, collection, doc, setDoc, onSnapshot, deleteDoc, deleteField, getDoc, runTransaction, connectFirestoreEmulator } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -14656,6 +14663,14 @@
       },
       layout: {
         centerAllText: true,
+      },
+      voiceAi: {
+        enabled: false,
+        endpoint: "",
+      },
+      resultsEmail: {
+        enabled: false,
+        endpoint: "",
       },
       landing: {
         whySectionKicker: "Built For Event Day",
@@ -14785,6 +14800,8 @@
     const CLIENT_THEME = CLIENT_CONFIG.theme || {};
     const CLIENT_LAYOUT = CLIENT_CONFIG.layout || {};
     const CLIENT_STREAMING = CLIENT_CONFIG.streaming || {};
+    const CLIENT_VOICE_AI = CLIENT_CONFIG.voiceAi || {};
+    const CLIENT_RESULTS_EMAIL = CLIENT_CONFIG.resultsEmail || {};
     const CLIENT_LANDING = CLIENT_CONFIG.landing || {};
     const CLIENT_ROUTING = CLIENT_CONFIG.routing || {};
     const CLIENT_FIREBASE = CLIENT_CONFIG.firebase || {};
@@ -16455,6 +16472,7 @@
           <button class="score-deduction-btn" type="button" data-action="apply-deduction" data-col="${runKey}" data-deduction="crash">
             Crash
           </button>
+          ${currentRole?.startsWith("j") ? `<button class="score-deduction-btn voice-deduction-btn" type="button" data-action="toggle-voice-deduction" data-col="${runKey}" aria-label="Start voice deductions" aria-pressed="false" title="Start voice deductions">Voice</button>` : ""}
         </div>
       `;
     }
@@ -17321,6 +17339,319 @@
       }
       appendJudgeDeductionHistory(driver, role, runKey, `-${numericDeduction}`);
       return true;
+    }
+
+    function getSpeechRecognitionConstructor() {
+      if (typeof window === "undefined") return null;
+      return window.SpeechRecognition || window.webkitSpeechRecognition || null;
+    }
+
+    function parseSpokenNumber(value) {
+      const text = String(value || "").toLowerCase().replace(/-/g, " ").replace(/[^\w.\s]/g, " ").trim();
+      const numericMatch = text.match(/\d+(?:\.\d+)?/);
+      if (numericMatch) {
+        const direct = Number.parseFloat(numericMatch[0]);
+        if (Number.isFinite(direct)) return direct;
+      }
+      const words = new Map([
+        ["zero", 0], ["oh", 0], ["one", 1], ["two", 2], ["three", 3], ["four", 4], ["for", 4],
+        ["five", 5], ["six", 6], ["seven", 7], ["eight", 8], ["ate", 8], ["nine", 9], ["ten", 10],
+        ["eleven", 11], ["twelve", 12], ["thirteen", 13], ["fourteen", 14], ["fifteen", 15],
+        ["sixteen", 16], ["seventeen", 17], ["eighteen", 18], ["nineteen", 19],
+        ["twenty", 20], ["thirty", 30], ["forty", 40], ["fourty", 40], ["fifty", 50],
+        ["sixty", 60], ["seventy", 70], ["eighty", 80], ["ninety", 90], ["hundred", 100],
+      ]);
+      let current = 0;
+      let matched = false;
+      text.split(/\s+/).forEach((token) => {
+        if (!words.has(token)) return;
+        matched = true;
+        const wordValue = words.get(token);
+        current = wordValue === 100 ? Math.max(1, current) * 100 : current + wordValue;
+      });
+      return matched ? current : null;
+    }
+
+    function getSpokenNumberTokens(value) {
+      const text = String(value || "").toLowerCase().replace(/-/g, " ").replace(/[^\w.\s]/g, " ").trim();
+      if (!text) return [];
+      const words = new Map([
+        ["zero", 0], ["oh", 0], ["one", 1], ["two", 2], ["three", 3], ["four", 4], ["for", 4],
+        ["five", 5], ["six", 6], ["seven", 7], ["eight", 8], ["ate", 8], ["nine", 9], ["ten", 10],
+        ["eleven", 11], ["twelve", 12], ["thirteen", 13], ["fourteen", 14], ["fifteen", 15],
+        ["sixteen", 16], ["seventeen", 17], ["eighteen", 18], ["nineteen", 19],
+        ["twenty", 20], ["thirty", 30], ["forty", 40], ["fourty", 40], ["fifty", 50],
+        ["sixty", 60], ["seventy", 70], ["eighty", 80], ["ninety", 90],
+      ]);
+      const tokens = [];
+      const tokenRegex = /\d+(?:\.\d+)?|[a-z]+/g;
+      let match;
+      while ((match = tokenRegex.exec(text)) !== null) {
+        const raw = match[0];
+        const numeric = Number.parseFloat(raw);
+        if (Number.isFinite(numeric) && /^\d/.test(raw)) {
+          tokens.push({ index: match.index, value: numeric });
+        } else if (words.has(raw)) {
+          tokens.push({ index: match.index, value: words.get(raw) });
+        }
+      }
+      return tokens;
+    }
+
+    function addVoiceDeductionCommands(commands, segment, baseIndex = 0) {
+      getSpokenNumberTokens(segment).forEach((token) => {
+        commands.push({ index: baseIndex + token.index, type: "deduction", value: token.value });
+      });
+    }
+
+    function parseJudgeVoiceCommands(transcript) {
+      const normalized = String(transcript || "").toLowerCase().trim();
+      if (!normalized) return [];
+      const commands = [];
+      const crashRegex = /\bcrash\b/g;
+      let crashMatch;
+      while ((crashMatch = crashRegex.exec(normalized)) !== null) {
+        commands.push({ index: crashMatch.index, type: "deduction", value: "crash" });
+      }
+      const setRegex = /\b(?:set|score|make it|make)\s+(?:score\s+)?([a-z0-9.\s-]+)/g;
+      let setMatch;
+      while ((setMatch = setRegex.exec(normalized)) !== null) {
+        const value = parseSpokenNumber(setMatch[1]);
+        if (Number.isFinite(value)) commands.push({ index: setMatch.index, type: "set", value });
+      }
+      const leadingDeductionRegex = /\b(?:minus|deduct|take|drop|subtract)\s+([a-z0-9.]+)/g;
+      let leadingDeductionMatch;
+      while ((leadingDeductionMatch = leadingDeductionRegex.exec(normalized)) !== null) {
+        const value = parseSpokenNumber(leadingDeductionMatch[1]);
+        if (Number.isFinite(value)) commands.push({ index: leadingDeductionMatch.index, type: "deduction", value });
+      }
+      const deductionSegmentRegex = /\b(?:minus|deduct|take|drop|subtract)\s+([a-z0-9.\s,]+?)(?=\b(?:minus|deduct|take|drop|subtract|set|score|make it|make|crash)\b|$)/g;
+      let deductionSegmentMatch;
+      while ((deductionSegmentMatch = deductionSegmentRegex.exec(normalized)) !== null) {
+        addVoiceDeductionCommands(commands, deductionSegmentMatch[1], deductionSegmentMatch.index);
+      }
+      const trailingDeductionRegex = /\b([a-z0-9.]+)\s+(?:off|deduction)\b/g;
+      let trailingDeductionMatch;
+      while ((trailingDeductionMatch = trailingDeductionRegex.exec(normalized)) !== null) {
+        const value = parseSpokenNumber(trailingDeductionMatch[1]);
+        if (Number.isFinite(value)) commands.push({ index: trailingDeductionMatch.index, type: "deduction", value });
+      }
+      if (commands.length) {
+        commands.sort((left, right) => left.index - right.index);
+        const seen = new Set();
+        return commands.filter((command) => {
+          const key = `${command.index}:${command.type}:${command.value}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        }).map((command) => ({
+          type: command.type,
+          value: command.value,
+          sourceKey: `${command.index}:${command.type}:${command.value}`,
+        }));
+      }
+      return getSpokenNumberTokens(normalized).map((token) => ({
+        type: "deduction",
+        value: token.value,
+        sourceKey: `${token.index}:deduction:${token.value}`,
+      }));
+    }
+
+    let activeVoiceRecognition = null;
+    let activeVoiceSession = null;
+
+    function getVoiceSessionKey(driverId, runKey, role) {
+      return `${String(role || "")}:${String(driverId || "")}:${String(runKey || "")}`;
+    }
+
+    function clearVoiceButtonState(button) {
+      if (!button) return;
+      button.classList.remove("is-listening");
+      button.textContent = "Voice";
+      button.setAttribute("aria-label", "Start voice deductions");
+      button.setAttribute("aria-pressed", "false");
+      button.setAttribute("title", "Start voice deductions");
+    }
+
+    function setVoiceButtonListening(button) {
+      if (!button) return;
+      button.classList.add("is-listening");
+      button.textContent = "Voice On";
+      button.setAttribute("aria-label", "Stop voice deductions");
+      button.setAttribute("aria-pressed", "true");
+      button.setAttribute("title", "Listening. Tap to stop and apply voice deductions.");
+    }
+
+    function applyJudgeVoiceCommand(command, transcript, session) {
+      if (!command || !session) return false;
+      const driver = appDrivers.find((entry) => entry.id === session.driverId);
+      if (!driver || !session.role?.startsWith("j")) return false;
+      const now = Date.now();
+      const signature = `${command.sourceKey || `${command.type}:${command.value}`}:${session.driverId}:${session.runKey}`;
+      if (session.lastCommandSignature === signature && now - session.lastCommandAt < 900) return false;
+      session.lastCommandSignature = signature;
+      session.lastCommandAt = now;
+      if (session.driverId === qualifyingFlow.currentDriverId) clearQualifyingReady(session.role);
+      if (command.type === "set") {
+        driver.scores[session.role][session.runKey] = clampJudgeScoreValue(command.value, session.role, activeEventMeta);
+        driver.runFlags[session.runKey] = null;
+        appendJudgeDeductionHistory(driver, session.role, session.runKey, `Voice set ${formatScore(command.value)}`);
+      } else {
+        applyJudgeScoreDeduction(session.driverId, session.runKey, command.value, session.role);
+      }
+      refreshJudgeDraftUi(session.container, driver, session.role);
+      session.lastTranscript = transcript;
+      return true;
+    }
+
+    async function processRecordedJudgeVoiceSession(session) {
+      if (!session || session.processedRecording) return false;
+      session.processedRecording = true;
+      const recordedResults = [...(session.recordedResults?.values?.() || [])]
+        .filter((entry) => String(entry?.transcript || "").trim())
+        .sort((left, right) => (left.order || 0) - (right.order || 0));
+      const finalResults = recordedResults.filter((entry) => entry.isFinal);
+      const lastFinalOrder = finalResults.reduce((maxOrder, entry) => Math.max(maxOrder, entry.order || 0), 0);
+      const trailingInterimResults = finalResults.length
+        ? recordedResults.filter((entry) => !entry.isFinal && (entry.order || 0) > lastFinalOrder)
+        : [];
+      const transcript = (finalResults.length ? [...finalResults, ...trailingInterimResults] : recordedResults)
+        .map((entry) => entry.transcript)
+        .join(" ")
+        .replace(/\s+/g, " ")
+        .trim();
+      const driver = appDrivers.find((entry) => entry.id === session.driverId);
+      const currentScore = driver ? getJudgeDraftScoreValue(driver, session.role, session.runKey) : null;
+      const commands = await parseVoiceCommandsWithFallback({
+        transcript,
+        context: {
+          maxScore: getJudgeScoreMax(session.role, activeEventMeta),
+          currentScore,
+        },
+        config: CLIENT_VOICE_AI,
+        localParser: parseJudgeVoiceCommands,
+      });
+      if (!commands.length) {
+        if (transcript) {
+          window.alert(`Voice recorded "${transcript}", but no deduction command was found. Try phrases like "minus two", "five off", or "crash".`);
+        }
+        return false;
+      }
+      return commands.reduce((applied, command) => applyJudgeVoiceCommand(command, transcript, session) || applied, false);
+    }
+
+    function stopJudgeVoiceDeduction(options = {}) {
+      const shouldProcess = options.process !== false;
+      const session = activeVoiceSession;
+      activeVoiceSession = null;
+      if (session) {
+        session.stopRequested = true;
+        clearVoiceButtonState(session.button);
+      }
+      if (activeVoiceRecognition) {
+        try { activeVoiceRecognition.stop(); } catch (error) {}
+      }
+      activeVoiceRecognition = null;
+      if (session && shouldProcess) {
+        window.setTimeout(() => processRecordedJudgeVoiceSession(session), 250);
+      }
+    }
+
+    function startJudgeVoiceDeduction(button, container, runRef, role = currentRole) {
+      const Recognition = getSpeechRecognitionConstructor();
+      if (!Recognition) {
+        window.alert("Voice dictation is not available in this browser. On iPhone, try Safari with microphone permissions enabled.");
+        return;
+      }
+      const driverId = container?.dataset?.id;
+      const driver = appDrivers.find((entry) => entry.id === driverId);
+      if (!driver || !role?.startsWith("j")) return;
+      const runKey = getRunKey(runRef);
+      const sessionKey = getVoiceSessionKey(driverId, runKey, role);
+      if (activeVoiceSession?.key === sessionKey) {
+        stopJudgeVoiceDeduction();
+        return;
+      }
+      stopJudgeVoiceDeduction();
+      const session = {
+        key: sessionKey,
+        driverId,
+        runKey,
+        role,
+        button,
+        container,
+        stopRequested: false,
+        processedRecording: false,
+        recognitionRunId: 0,
+        recordedResultOrder: 0,
+        recordedResults: new Map(),
+        lastCommandSignature: "",
+        lastCommandAt: 0,
+        lastTranscript: "",
+      };
+      activeVoiceSession = session;
+      setVoiceButtonListening(button);
+
+      const startRecognition = () => {
+        if (activeVoiceSession !== session || session.stopRequested) return;
+        const recognition = new Recognition();
+        const recognitionRunId = session.recognitionRunId + 1;
+        session.recognitionRunId = recognitionRunId;
+        activeVoiceRecognition = recognition;
+        recognition.lang = "en-US";
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.maxAlternatives = 1;
+        recognition.onresult = (event) => {
+          for (let index = event.resultIndex || 0; index < event.results.length; index += 1) {
+            const result = event.results[index];
+            const transcript = result?.[0]?.transcript || "";
+            if (!String(transcript).trim()) continue;
+            const key = `${recognitionRunId}:${index}`;
+            const existing = session.recordedResults.get(key);
+            session.recordedResults.set(key, {
+              transcript,
+              isFinal: Boolean(result?.isFinal),
+              order: existing?.order || ++session.recordedResultOrder,
+            });
+          }
+        };
+        recognition.onerror = (event) => {
+          if (activeVoiceSession !== session || session.stopRequested) return;
+          if (["no-speech", "aborted"].includes(event?.error)) return;
+          if (["not-allowed", "service-not-allowed"].includes(event?.error)) {
+            window.alert("Voice dictation needs microphone permission before it can stay on.");
+            stopJudgeVoiceDeduction({ process: false });
+            return;
+          }
+          console.warn("Voice dictation error", event?.error || event);
+        };
+        recognition.onend = () => {
+          if (activeVoiceRecognition === recognition) activeVoiceRecognition = null;
+          if (activeVoiceSession !== session || session.stopRequested) {
+            clearVoiceButtonState(button);
+            return;
+          }
+          window.setTimeout(startRecognition, 120);
+        };
+        try {
+          recognition.start();
+        } catch (error) {
+          if (activeVoiceSession === session && !session.stopRequested) window.setTimeout(startRecognition, 250);
+        }
+      };
+
+      startRecognition();
+    }
+
+    function toggleJudgeVoiceDeduction(button, container, runRef, role = currentRole) {
+      const driverId = container?.dataset?.id;
+      const runKey = getRunKey(runRef);
+      if (activeVoiceSession?.key === getVoiceSessionKey(driverId, runKey, role)) {
+        stopJudgeVoiceDeduction();
+        return;
+      }
+      startJudgeVoiceDeduction(button, container, runRef, role);
     }
 
     function refreshJudgeDraftUi(container, driver, role = currentRole) {
@@ -18707,6 +19038,21 @@
       }
 
       return doc.output("blob");
+    }
+
+    async function emailResultsSummaryForFinalizedEvent(eventId = activeEventId) {
+      if (!eventId || eventId !== activeEventId || !activeEventMeta) return { attempted: false, ok: false };
+      if (!CLIENT_RESULTS_EMAIL?.enabled || !String(CLIENT_RESULTS_EMAIL?.endpoint || "").trim()) {
+        return { attempted: false, ok: false };
+      }
+      const results = activeEventMeta.results || buildEventResults();
+      const rankedDrivers = rankDrivers(appDrivers);
+      const blob = await buildResultsPdfBlob(activeEventMeta, results, rankedDrivers);
+      return sendResultsSummaryEmail({
+        config: CLIENT_RESULTS_EMAIL,
+        eventName: activeEventMeta.name || "Prodigy Event",
+        pdfBlob: blob,
+      });
     }
 
     function triggerPdfDownload(blob, fileName) {
@@ -25941,6 +26287,11 @@
         renderBracket();
       }
       switchView("results");
+      try {
+        await emailResultsSummaryForFinalizedEvent(activeEventId);
+      } catch (error) {
+        console.warn("Results summary email failed to send", error);
+      }
       window.alert("Current event results were finalized and saved to the Results tab.");
     }
 
@@ -33498,6 +33849,15 @@
         return;
       }
 
+      const voiceButton = e.target.closest("[data-action='toggle-voice-deduction']");
+      if (voiceButton) {
+        if (!userCanEdit() || currentRole === "admin" || currentRole === "spectator") return;
+        const tr = e.target.closest("tr");
+        if (!tr) return;
+        toggleJudgeVoiceDeduction(voiceButton, tr, voiceButton.dataset.col, currentRole);
+        return;
+      }
+
       const submitButton = e.target.closest("[data-action='submit-judge-scores']");
       if (submitButton) {
         if (!userCanEdit() || currentRole === "admin" || currentRole === "spectator") return;
@@ -33672,6 +34032,13 @@
         // Judge deductions stay local until an explicit server-validated submission.
         const driver = appDrivers.find((entry) => entry.id === card.dataset.id);
         refreshJudgeDraftUi(card, driver, currentRole);
+        return;
+      }
+
+      const voiceButton = e.target.closest("[data-action='toggle-voice-deduction']");
+      if (voiceButton) {
+        if (!userCanEdit() || currentRole === "admin" || currentRole === "spectator") return;
+        toggleJudgeVoiceDeduction(voiceButton, card, voiceButton.dataset.col, currentRole);
         return;
       }
 

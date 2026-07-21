@@ -13,6 +13,10 @@ const {
   recordScorecard,
   recordVote,
 } = require("./competition");
+const {
+  emailEventResultsSummary,
+  parseVoiceDeductions,
+} = require("./legacy-http");
 
 initializeApp();
 
@@ -1185,6 +1189,9 @@ exports.prodigyAction = onCall({
   enforceAppCheck: false,
   secrets: [websiteAdminPassword],
 }, routeAction);
+
+exports.parseVoiceDeductions = parseVoiceDeductions;
+exports.emailEventResultsSummary = emailEventResultsSummary;
 
 exports._test = {
   activeJudgeRoles,

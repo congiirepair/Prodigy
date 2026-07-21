@@ -10,6 +10,8 @@
     "test:security:competition": "node tests/competition-security.test.cjs",
     "test:security:callable": "node tests/callable-authorization.test.mjs",
     "test:security:battles": "node tests/battle-authorization.test.mjs",
+    "test:legacy": "node tests/legacy-features.test.mjs",
+    "test:legacy:emulator": "node tests/legacy-functions-emulator.test.mjs",
     "test:security:emulator": "node tests/firestore-authorization.test.mjs && node tests/callable-authorization.test.mjs && node tests/battle-authorization.test.mjs",
     "test:url": "node scripts/test-mode-url.mjs",
     "test:url:qualifying": "node scripts/test-mode-url.mjs qualifying",

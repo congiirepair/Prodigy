@@ -5,11 +5,13 @@ import { fileURLToPath } from "node:url";
 const currentFilePath = fileURLToPath(import.meta.url);
 const repoRoot = path.dirname(currentFilePath);
 const filePath = path.join(repoRoot, "index.html");
-const html = fs.readFileSync(filePath, "utf8");
+const html = fs.readFileSync(filePath, "utf8").replace(/\r\n/g, "\n");
 const clientConfigSource = fs.readFileSync(path.join(repoRoot, "client-config.js"), "utf8");
 const firestoreRulesSource = fs.readFileSync(path.join(repoRoot, "firestore.rules"), "utf8");
 const firebaseProjectConfig = JSON.parse(fs.readFileSync(path.join(repoRoot, "firebase.json"), "utf8"));
 const backendSource = fs.readFileSync(path.join(repoRoot, "functions", "index.js"), "utf8");
+const legacyBackendSource = fs.readFileSync(path.join(repoRoot, "functions", "legacy-http.js"), "utf8");
+const legacyClientSource = fs.readFileSync(path.join(repoRoot, "assets", "js", "legacy-client-features.js"), "utf8");
 
 function sourceBetween(startMarker, endMarker) {
   const startIndex = html.indexOf(startMarker);
@@ -74,6 +76,7 @@ const activeEventStateApplySource = sourceBetween("function applyActiveEventStat
 const nativeStreamLayoutSource = sourceBetween("function resolveNativeStreamLayoutKey", "function getNativeStreamPhaseLabel");
 const nativeStreamPhaseSource = sourceBetween("function getNativeStreamPhaseLabel", "function getNativeLiveViewerUrl");
 const autoBracketSource = sourceBetween("function maybeAutoBuildBracket", "function syncNetworkStatusIndicator");
+const eventFinalizeSource = sourceBetween("async function finalizeCurrentEventResults()", "function syncSelfRegisterProfileCard()");
 
 const checks = [
   {
@@ -615,6 +618,25 @@ const checks = [
       && html.includes('.twin-comp-standings li {\n      display: block;')
       && html.includes('grid-template-columns: 36px minmax(0, 1fr) auto;')
       && html.includes('.twin-comp-standings .helper-text {'),
+  },
+  {
+    name: "legacy production HTTPS functions remain managed under their existing IDs",
+    test: () => backendSource.includes("exports.parseVoiceDeductions = parseVoiceDeductions")
+      && backendSource.includes("exports.emailEventResultsSummary = emailEventResultsSummary")
+      && legacyBackendSource.includes('defineSecret("GEMINI_API_KEY")')
+      && legacyBackendSource.includes('defineSecret("RESEND_API_KEY")')
+      && firebaseProjectConfig.hosting.rewrites[0]?.function?.functionId === "parseVoiceDeductions"
+      && firebaseProjectConfig.hosting.rewrites[1]?.function?.functionId === "emailEventResultsSummary",
+  },
+  {
+    name: "voice and results email clients retain fallback and non-blocking failure handling",
+    test: () => clientConfigSource.includes('endpoint: "/api/parse-voice-deductions"')
+      && clientConfigSource.includes('endpoint: "/api/email-event-results"')
+      && legacyClientSource.includes("return parseLocally();")
+      && html.includes("parseVoiceCommandsWithFallback({")
+      && eventFinalizeSource.includes("await emailResultsSummaryForFinalizedEvent(activeEventId)")
+      && eventFinalizeSource.includes('console.warn("Results summary email failed to send", error)')
+      && eventFinalizeSource.indexOf("await emailResultsSummaryForFinalizedEvent(activeEventId)") < eventFinalizeSource.indexOf('window.alert("Current event results were finalized and saved to the Results tab.")'),
   },
 ];
 
