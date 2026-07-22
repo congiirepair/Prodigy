@@ -112,16 +112,45 @@ assert.equal(inspectRound3SyntheticBracket(ROUND3_EVENT_ID, {
   bracketHash: bracketHash(alternateTimestampBracket),
   createdAt: ROUND3_SYNTHETIC_BRACKET_CREATED_AT,
 }).reason, "unexpected-created-at");
-assert.equal(ROUND3_SYNTHETIC_BRACKET_HASH, "988b8bd232911ee6fbb5a42d26ffbc314054cc6e0b11b22ba4aea97f5c1d7f6a");
-const liveFingerprint = {
+assert.equal(ROUND3_SYNTHETIC_BRACKET_HASH, "a9480b1b25f59bb995232dd73eb7234122cb12b1024dbddd98b24f1587ffb66d");
+const rawProductionFingerprint = {
   bracketHash: ROUND3_SYNTHETIC_BRACKET_HASH,
   createdAt: ROUND3_SYNTHETIC_BRACKET_CREATED_AT,
   syncStamp: 1784724804275,
 };
-assert.equal(repairFingerprintMatches(liveFingerprint, { ...liveFingerprint }), true);
-assert.equal(repairFingerprintMatches(liveFingerprint, { ...liveFingerprint, syncStamp: liveFingerprint.syncStamp + 1 }), false);
-assert.equal(repairFingerprintMatches(liveFingerprint, { ...liveFingerprint, bracketHash: "changed" }), false);
-assert.equal(repairFingerprintMatches(liveFingerprint, { ...liveFingerprint, createdAt: "2026-07-22T12:53:24.500Z" }), false);
+assert.equal(repairFingerprintMatches(rawProductionFingerprint, { ...rawProductionFingerprint }), true);
+assert.equal(repairFingerprintMatches(rawProductionFingerprint, {
+  ...rawProductionFingerprint,
+  syncStamp: rawProductionFingerprint.syncStamp + 1,
+}), false);
+assert.equal(repairFingerprintMatches(rawProductionFingerprint, {
+  ...rawProductionFingerprint,
+  bracketHash: "changed",
+}), false);
+assert.equal(repairFingerprintMatches(rawProductionFingerprint, {
+  ...rawProductionFingerprint,
+  createdAt: "2026-07-22T12:53:24.500Z",
+}), false);
+
+const structurallySimilarBracket = {
+  ...syntheticBracket,
+  plan: { ...syntheticBracket.plan, qualifiedCount: 24 },
+};
+assert.equal(inspectRound3SyntheticBracket(ROUND3_EVENT_ID, {
+  ...syntheticEvent,
+  bracket: structurallySimilarBracket,
+}, syntheticExpected).reason, "unexpected-bracket-hash");
+
+// Rendering normalization can auto-advance a bye in memory. That transformed
+// client object must never be accepted as the raw server repair fingerprint.
+const clientNormalizedBracket = structuredClone(syntheticBracket);
+clientNormalizedBracket.mainBracket.rounds[0].matches[0].winner = { name: "C" };
+clientNormalizedBracket.mainBracket.rounds[0].matches[0].winnerMode = "auto";
+assert.notEqual(bracketHash(clientNormalizedBracket), bracketHash(syntheticBracket));
+assert.equal(inspectRound3SyntheticBracket(ROUND3_EVENT_ID, {
+  ...syntheticEvent,
+  bracket: clientNormalizedBracket,
+}, syntheticExpected).reason, "bracket-has-winners");
 assert.deepEqual(inspectRound3SyntheticBracket(ROUND3_EVENT_ID, {
   status: "completed",
   historicalBracketStatus: "unavailable",

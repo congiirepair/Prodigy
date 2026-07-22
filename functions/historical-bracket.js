@@ -4,7 +4,7 @@ const crypto = require("node:crypto");
 
 const ROUND3_EVENT_ID = "sdc-round-3-las-vegas";
 const ROUND3_SYNTHETIC_BRACKET_CREATED_AT = "2026-07-22T12:53:23.500Z";
-const ROUND3_SYNTHETIC_BRACKET_HASH = "988b8bd232911ee6fbb5a42d26ffbc314054cc6e0b11b22ba4aea97f5c1d7f6a";
+const ROUND3_SYNTHETIC_BRACKET_HASH = "a9480b1b25f59bb995232dd73eb7234122cb12b1024dbddd98b24f1587ffb66d";
 const HISTORICAL_BRACKET_UNAVAILABLE = "unavailable";
 
 function normalizeTimestamp(value) {
