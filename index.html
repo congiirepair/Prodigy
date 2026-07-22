@@ -786,6 +786,130 @@
     body[data-role="spectator"] .admin-action { display: none !important; }
     body[data-role="spectator"] .role-switcher { display: none !important; }
     body[data-site-admin="false"] .site-admin-only { display: none !important; }
+
+    /* Spectator shell: keep the public surface focused on event state and
+       broadcast content while retaining all render mounts in the DOM. */
+    body[data-role="spectator"] #syncStatus,
+    body[data-role="spectator"] #topbarRolePill,
+    body[data-role="spectator"] #topbarEventMeta,
+    body[data-role="spectator"] .topbar-brand-kicker,
+    body[data-role="spectator"] #websiteAdminBtn {
+      display: none !important;
+    }
+
+    body[data-role="spectator"] .main-topbar {
+      grid-template-columns: minmax(0, 1fr) auto auto;
+      gap: 12px;
+      padding: 12px 18px;
+    }
+
+    body[data-role="spectator"] .main-topbar .topbar-brand-mark {
+      width: 46px;
+      height: 46px;
+      padding: 8px;
+      border-radius: 14px;
+    }
+
+    body[data-role="spectator"] .main-topbar .topbar-brand-copy strong {
+      font-family: var(--font-graffiti);
+      font-size: 1.05rem;
+      letter-spacing: 0.01em;
+    }
+
+    body[data-role="spectator"] .main-topbar .topbar-status-cluster {
+      gap: 0;
+    }
+
+    body[data-role="spectator"] .main-topbar .topbar-center {
+      justify-content: flex-end;
+    }
+
+    body[data-role="spectator"] #view-live > .hero {
+      display: none;
+    }
+
+    body[data-role="spectator"] .spectator-shop-button {
+      min-height: 40px;
+      right: 16px;
+      bottom: 16px;
+      padding: 9px 16px;
+      border: 1px solid var(--line-strong);
+      border-radius: 999px;
+      background: rgba(10, 12, 20, 0.72);
+      color: var(--text);
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.32);
+      font-size: 0.82rem;
+      letter-spacing: 0.04em;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      opacity: 0.9;
+      transition: opacity var(--motion-instant, 160ms) ease, transform var(--motion-instant, 160ms) ease;
+    }
+
+    body[data-role="spectator"] .spectator-shop-button:hover {
+      opacity: 1;
+      transform: translateY(-1px);
+    }
+
+    body:not([data-theme="dark"])[data-role="spectator"] .spectator-shop-button {
+      background: rgba(255, 255, 255, 0.86);
+      color: var(--text);
+      border-color: var(--line-strong);
+    }
+
+    /* Compact editorial home. Hidden compatibility mounts are preserved so
+       existing rendering code continues to update safely. */
+    body[data-role="spectator"] #view-home > .hero,
+    body[data-role="spectator"] #view-results > .hero,
+    body[data-role="spectator"] #view-self-register > .hero {
+      margin-bottom: 18px;
+      padding: 22px 28px;
+      gap: 8px;
+    }
+
+    body[data-role="spectator"] #view-home > .hero .hero-logo-shell,
+    body[data-role="spectator"] #view-home > .hero .public-event-actions,
+    body[data-role="spectator"] #view-results > .hero .hero-logo-shell,
+    body[data-role="spectator"] #view-self-register > .hero .hero-logo-shell {
+      display: none;
+    }
+
+    body[data-role="spectator"] #view-home > .hero h1,
+    body[data-role="spectator"] #view-results > .hero h1,
+    body[data-role="spectator"] #view-self-register > .hero h1 {
+      font-size: clamp(1.6rem, 3.4vw, 2.4rem);
+      line-height: 1;
+    }
+
+    body[data-role="spectator"] #view-home > .hero .hero-copy,
+    body[data-role="spectator"] #view-results > .hero .hero-copy,
+    body[data-role="spectator"] #view-self-register > .hero .hero-copy {
+      margin-top: 6px;
+      max-width: 60ch;
+      font-size: 0.94rem;
+      color: var(--text-soft);
+    }
+
+    body[data-role="spectator"] #view-home .landing-layout {
+      margin-top: 0;
+    }
+
+    body[data-role="spectator"] #view-home .landing-grid {
+      grid-template-columns: 1fr;
+      max-width: 880px;
+      margin: 0 auto;
+    }
+
+    body[data-role="spectator"] #view-home .landing-grid > aside.landing-stack,
+    body[data-role="spectator"] #view-home .landing-stack > .panel:has(#landingFeaturedDrivers) {
+      display: none;
+    }
+
+    body[data-role="spectator"] #view-results #currentResultsShowcase:not(.empty-state) {
+      padding: 4px 0 6px;
+      border-bottom: 1px solid var(--line-strong);
+      margin-bottom: 14px;
+    }
     body[data-role="spectator"] .registration-admin-only,
     body[data-role="j1"] .registration-admin-only,
     body[data-role="j2"] .registration-admin-only,
@@ -14343,7 +14467,7 @@
         <aside class="panel native-live-sidebar">
           <div class="streamer-section-head">
             <div>
-              <p class="streamer-panel-kicker">Auto Layout</p>
+              <p class="streamer-panel-kicker">Now Playing</p>
               <h2 id="nativeLiveLayoutTitle">Waiting</h2>
             </div>
           </div>
