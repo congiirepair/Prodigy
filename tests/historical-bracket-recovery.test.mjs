@@ -21,6 +21,7 @@ const {
   normalizeTimestamp,
   repairFingerprintMatches,
 } = require("../functions/historical-bracket.js");
+const publicRestBracket = JSON.parse(fs.readFileSync(`${repoRoot}tests/fixtures/round3-public-rest-bracket.json`, "utf8"));
 const html = fs.readFileSync(`${repoRoot}index.html`, "utf8");
 const backend = fs.readFileSync(`${repoRoot}functions/index.js`, "utf8");
 const historicalBackend = fs.readFileSync(`${repoRoot}functions/historical-bracket.js`, "utf8");
@@ -114,7 +115,7 @@ assert.equal(inspectRound3SyntheticBracket(ROUND3_EVENT_ID, {
   bracketHash: bracketHash(alternateTimestampBracket),
   createdAt: ROUND3_SYNTHETIC_BRACKET_CREATED_AT,
 }).reason, "unexpected-created-at");
-assert.equal(ROUND3_SYNTHETIC_BRACKET_HASH, "a9480b1b25f59bb995232dd73eb7234122cb12b1024dbddd98b24f1587ffb66d");
+assert.equal(ROUND3_SYNTHETIC_BRACKET_HASH, "4582377f03322cb33dc336b5501b531ee9b3842d2d82d7028591cc031b7e37a6");
 const rawProductionFingerprint = {
   bracketHash: ROUND3_SYNTHETIC_BRACKET_HASH,
   createdAt: ROUND3_SYNTHETIC_BRACKET_CREATED_AT,
@@ -133,6 +134,15 @@ assert.equal(repairFingerprintMatches(rawProductionFingerprint, {
   ...rawProductionFingerprint,
   createdAt: "2026-07-22T12:53:24.500Z",
 }), false);
+assert.equal(bracketHash(publicRestBracket), "a9480b1b25f59bb995232dd73eb7234122cb12b1024dbddd98b24f1587ffb66d");
+assert.notEqual(bracketHash(publicRestBracket), ROUND3_SYNTHETIC_BRACKET_HASH);
+assert.equal(inspectRound3SyntheticBracket(ROUND3_EVENT_ID, {
+  ...syntheticEvent,
+  bracket: publicRestBracket,
+}, {
+  bracketHash: ROUND3_SYNTHETIC_BRACKET_HASH,
+  createdAt: ROUND3_SYNTHETIC_BRACKET_CREATED_AT,
+}).reason, "unexpected-bracket-hash");
 const mismatchDiagnostics = collectRound3BracketDiagnostics({
   bracket: firestoreTimestampBracket,
   results: { totalBattles: 0, completedBattles: 0 },
@@ -149,6 +159,33 @@ assert.equal(mismatchDiagnostics.completedBattles, 0);
 assert.deepEqual(mismatchDiagnostics.topLevelBracketKeys, ["createdAt", "lowerBracket", "mainBracket", "plan", "version"]);
 assert.equal(Array.isArray(mismatchDiagnostics.canonicalizationAnomalies), true);
 assert.equal(mismatchDiagnostics.canonicalizationAnomalies.some((entry) => entry.type === "Object" || entry.type === "Date"), false);
+const publicRestDiagnostics = collectRound3BracketDiagnostics({
+  bracket: publicRestBracket,
+  results: { totalBattles: 0, completedBattles: 0 },
+  syncStamp: 1784724804275,
+});
+assert.equal(publicRestDiagnostics.serverComputedBracketHash, "a9480b1b25f59bb995232dd73eb7234122cb12b1024dbddd98b24f1587ffb66d");
+assert.equal(publicRestDiagnostics.expectedBracketHash, ROUND3_SYNTHETIC_BRACKET_HASH);
+assert.equal(publicRestDiagnostics.normalizedBracketCreatedAt, ROUND3_SYNTHETIC_BRACKET_CREATED_AT);
+assert.equal(publicRestDiagnostics.expectedBracketCreatedAt, ROUND3_SYNTHETIC_BRACKET_CREATED_AT);
+assert.equal(publicRestDiagnostics.winnerCount, 0);
+assert.equal(publicRestDiagnostics.completedMatchCount, 0);
+assert.equal(publicRestDiagnostics.totalBattles, 0);
+assert.equal(publicRestDiagnostics.completedBattles, 0);
+assert.deepEqual(publicRestDiagnostics.topLevelBracketKeys, [
+  "competitionAttemptHistory",
+  "competitionJudgeControl",
+  "createdAt",
+  "customLowerCount",
+  "lowerBracket",
+  "mainBracket",
+  "manualBracketOrder",
+  "plan",
+  "preferredFormat",
+  "qualifiedDrivers",
+  "version",
+]);
+assert.deepEqual(publicRestDiagnostics.canonicalizationAnomalies, []);
 
 const structurallySimilarBracket = {
   ...syntheticBracket,
