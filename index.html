@@ -97,6 +97,12 @@
       --gold-ring-hi: rgba(243, 211, 170, 0.95);
       --gold-ring-mid: rgba(208, 160, 107, 0.42);
       --gold-pulse: rgba(208, 160, 107, 0.55);
+      /* Shared motion language: instant feedback, state changes, and reveals. */
+      --motion-instant: 160ms;
+      --motion-state: 420ms;
+      --motion-reveal: 700ms;
+      --ease-snap: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-glide: cubic-bezier(0.2, 0.8, 0.2, 1);
       /* competition-state semantics (icon + label always pair these) */
       --state-live: var(--gold);
       --state-winner: var(--gold);
@@ -638,6 +644,11 @@
     body[data-theme="dark"] .driver-button:disabled {
       opacity: 0.5;
       box-shadow: none;
+    }
+
+    body[data-theme="dark"] .button[aria-busy="true"]:disabled,
+    body[data-theme="dark"] .micro-button[aria-busy="true"]:disabled {
+      opacity: 0.82;
     }
 
     body[data-theme="dark"] #view-website-admin > .hero .website-admin-signout-button {
@@ -2268,15 +2279,15 @@
     body:not([data-theme="dark"]) #view-registration > .hero,
     body:not([data-theme="dark"]) #view-results > .hero {
       background:
-        radial-gradient(circle at top right, rgba(25, 191, 174, 0.16), transparent 22%),
-        radial-gradient(circle at bottom left, rgba(244, 70, 166, 0.14), transparent 30%),
+        radial-gradient(circle at top right, rgba(179, 129, 47, 0.14), transparent 22%),
+        radial-gradient(circle at bottom left, rgba(211, 163, 109, 0.16), transparent 30%),
         linear-gradient(135deg, rgba(252, 250, 246, 0.84), rgba(246, 241, 235, 0.88) 44%, rgba(237, 232, 226, 0.90) 100%);
     }
 
     body:not([data-theme="dark"]) .hero::before {
       background:
-        linear-gradient(120deg, rgba(25, 191, 174, 0.08), transparent 42%),
-        radial-gradient(circle at bottom right, rgba(244, 70, 166, 0.08), transparent 24%);
+        linear-gradient(120deg, rgba(179, 129, 47, 0.07), transparent 42%),
+        radial-gradient(circle at bottom right, rgba(211, 163, 109, 0.08), transparent 24%);
     }
 
     body:not([data-theme="dark"]) .hero-logo,
@@ -2953,7 +2964,7 @@
     }
 
     .qualifying-live-card.is-advancing {
-      animation: standingsRiseIn 420ms cubic-bezier(0.16, 1, 0.3, 1);
+      animation: standingsRiseIn var(--motion-state) var(--ease-snap);
     }
 
     .qualifying-live-head {
@@ -3069,7 +3080,7 @@
     }
 
     .qualifying-ready-pill.just-submitted {
-      animation: judgeSubmitPulse 620ms cubic-bezier(0.16, 1, 0.3, 1);
+      animation: judgeSubmitPulse var(--motion-reveal) var(--ease-snap);
     }
 
     .qualifying-live-actions {
@@ -3379,8 +3390,55 @@
     }
 
     .button:active, .icon-button:active, .driver-button:active {
-      transform: translateY(0);
-      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255,255,255,0.05);
+      transform: translateY(1px) scale(0.995);
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.2), inset 0 2px 4px rgba(0, 0, 0, 0.16);
+    }
+
+    .button:focus-visible,
+    .micro-button:focus-visible,
+    .icon-button:focus-visible {
+      outline: 2px solid var(--gold);
+      outline-offset: 2px;
+    }
+
+    .micro-button:active {
+      transform: translateY(1px);
+    }
+
+    .button[aria-busy="true"],
+    .micro-button[aria-busy="true"] {
+      position: relative;
+      pointer-events: none;
+      opacity: 0.82;
+    }
+
+    .button[aria-busy="true"]::after {
+      content: "";
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      margin-left: 10px;
+      border-radius: 50%;
+      border: 2px solid currentColor;
+      border-top-color: transparent;
+      animation: prodigyBusySpin 720ms linear infinite;
+      flex: 0 0 auto;
+    }
+
+    @keyframes prodigyBusySpin {
+      to { transform: rotate(360deg); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .button[aria-busy="true"]::after {
+        animation: none;
+        border-top-color: currentColor;
+        opacity: 0.4;
+      }
+    }
+
+    .competition-vote-feedback:not(:empty) {
+      animation: standingsRiseIn var(--motion-state) var(--ease-snap);
     }
 
     .button-secondary {
@@ -3404,6 +3462,12 @@
       cursor: not-allowed;
       transform: none;
       box-shadow: none;
+    }
+
+    .button[aria-busy="true"]:disabled,
+    .micro-button[aria-busy="true"]:disabled {
+      opacity: 0.82;
+      cursor: progress;
     }
 
     .toolbar {
@@ -5042,6 +5106,20 @@
       color: var(--gold);
     }
 
+    body:not([data-theme="dark"]) #qualifyingResults .qualifying-results-simple > li.is-cut-line {
+      border-bottom-color: var(--gold-deep) !important;
+      box-shadow:
+        inset 0 -3px 0 var(--gold-deep),
+        inset 0 1px 0 rgba(255,255,255,0.78) !important;
+    }
+
+    body[data-theme="dark"] #qualifyingResults .qualifying-results-simple > li.is-cut-line {
+      border-bottom-color: var(--gold) !important;
+      box-shadow:
+        inset 0 -3px 0 var(--gold),
+        inset 0 1px 0 rgba(255,255,255,0.05) !important;
+    }
+
     .twin-comp-standings li {
       display: block;
     }
@@ -5064,7 +5142,7 @@
 
     .qualifying-results-simple.is-animating li {
       opacity: 0;
-      animation: standingsRiseIn 420ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation: standingsRiseIn var(--motion-state) var(--ease-snap) forwards;
       animation-delay: var(--standings-delay, 0ms);
     }
 
@@ -5357,7 +5435,7 @@
 
     .micro-button.just-submitted,
     .button.just-submitted {
-      animation: judgeSubmitPulse 620ms cubic-bezier(0.16, 1, 0.3, 1);
+      animation: judgeSubmitPulse var(--motion-reveal) var(--ease-snap);
     }
 
     .micro-button:disabled {
@@ -5626,6 +5704,7 @@
     }
 
     .battle-flow-card {
+      position: relative;
       width: min(100%, 360px);
       border: 1px solid var(--line);
       border-radius: var(--radius-card);
@@ -5640,8 +5719,20 @@
     .battle-flow-card.current {
       background:
         linear-gradient(180deg, rgba(24, 29, 42, 0.98), rgba(12, 15, 24, 0.96));
-      animation: battleFlowBeacon 2.2s ease-in-out infinite;
+      border-color: var(--line-strong);
       box-shadow: var(--accent-glow);
+    }
+
+    .battle-flow-card.current .battle-flow-title {
+      font-size: 1.18rem;
+    }
+
+    .battle-flow-card.flow-slot-next:not(.current) .battle-flow-label {
+      color: var(--text-soft);
+    }
+
+    .battle-flow-card.flow-slot-next:not(.current) {
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.10);
     }
 
     /* CURRENT battle reads as unmistakably live: a pulsing Prodigy Gold dot
@@ -5672,19 +5763,46 @@
     }
 
     .battle-flow-grid.is-animating .battle-flow-card.flow-slot-current {
-      animation: battleFlowCurrentIn 360ms cubic-bezier(0.2, 0.8, 0.2, 1);
+      animation: battleFlowCurrentIn var(--motion-state) var(--ease-glide);
     }
 
     .battle-flow-grid.is-animating .battle-flow-card.flow-slot-next {
-      animation: battleFlowNextShift 360ms cubic-bezier(0.2, 0.8, 0.2, 1);
+      animation: battleFlowNextShift var(--motion-state) var(--ease-glide);
     }
 
     .bracket-flow-slot.is-animating .battle-flow-card.flow-slot-current {
-      animation: battleFlowCurrentIn 360ms cubic-bezier(0.2, 0.8, 0.2, 1);
+      animation: battleFlowCurrentIn var(--motion-state) var(--ease-glide);
     }
 
     .bracket-flow-slot.is-animating .battle-flow-card.flow-slot-next {
-      animation: battleFlowNextShift 360ms cubic-bezier(0.2, 0.8, 0.2, 1);
+      animation: battleFlowNextShift var(--motion-state) var(--ease-glide);
+    }
+
+    .battle-flow-grid.is-animating .battle-flow-card.flow-slot-current::before,
+    .bracket-flow-slot.is-animating .battle-flow-card.flow-slot-current::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      pointer-events: none;
+      z-index: 2;
+      background: linear-gradient(105deg, transparent 34%, rgba(243, 211, 170, 0.26) 50%, transparent 66%);
+      background-size: 260% 100%;
+      background-repeat: no-repeat;
+      animation: prodigyGoldSweep var(--motion-state) ease both;
+    }
+
+    @keyframes prodigyGoldSweep {
+      from { background-position: 135% 0; }
+      to { background-position: -135% 0; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .battle-flow-grid.is-animating .battle-flow-card.flow-slot-current::before,
+      .bracket-flow-slot.is-animating .battle-flow-card.flow-slot-current::before {
+        animation: none;
+        opacity: 0;
+      }
     }
 
     @keyframes battleFlowCurrentIn {
@@ -5706,18 +5824,6 @@
       100% {
         opacity: 1;
         transform: translateX(0);
-      }
-    }
-
-    @keyframes battleFlowBeacon {
-      0%, 100% {
-        box-shadow: var(--card-shadow);
-      }
-      50% {
-        box-shadow:
-          0 0 0 2px rgba(0, 0, 0, 0.05),
-          0 0 0 9px rgba(0, 0, 0, 0.03),
-          0 16px 30px rgba(0, 0, 0, 0.16);
       }
     }
 
@@ -5778,7 +5884,7 @@
     .battle-flow-option.just-advanced {
       border-color: var(--gold-ring-mid);
       box-shadow: var(--bracket-advance-glow);
-      animation: judgeSubmitPulse 620ms cubic-bezier(0.16, 1, 0.3, 1);
+      animation: judgeSubmitPulse var(--motion-reveal) var(--ease-snap);
     }
 
     .battle-flow-option.preview {
@@ -6290,14 +6396,16 @@
       opacity: 1;
     }
     .slot-button.winner-just-selected {
-      animation: bracketWinnerPop 700ms cubic-bezier(0.16, 1, 0.3, 1);
+      animation: bracketWinnerPop var(--motion-reveal) var(--ease-snap);
     }
     .main-battle-slot.incoming-winner .slot-button {
-      animation: bracketWinnerLand 760ms cubic-bezier(0.16, 1, 0.3, 1);
+      animation: bracketWinnerLand var(--motion-reveal) var(--ease-snap);
     }
     .slot-button.loser {
       background: linear-gradient(180deg, rgba(86, 93, 110, 0.64), rgba(59, 65, 81, 0.66));
       color: rgba(241, 244, 249, 0.52);
+      filter: saturate(0.7);
+      transition: filter var(--motion-state) ease, color var(--motion-state) ease, background var(--motion-state) ease;
     }
     .slot-button.loser .slot-team {
       opacity: 0.5;
@@ -6489,14 +6597,16 @@
       color: rgba(11, 12, 16, 0.74);
     }
     .driver-button.winner-just-selected {
-      animation: bracketWinnerPop 700ms cubic-bezier(0.16, 1, 0.3, 1);
+      animation: bracketWinnerPop var(--motion-reveal) var(--ease-snap);
     }
     .driver-button.incoming-winner {
-      animation: bracketWinnerLand 760ms cubic-bezier(0.16, 1, 0.3, 1);
+      animation: bracketWinnerLand var(--motion-reveal) var(--ease-snap);
     }
     .driver-button.loser {
       background: linear-gradient(180deg, rgba(86, 93, 110, 0.64), rgba(59, 65, 81, 0.66));
       color: rgba(241,244,249,0.52);
+      filter: saturate(0.7);
+      transition: filter var(--motion-state) ease, color var(--motion-state) ease, background var(--motion-state) ease;
     }
     .driver-button.loser small { color: rgba(241,244,249,0.42); }
 
@@ -6519,7 +6629,7 @@
     }
 
     .champion-banner.is-revealing {
-      animation: podiumBannerReveal 720ms cubic-bezier(0.16, 1, 0.3, 1);
+      animation: podiumBannerReveal var(--motion-reveal) var(--ease-snap);
     }
 
     .champion-banner span,
@@ -6605,7 +6715,7 @@
 
     .podium-card.podium-reveal {
       opacity: 0;
-      animation: podiumCardReveal 560ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation: podiumCardReveal var(--motion-reveal) var(--ease-snap) forwards;
       animation-delay: var(--podium-delay, 0ms);
     }
 
@@ -8851,6 +8961,96 @@
       margin-top: 16px;
     }
 
+    #eventCommandCenter {
+      border-color: var(--line-strong);
+    }
+
+    #eventCommandCenter .section-kicker {
+      color: var(--gold-deep);
+    }
+
+    body[data-theme="dark"] #eventCommandCenter .section-kicker {
+      color: var(--gold);
+    }
+
+    @media (min-width: 720px) {
+      .command-center-card.cc-now { grid-column: span 2; }
+    }
+
+    .command-center-card.cc-now strong {
+      font-family: var(--font-graffiti);
+      font-size: clamp(1.3rem, 2.6vw, 2rem);
+      line-height: 1.04;
+      text-transform: uppercase;
+      overflow-wrap: anywhere;
+    }
+
+    .command-center-card.cc-now span {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--gold-deep);
+    }
+
+    body[data-theme="dark"] .command-center-card.cc-now span {
+      color: var(--gold);
+    }
+
+    .command-center-card.cc-now.is-live::before {
+      background: linear-gradient(90deg, var(--gold-deep), var(--gold) 42%, var(--gold-bright));
+    }
+
+    .command-center-card.cc-now.is-live {
+      border-color: var(--gold-ring-mid);
+      box-shadow: 0 18px 34px rgba(36, 23, 14, 0.12), var(--gold-glow);
+    }
+
+    body[data-theme="dark"] .command-center-card.cc-now.is-live {
+      border-color: var(--gold-ring-mid);
+      box-shadow: 0 20px 38px rgba(0, 0, 0, 0.26), var(--gold-glow);
+    }
+
+    .command-center-card.cc-now.is-live span::before {
+      content: "";
+      flex: 0 0 auto;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--gold);
+      box-shadow: 0 0 0 0 var(--gold-pulse);
+      animation: prodigyLivePulse 1.9s ease-out infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .command-center-card.cc-now.is-live span::before { animation: none; }
+    }
+
+    .command-center-card.is-waiting strong { color: #a9701a; }
+    .command-center-card.is-ready strong { color: #2f7d46; }
+    body[data-theme="dark"] .command-center-card.is-waiting strong { color: #e8b45f; }
+    body[data-theme="dark"] .command-center-card.is-ready strong { color: #6fd08e; }
+
+    .command-center-card.cc-tool::before {
+      height: 3px;
+      opacity: 0.55;
+    }
+
+    .command-center-card.cc-tool strong {
+      font-size: clamp(1.05rem, 1.6vw, 1.3rem);
+    }
+
+    .command-center-actions .button[data-recommended="true"] {
+      background: var(--gold-fill);
+      color: var(--gold-ink);
+      border-color: transparent;
+      box-shadow: var(--gold-glow);
+    }
+
+    #eventCommandCenter .demo-sandbox-bar {
+      border-style: dashed;
+      box-shadow: 0 8px 18px rgba(17, 17, 17, 0.08);
+    }
+
     .command-center-card,
     .public-event-card,
     .public-event-spotlight,
@@ -9861,8 +10061,8 @@
 
     body.scenic-page:not([data-theme="dark"])[data-role="spectator"] #view-queue > .hero::before {
       background:
-        linear-gradient(120deg, rgba(25, 191, 174, 0.06), transparent 42%),
-        radial-gradient(circle at bottom right, rgba(244, 70, 166, 0.06), transparent 24%);
+        linear-gradient(120deg, rgba(179, 129, 47, 0.05), transparent 42%),
+        radial-gradient(circle at bottom right, rgba(211, 163, 109, 0.06), transparent 24%);
     }
 
     body.scenic-page:not([data-theme="dark"])[data-role="spectator"] .public-event-announcer {
@@ -13189,7 +13389,7 @@
     .micro-button:focus-visible::after,
     .spectator-shop-button:focus-visible::after {
       opacity: 1;
-      animation: proShineSweep 700ms ease;
+      animation: proShineSweep var(--motion-reveal) ease;
     }
 
     @media (hover: hover) {
@@ -13197,7 +13397,7 @@
       .micro-button:hover::after,
       .spectator-shop-button:hover::after {
         opacity: 1;
-        animation: proShineSweep 700ms ease;
+        animation: proShineSweep var(--motion-reveal) ease;
       }
     }
 
@@ -26169,33 +26369,42 @@
         commandCenterPhase.className = `status-pill ${lifecycle.tone}`;
       }
 
+      const ccNowIsLive = Boolean(teamTandemMode
+        ? (currentBattle?.match?.left?.name && currentBattle?.match?.right?.name)
+        : twinTripleMode
+          ? (currentDriver?.teamName || currentDriver?.name)
+          : currentDriver?.name);
+      const ccJudgeTone = activeJudgeRoles.length
+        ? (judgesReady >= activeJudgeRoles.length ? "is-ready" : "is-waiting")
+        : "";
+
       commandCenterGrid.innerHTML = `
-        <article class="command-center-card">
+        <article class="command-center-card cc-status">
           <span>Current Phase</span>
           <strong>${escapeHtml(lifecycle.label)}</strong>
           <small>${escapeHtml(lifecycle.detail)}</small>
         </article>
-        <article class="command-center-card">
+        <article class="command-center-card cc-tool">
           <span>Roster</span>
           <strong>${teamTandemMode ? `${teamEntries.length} Teams` : twinTripleMode ? `${getRegisteredDrivers(appDrivers).length} Teams` : `${getRegisteredDrivers(appDrivers).length} Drivers`}</strong>
           <small>${teamTandemMode ? `${getRegisteredDrivers(appDrivers).length} total registered drivers are grouped into team entries.` : twinTripleMode ? `${getTwinCompActiveTeams(twinState).length} active, ${twinState.teams.filter((team) => !team.active).length} eliminated.` : `${getPendingRegistrations().length} pending check-ins waiting at the desk.`}</small>
         </article>
-        <article class="command-center-card">
+        <article class="command-center-card cc-now${ccNowIsLive ? " is-live" : ""}">
           <span>${teamTandemMode ? "Current Battle" : twinTripleMode ? "Current Team" : "Current Driver"}</span>
           <strong>${escapeHtml(teamTandemMode ? (currentBattle?.match?.left?.name && currentBattle?.match?.right?.name ? `${currentBattle.match.left.name} vs ${currentBattle.match.right.name}` : "Waiting") : twinTripleMode ? (currentDriver?.teamName || currentDriver?.name || "Waiting") : (currentDriver?.name || "Waiting"))}</strong>
           <small>${teamTandemMode ? (bracketPublished ? "Judges score line, angle, and proximity for the live team battle." : "Launch the randomized team bracket straight from registration.") : twinTripleMode ? (twinRound ? `Round ${twinRound.number}: ${twinRound.teamIds.filter((teamId) => getTwinCompTeamRoundScore(teamId, twinRound)).length}/${twinRound.teamIds.length} scores locked.` : "Start the first triple-elimination round from Competition.") : (nextDriver?.name ? `On deck: ${nextDriver.name}` : "No next driver locked yet.")}</small>
         </article>
-        <article class="command-center-card">
+        <article class="command-center-card cc-status ${ccJudgeTone}">
           <span>Judges Ready</span>
           <strong>${judgesReady}/${activeJudgeRoles.length || 0}</strong>
           <small>${activeJudgeRoles.length ? (teamTandemMode ? "Team Tandem judges lock in one category each: Line, Angle, and Proximity." : "Ready states clear automatically when the driver advances.") : "No active judges on this event."}</small>
         </article>
-        <article class="command-center-card">
+        <article class="command-center-card cc-status">
           <span>Bracket Automation</span>
           <strong>${twinTripleMode ? (twinState.status === "complete" ? "Winner Declared" : twinLive ? "Twin Comp Live" : validation.buildReady ? "Ready To Start" : "Waiting") : bracketPublished ? "Published" : validation.buildReady ? (teamTandemMode ? "Ready To Launch" : "Ready To Auto-Build") : "Waiting"}</strong>
           <small>${twinTripleMode ? "Triple elimination is separate from the bracket. Use Competition to run rounds and standings." : bracketPublished ? (tournamentState?.plan?.description || "Bracket is live.") : validation.plan?.description || (teamTandemMode ? "Waiting for teams." : "Waiting for qualifying scores.")}</small>
         </article>
-        <article class="command-center-card">
+        <article class="command-center-card cc-tool">
           <span>Post-Event Summary</span>
           <strong>${escapeHtml(results.championName ? `#${results.championSeed || "-"} ${results.championName}` : "Open")}</strong>
           <small>${escapeHtml(twinTripleMode ? "Winner saves automatically when only one active team remains." : teamTandemMode ? "Champion, runner-up, and podium teams save automatically when finals are complete." : (results.topQualifierName ? `Top qualifier #${results.topQualifierSeed || "-"} ${results.topQualifierName} | Avg field ${formatScore(results.averageBestScore)}` : "Champion, top qualifier, and average field score will save here automatically."))}</small>
@@ -34181,6 +34390,9 @@
         const isQualified = index < cutoffCount;
         const item = document.createElement("li");
         if (!isQualified) item.classList.add("is-dimmed");
+        if (plan?.usesLowerBracket && plan.directMainCount > 0 && index === plan.directMainCount - 1) {
+          item.classList.add("is-cut-line");
+        }
         if (shouldAnimateStandings) item.style.setProperty("--standings-delay", `${Math.min(index * 38, 300)}ms`);
         const trophyMarkup = getStandingsTrophyMarkup(index);
         item.innerHTML = `
