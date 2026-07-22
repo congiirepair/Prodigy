@@ -13,6 +13,7 @@ const backendSource = fs.readFileSync(path.join(repoRoot, "functions", "index.js
 const legacyBackendSource = fs.readFileSync(path.join(repoRoot, "functions", "legacy-http.js"), "utf8");
 const legacyClientSource = fs.readFileSync(path.join(repoRoot, "assets", "js", "legacy-client-features.js"), "utf8");
 const eventSelectionSyncSource = fs.readFileSync(path.join(repoRoot, "assets", "js", "event-selection-sync.js"), "utf8");
+const historicalBracketSource = fs.readFileSync(path.join(repoRoot, "assets", "js", "historical-bracket.js"), "utf8");
 
 function sourceBetween(startMarker, endMarker) {
   const startIndex = html.indexOf(startMarker);
@@ -82,6 +83,16 @@ const autoBracketSource = sourceBetween("function maybeAutoBuildBracket", "funct
 const eventFinalizeSource = sourceBetween("async function finalizeCurrentEventResults()", "function syncSelfRegisterProfileCard()");
 
 const checks = [
+  {
+    name: "completed historical recovery never fabricates a competition bracket",
+    test: () => historicalBracketSource.includes('HISTORICAL_BRACKET_UNAVAILABLE = "unavailable"')
+      && historicalBracketSource.includes("completedWithoutBracketEvidence")
+      && html.includes('id="historicalBracketState"')
+      && html.includes("Historical battle bracket unavailable")
+      && backendSource.includes('if (action === "repairHistoricalBracketUnavailable")')
+      && backendSource.includes("transaction.create(auditDocument")
+      && backendSource.includes("bracket: FieldValue.delete()"),
+  },
   {
     name: "browser bundles contain no privileged role credentials",
     test: () => !clientConfigSource.includes("legacyPasswords")

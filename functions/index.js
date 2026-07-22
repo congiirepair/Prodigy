@@ -19,6 +19,13 @@ const {
   emailEventResultsSummary,
   parseVoiceDeductions,
 } = require("./legacy-http");
+const {
+  HISTORICAL_BRACKET_UNAVAILABLE,
+  ROUND3_EVENT_ID,
+  ROUND3_SYNTHETIC_BRACKET_CREATED_AT,
+  bracketHash,
+  inspectRound3SyntheticBracket,
+} = require("./historical-bracket");
 
 initializeApp();
 
@@ -209,6 +216,10 @@ function sanitizeEventMeta(meta, eventPayload) {
   candidate.roleAccess = publicRoleAccess(eventPayload.roleAccess);
   candidate.judgeRoleClaims = clone(eventPayload.judgeRoleClaims || {});
   return candidate;
+}
+
+function historicalBracketRepairAuditRef(appId, eventId) {
+  return db.doc(`artifacts/${appId}/private/historicalBracketRepairs/events/${eventId}`);
 }
 
 function activeSelectionPayload(eventId, eventData, syncStamp) {
@@ -627,6 +638,18 @@ async function restoreMissingEvent(request) {
     if (String(recoveredEvent.status || "active") === "archived") {
       fail("failed-precondition", "Archived events cannot become active.");
     }
+    if (!existingEvent && String(recoveredEvent.status || "").toLowerCase() === "completed"
+      && recoveredEvent.qualifyingFlow?.completed && recoveredEvent.results?.championName && recoveredEvent.results?.completedAt) {
+      if (recoveredEvent.bracket) {
+        const suppliedHash = String(data.validatedBracketHash || "");
+        if (data.validatedHistoricalBracket !== true || suppliedHash !== bracketHash(recoveredEvent.bracket)) {
+          fail("failed-precondition", "A completed historical bracket requires a validated snapshot hash.");
+        }
+        recoveredEvent.historicalBracketStatus = "available";
+      } else {
+        recoveredEvent.historicalBracketStatus = HISTORICAL_BRACKET_UNAVAILABLE;
+      }
+    }
 
     const syncStamp = nextServerSyncStamp(directoryData.syncStamp, recoveredEvent.syncStamp);
     const eventPayload = existingEvent
@@ -649,6 +672,92 @@ async function restoreMissingEvent(request) {
       }, { merge: true });
     }
     response = { ok: true, restored: !existingEvent, eventPayload, eventMeta, syncStamp };
+  });
+  return response;
+}
+
+async function repairHistoricalBracketUnavailable(request) {
+  requireOwner(request);
+  const data = request.data || {};
+  const appId = requireAppId(data.appId);
+  const eventId = requireEventId(data.eventId);
+  if (eventId !== ROUND3_EVENT_ID) fail("invalid-argument", "This guarded repair is only valid for the verified Round 3 recovery event.");
+
+  const execute = data.execute === true;
+  let response;
+  await db.runTransaction(async (transaction) => {
+    const document = eventRef(appId, eventId);
+    const auditDocument = historicalBracketRepairAuditRef(appId, eventId);
+    const [eventSnap, auditSnap] = await Promise.all([
+      transaction.get(document),
+      transaction.get(auditDocument),
+    ]);
+    if (!eventSnap.exists) fail("not-found", "The Round 3 event does not exist.");
+
+    const eventData = eventSnap.data() || {};
+    const inspection = inspectRound3SyntheticBracket(eventId, eventData);
+    if (!inspection.valid) {
+      fail("failed-precondition", `The Round 3 event no longer matches the guarded repair state (${inspection.reason}).`);
+    }
+    if (inspection.alreadyRepaired) {
+      response = {
+        ok: true,
+        changed: false,
+        alreadyRepaired: true,
+        historicalBracketStatus: HISTORICAL_BRACKET_UNAVAILABLE,
+      };
+      return;
+    }
+
+    const dryRun = {
+      eventId,
+      bracketHash: inspection.bracketHash,
+      bracketCreatedAt: eventData.bracket.createdAt,
+      currentSyncStamp: Number(eventData.syncStamp || 0),
+      remove: ["bracket"],
+      add: { historicalBracketStatus: HISTORICAL_BRACKET_UNAVAILABLE },
+      preserve: ["drivers", "qualifyingFlow", "results", "roleAccess", "judgeRoleClaims", "registration", "directory", "resultsArchive"],
+    };
+    if (!execute) {
+      response = { ok: true, changed: false, dryRun };
+      return;
+    }
+
+    if (auditSnap.exists) fail("failed-precondition", "A repair audit already exists while the synthetic bracket is still present.");
+    if (String(data.expectedBracketHash || "") !== inspection.bracketHash
+      || String(data.expectedBracketCreatedAt || "") !== ROUND3_SYNTHETIC_BRACKET_CREATED_AT
+      || Number(data.expectedSyncStamp) !== Number(eventData.syncStamp || 0)) {
+      fail("failed-precondition", "The expected bracket hash, timestamp, or sync stamp does not match the current production event.");
+    }
+
+    const repairedAt = new Date().toISOString();
+    const syncStamp = nextServerSyncStamp(eventData.syncStamp);
+    transaction.create(auditDocument, {
+      eventId,
+      repairType: "historical-bracket-unavailable",
+      bracketHash: inspection.bracketHash,
+      bracketCreatedAt: eventData.bracket.createdAt,
+      previousSyncStamp: Number(eventData.syncStamp || 0),
+      previousStatus: eventData.status,
+      previousResults: cleanObject(clone(eventData.results || {})),
+      syntheticBracket: cleanObject(clone(eventData.bracket)),
+      createdAt: repairedAt,
+    });
+    transaction.update(document, {
+      bracket: FieldValue.delete(),
+      historicalBracketStatus: HISTORICAL_BRACKET_UNAVAILABLE,
+      historicalBracketUpdatedAt: repairedAt,
+      updatedAt: repairedAt,
+      syncStamp,
+    });
+    response = {
+      ok: true,
+      changed: true,
+      alreadyRepaired: false,
+      historicalBracketStatus: HISTORICAL_BRACKET_UNAVAILABLE,
+      syncStamp,
+      dryRun,
+    };
   });
   return response;
 }
@@ -1279,6 +1388,7 @@ async function routeAction(request) {
   if (action === "createEvent") return createEvent(request);
   if (action === "setActiveSelection") return setActiveSelection(request);
   if (action === "restoreMissingEvent") return restoreMissingEvent(request);
+  if (action === "repairHistoricalBracketUnavailable") return repairHistoricalBracketUnavailable(request);
   if (action === "deleteEvent") return deleteEvent(request);
   if (action === "claimJudgeRole") return claimJudgeRole(request);
   if (action === "submitJudgeQualifying") return submitJudgeQualifying(request);

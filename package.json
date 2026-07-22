@@ -10,6 +10,7 @@
     "test:security:competition": "node tests/competition-security.test.cjs",
     "test:competition:decisions": "node tests/post-battle-decision.test.cjs",
     "test:event-selection": "node tests/event-selection-sync.test.mjs",
+    "test:historical-bracket": "node tests/historical-bracket-recovery.test.mjs",
     "test:security:callable": "node tests/callable-authorization.test.mjs",
     "test:security:battles": "node tests/battle-authorization.test.mjs",
     "test:legacy": "node tests/legacy-features.test.mjs",

@@ -7270,6 +7270,58 @@
       font-weight: 800;
     }
 
+    .historical-bracket-state {
+      width: min(920px, 100%);
+      margin: 24px auto;
+      padding: clamp(24px, 4vw, 52px);
+      border: 1px solid color-mix(in srgb, var(--prodigy-gold) 35%, var(--border));
+      border-radius: 28px;
+      background: linear-gradient(145deg, color-mix(in srgb, var(--prodigy-gold) 8%, var(--panel)), var(--panel));
+      box-shadow: var(--shadow-soft);
+      text-align: center;
+    }
+
+    .historical-bracket-state h2 {
+      margin: 4px 0 8px;
+      font-size: clamp(1.8rem, 4vw, 3.2rem);
+    }
+
+    .historical-results-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin: 24px 0;
+      text-align: left;
+    }
+
+    .historical-result-card {
+      padding: 16px 18px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: color-mix(in srgb, var(--panel) 90%, transparent);
+    }
+
+    .historical-result-card span,
+    .historical-bracket-note {
+      color: var(--text-soft);
+    }
+
+    .historical-result-card strong {
+      display: block;
+      margin-top: 4px;
+      font-size: clamp(1rem, 2.2vw, 1.35rem);
+    }
+
+    .historical-bracket-note {
+      max-width: 680px;
+      margin: 0 auto;
+      line-height: 1.65;
+    }
+
+    @media (max-width: 560px) {
+      .historical-results-grid { grid-template-columns: 1fr; }
+    }
+
     .modal-overlay {
       position: fixed;
       top: 0;
@@ -14862,6 +14914,7 @@
               </div>
               <div class="button-row" style="margin-top: 12px; flex-wrap: wrap;">
                 <button id="restoreRound3PdfBtn" class="micro-button" type="button">Restore SDC Round 3 From PDF</button>
+                <button id="repairRound3HistoricalBracketBtn" class="micro-button" type="button">Archive Unrecoverable Round 3 Bracket</button>
               </div>
             </div>
           </section>
@@ -14940,6 +14993,7 @@
           <button id="inlineBackToQualifyingBtn" class="button button-secondary" type="button">Back To Qualifying</button>
         </div>
         <div id="summaryStrip" class="summary-strip"></div>
+        <section id="historicalBracketState" class="historical-bracket-state hidden" aria-live="polite"></section>
         <section id="battleFlowPanel" class="battle-flow-panel hidden">
           <div class="battle-flow-head">
             <div>
@@ -15284,6 +15338,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script type="module">
     import { parseVoiceCommandsWithFallback, sendResultsSummaryEmail } from "./assets/js/legacy-client-features.js";
+    import { isHistoricalBracketUnavailable, resolveRecoveredBracket } from "./assets/js/historical-bracket.js";
     import {
       createSelectedEventSubscriptionController,
       resolveSelectionEventMeta,
@@ -16690,7 +16745,6 @@
       const drivers = buildRecoveredRound3Drivers();
       const formatMode = FORMAT_SDC_TOP_16;
       const lowerCount = "16";
-      const bracket = createTournamentState(rankDrivers(drivers), formatMode, Number(lowerCount));
       const qualifyingFlow = {
         currentDriverId: null,
         readyRoles: {},
@@ -16698,10 +16752,16 @@
         completed: true,
       };
       const results = buildRecoveredRound3Results();
+      const recoveredBracketState = resolveRecoveredBracket({
+        eventStatus: EVENT_STATUS_COMPLETED,
+        hasVerifiedQualifying: qualifyingFlow.completed,
+        hasVerifiedResults: Boolean(results.championName && results.completedAt),
+      });
       const updatedAt = new Date().toISOString();
       const recoveredEventMeta = {
         ...eventMeta,
         status: EVENT_STATUS_COMPLETED,
+        historicalBracketStatus: recoveredBracketState.historicalBracketStatus,
         updatedAt,
         results: {
           ...results,
@@ -16713,7 +16773,7 @@
         eventPayload: {
           ...recoveredEventMeta,
           drivers,
-          bracket,
+          bracket: recoveredBracketState.bracket,
           qualifyingFlow,
           formatMode,
           lowerCount,
@@ -16775,7 +16835,7 @@
         window.alert("PDF recovery is waiting for authoritative cloud data. Nothing was changed; wait for Sync Online and try again.");
         return;
       }
-      const confirmed = window.confirm("Restore SDC Round 3 from the exported PDF? This will replace the current roster, qualifying scores, and saved podium summary for the selected event.");
+      const confirmed = window.confirm("Restore SDC Round 3 from the exported PDF? This will replace the current roster, qualifying scores, and saved podium summary. Because no historical battle ledger is available, no bracket will be generated.");
       if (!confirmed) return;
 
       const recovery = buildRound3PdfRecoverySnapshot(activeEventMeta);
@@ -20923,6 +20983,8 @@
         latestApprovalToast: payload.latestApprovalToast || null,
         judgeRoleClaims: getSanitizedJudgeRoleClaims(payload),
         roleAccess: payload.roleAccess || {},
+        historicalBracketStatus: payload.historicalBracketStatus || null,
+        historicalBracketUpdatedAt: payload.historicalBracketUpdatedAt || null,
         results: payload.results || buildEmptyEventResults(),
       };
     }
@@ -21928,6 +21990,41 @@
       if (initLifecycle.archivedResultsChanged) saveArchivedResultsCache();
       saveDirectoryCache();
       saveEventStateCache();
+    }
+
+    async function repairRound3HistoricalBracketUnavailable() {
+      if (!isWebsiteAdmin || activeEventId !== "sdc-round-3-las-vegas") return;
+      const button = document.getElementById("repairRound3HistoricalBracketBtn");
+      button.disabled = true;
+      try {
+        const preview = await callProdigyAction("repairHistoricalBracketUnavailable", {
+          eventId: activeEventId,
+        });
+        if (preview?.alreadyRepaired) {
+          window.alert("Round 3 is already marked with its historical bracket unavailable. Nothing changed.");
+          return;
+        }
+        const dryRun = preview?.dryRun;
+        if (!dryRun?.bracketHash || !dryRun?.bracketCreatedAt) {
+          throw new Error("The guarded repair preview did not return the expected bracket fingerprint.");
+        }
+        const confirmed = window.confirm("Archive the known synthetic Round 3 bracket? A complete private audit copy will be saved first. Qualifying and verified final results will not change.");
+        if (!confirmed) return;
+        const repaired = await callProdigyAction("repairHistoricalBracketUnavailable", {
+          eventId: activeEventId,
+          execute: true,
+          expectedBracketHash: dryRun.bracketHash,
+          expectedBracketCreatedAt: dryRun.bracketCreatedAt,
+          expectedSyncStamp: dryRun.currentSyncStamp,
+        });
+        if (!repaired?.changed && !repaired?.alreadyRepaired) throw new Error("The repair did not complete.");
+        window.alert("Round 3 now preserves its verified results without displaying a fabricated historical bracket.");
+      } catch (error) {
+        console.error("Round 3 historical bracket repair failed:", error);
+        window.alert("The guarded Round 3 repair stopped without changing the event. Refresh authoritative data and review the failure before retrying.");
+      } finally {
+        button.disabled = !isWebsiteAdmin || activeEventId !== "sdc-round-3-las-vegas";
+      }
     }
 
     function applyRemoteEventState(data) {
@@ -23023,6 +23120,7 @@
     const websiteAdminUpcomingBannerInput = document.getElementById("websiteAdminUpcomingBannerInput");
     const websiteAdminNewEventBtn = document.getElementById("websiteAdminNewEventBtn");
     const restoreRound3PdfBtn = document.getElementById("restoreRound3PdfBtn");
+    const repairRound3HistoricalBracketBtn = document.getElementById("repairRound3HistoricalBracketBtn");
     const websiteAdminBackBtn = document.getElementById("websiteAdminBackBtn");
     const websiteAdminSignOutBtn = document.getElementById("websiteAdminSignOutBtn");
     const qualifyingPanelTitle = document.getElementById("qualifyingPanelTitle");
@@ -25103,6 +25201,9 @@
       if (editCurrentEventBtn) editCurrentEventBtn.disabled = !isWebsiteAdmin || !activeEventMeta;
       if (restoreRound3PdfBtn) {
         restoreRound3PdfBtn.disabled = !isWebsiteAdmin || !isRound3PdfRecoveryEvent(activeEventMeta);
+      }
+      if (repairRound3HistoricalBracketBtn) {
+        repairRound3HistoricalBracketBtn.disabled = !isWebsiteAdmin || activeEventId !== "sdc-round-3-las-vegas";
       }
       if (websiteAdminSignOutBtn) websiteAdminSignOutBtn.disabled = !isWebsiteAdmin;
       if (websiteAdminClearCacheBtn) websiteAdminClearCacheBtn.disabled = !isWebsiteAdmin;
@@ -33378,6 +33479,9 @@
     restoreRound3PdfBtn?.addEventListener("click", async () => {
       await restoreRound3FromPdf();
     });
+    repairRound3HistoricalBracketBtn?.addEventListener("click", async () => {
+      await repairRound3HistoricalBracketUnavailable();
+    });
     websiteAdminBackBtn.addEventListener("click", () => switchView("registration"));
     websiteAdminSignOutBtn.addEventListener("click", async () => {
       try {
@@ -37285,9 +37389,56 @@
         });
       }
     }
+
+    function renderHistoricalBracketUnavailableState() {
+      const panel = document.getElementById("historicalBracketState");
+      const results = activeEventMeta?.results || {};
+      const placements = [
+        ["1st Place", results.championName, results.championSeed],
+        ["2nd Place", results.runnerUpName, results.runnerUpSeed],
+        ["3rd Place", results.thirdPlaceName, results.thirdPlaceSeed],
+        ["4th Place", results.fourthPlaceName, results.fourthPlaceSeed],
+      ].filter(([, name]) => Boolean(name));
+      panel.innerHTML = `
+        <p class="section-kicker">Historical Event</p>
+        <h2>Final Results</h2>
+        <div class="historical-results-grid">
+          ${placements.map(([label, name, seed]) => `
+            <div class="historical-result-card">
+              <span>${label}</span>
+              <strong>${seed ? `#${escapeHtml(String(seed))} ` : ""}${escapeHtml(name)}</strong>
+            </div>
+          `).join("")}
+        </div>
+        <p class="historical-bracket-note"><strong>Historical battle bracket unavailable.</strong><br />The original battle-by-battle bracket for this archived event could not be recovered. Verified qualifying and final results are preserved.</p>
+      `;
+      panel.classList.remove("hidden");
+      document.getElementById("summaryStrip").style.display = "none";
+      document.getElementById("battleFlowPanel").classList.add("hidden");
+      document.getElementById("battleFlowContent").innerHTML = "";
+      document.getElementById("competitionBracketTabs").classList.add("hidden");
+      document.getElementById("lowerBracketRuleAlert")?.classList.add("hidden");
+      document.getElementById("lowerBracketPage").classList.add("hidden");
+      document.getElementById("mainBracketPage").classList.add("hidden");
+      document.getElementById("lowerBracketBoard").innerHTML = "";
+      document.getElementById("bracketBoard").innerHTML = "";
+      document.getElementById("championBanner").classList.add("hidden");
+      document.getElementById("emptyBracketState").classList.add("hidden");
+    }
+
     function renderBracket() {
       syncBracketReturnControls();
       syncBracketReorderControls();
+      const historicalBracketState = document.getElementById("historicalBracketState");
+      historicalBracketState.classList.add("hidden");
+      document.getElementById("lowerBracketPage").classList.remove("hidden");
+      document.getElementById("mainBracketPage").classList.remove("hidden");
+      if (isHistoricalBracketUnavailable(activeEventMeta, tournamentState)) {
+        setBracketReorderUiState({ bracketReorderModeEnabled: false });
+        clearBracketSwapSource();
+        renderHistoricalBracketUnavailableState();
+        return;
+      }
       const twinTripleMode = isTwinTripleMode(activeEventMeta);
       document.getElementById("battleFlowPanel")?.classList.toggle("twin-comp-flow", twinTripleMode);
       if (twinTripleMode) {

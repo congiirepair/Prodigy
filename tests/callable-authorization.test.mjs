@@ -14,6 +14,7 @@ const { getFunctions, connectFunctionsEmulator, httpsCallable } = requireFromRep
 const { initializeApp: initializeAdminApp, deleteApp: deleteAdminApp } = requireFromFunctions("firebase-admin/app");
 const { getAuth: getAdminAuth } = requireFromFunctions("firebase-admin/auth");
 const { getFirestore: getAdminFirestore } = requireFromFunctions("firebase-admin/firestore");
+const { bracketHash } = requireFromFunctions("./historical-bracket.js");
 
 const projectId = "prodigy-rc-competitions";
 const appId = "1:292850527697:web:6b9cb5249f2716e42e44f0";
@@ -57,6 +58,8 @@ const eventPath = `artifacts/${appId}/public/data/events/security-event`;
 const twinEventPath = `artifacts/${appId}/public/data/events/security-twin-event`;
 const recoveredEventId = "sdc-round-3-las-vegas";
 const recoveredEventPath = `artifacts/${appId}/public/data/events/${recoveredEventId}`;
+const recoveredAuditPath = `artifacts/${appId}/private/historicalBracketRepairs/events/${recoveredEventId}`;
+const validatedHistoricalEventId = "validated-historical-event";
 const directoryPath = `artifacts/${appId}/public/data/meta/eventDirectory`;
 const selectionPath = `artifacts/${appId}/public/data/meta/activeEventSelection`;
 const judgePassword = "Local-Judge-Test-Password";
@@ -138,7 +141,12 @@ const recoveredMeta = {
 };
 await adminDb.doc(twinEventPath).set(twinEvent);
 await adminDb.doc(directoryPath).set({
-  events: { "security-event": seedMeta, "security-twin-event": twinMeta, [recoveredEventId]: recoveredMeta },
+  events: {
+    "security-event": seedMeta,
+    "security-twin-event": twinMeta,
+    [recoveredEventId]: recoveredMeta,
+    [validatedHistoricalEventId]: { ...recoveredMeta, id: validatedHistoricalEventId, name: "Validated Historical Event" },
+  },
   activeEventId: "security-event",
   syncStamp: 1,
 });
@@ -173,10 +181,42 @@ try {
   assert.equal(ownerToken.claims.owner, true);
   assert.ok(Number(ownerToken.claims.ownerExpiresAt) > Date.now());
 
+  const validatedHistoricalBracket = {
+    version: 3,
+    createdAt: "2026-03-01T12:00:00.000Z",
+    mainBracket: { rounds: [{ matches: [{ left: { name: "Winner" }, right: { name: "Runner Up" }, winner: { name: "Winner" } }] }] },
+    lowerBracket: null,
+  };
+  const validatedHistoricalPayload = {
+    ...structuredClone(recoveredMeta),
+    id: validatedHistoricalEventId,
+    name: "Validated Historical Event",
+    drivers: [{ id: "verified-driver", name: "Winner", reg: 1 }],
+    bracket: validatedHistoricalBracket,
+    qualifyingFlow: { currentDriverId: null, readyRoles: {}, started: true, completed: true },
+    formatMode: "classic",
+    lowerCount: "0",
+  };
+  await assert.rejects(owner.call("restoreMissingEvent", {
+    eventId: validatedHistoricalEventId,
+    eventPayload: validatedHistoricalPayload,
+    eventMeta: validatedHistoricalPayload,
+  }));
+  const validatedHistoricalRecovery = await owner.call("restoreMissingEvent", {
+    eventId: validatedHistoricalEventId,
+    eventPayload: validatedHistoricalPayload,
+    eventMeta: validatedHistoricalPayload,
+    validatedHistoricalBracket: true,
+    validatedBracketHash: bracketHash(validatedHistoricalBracket),
+  });
+  assert.deepEqual(validatedHistoricalRecovery.eventPayload.bracket, validatedHistoricalBracket);
+  assert.equal(validatedHistoricalRecovery.eventPayload.historicalBracketStatus, "available");
+
   const recoveredPayload = {
     ...structuredClone(recoveredMeta),
     drivers: [{ id: "round3-driver", name: "Round 3 Driver", reg: 1 }],
-    bracket: { plan: { resolvedFormat: "sdc", mainBracketSize: 16 }, mainBracket: { rounds: [] }, lowerBracket: null },
+    bracket: null,
+    historicalBracketStatus: "unavailable",
     twinComp: null,
     qualifyingFlow: { currentDriverId: null, readyRoles: {}, started: true, completed: true },
     formatMode: "sdc-top-16",
@@ -191,6 +231,8 @@ try {
   assert.equal(recovered.ok, true);
   assert.equal(recovered.restored, true);
   assert.equal(recovered.eventPayload.formatMode, "sdc-top-16");
+  assert.equal(recovered.eventPayload.bracket, null);
+  assert.equal(recovered.eventPayload.historicalBracketStatus, "unavailable");
   let sharedSelection = (await adminDb.doc(selectionPath).get()).data();
   let sharedDirectory = (await adminDb.doc(directoryPath).get()).data();
   assert.equal(sharedSelection.activeEventId, recoveredEventId);
@@ -206,6 +248,55 @@ try {
   });
   assert.equal(idempotentRecovery.restored, false);
   assert.equal(idempotentRecovery.eventPayload.name, recoveredMeta.name);
+
+  const syntheticBracket = {
+    version: 9,
+    createdAt: "2026-04-17T22:23:42.860Z",
+    plan: { resolvedFormat: "sdc", preferredFormat: "sdc-top-16", qualifiedCount: 25 },
+    lowerBracket: { rounds: [{ matches: [{ left: { id: "a", name: "A" }, right: { id: "b", name: "B" }, winner: null, winnerMode: null }] }] },
+    mainBracket: { rounds: [{ matches: [{ left: { id: "c", name: "C" }, right: null, winner: null, winnerMode: null }] }], thirdPlaceMatch: null },
+  };
+  const syntheticEvent = {
+    ...structuredClone(recoveredPayload),
+    bracket: syntheticBracket,
+    results: { ...structuredClone(recoveredMeta.results), totalBattles: 0, completedBattles: 0 },
+    preservedMarker: "must-remain",
+    syncStamp: 77,
+  };
+  delete syntheticEvent.historicalBracketStatus;
+  await adminDb.doc(recoveredEventPath).set(syntheticEvent);
+  await assert.rejects(attacker.call("repairHistoricalBracketUnavailable", { eventId: recoveredEventId }));
+  await assert.rejects(owner.call("repairHistoricalBracketUnavailable", { eventId: "wrong-event" }));
+  const repairDryRun = await owner.call("repairHistoricalBracketUnavailable", { eventId: recoveredEventId });
+  assert.equal(repairDryRun.changed, false);
+  assert.equal(repairDryRun.dryRun.bracketCreatedAt, syntheticBracket.createdAt);
+  assert.deepEqual(repairDryRun.dryRun.remove, ["bracket"]);
+  await assert.rejects(owner.call("repairHistoricalBracketUnavailable", {
+    eventId: recoveredEventId,
+    execute: true,
+    expectedBracketHash: "changed",
+    expectedBracketCreatedAt: syntheticBracket.createdAt,
+    expectedSyncStamp: 77,
+  }));
+  const repaired = await owner.call("repairHistoricalBracketUnavailable", {
+    eventId: recoveredEventId,
+    execute: true,
+    expectedBracketHash: repairDryRun.dryRun.bracketHash,
+    expectedBracketCreatedAt: repairDryRun.dryRun.bracketCreatedAt,
+    expectedSyncStamp: repairDryRun.dryRun.currentSyncStamp,
+  });
+  assert.equal(repaired.changed, true);
+  const repairedEvent = (await adminDb.doc(recoveredEventPath).get()).data();
+  const repairAudit = (await adminDb.doc(recoveredAuditPath).get()).data();
+  assert.equal("bracket" in repairedEvent, false);
+  assert.equal(repairedEvent.historicalBracketStatus, "unavailable");
+  assert.equal(repairedEvent.preservedMarker, "must-remain");
+  assert.deepEqual(repairedEvent.results, syntheticEvent.results);
+  assert.deepEqual(repairAudit.syntheticBracket, syntheticBracket);
+  assert.equal(repairAudit.bracketHash, repairDryRun.dryRun.bracketHash);
+  const repeatedRepair = await owner.call("repairHistoricalBracketUnavailable", { eventId: recoveredEventId, execute: true });
+  assert.equal(repeatedRepair.changed, false);
+  assert.equal(repeatedRepair.alreadyRepaired, true);
 
   const selectedLive = await owner.call("setActiveSelection", { eventId: "security-event" });
   assert.equal(selectedLive.eventMeta.id, "security-event");
