@@ -4477,20 +4477,120 @@
       align-items: stretch;
     }
 
-    .competition-result-reveal {
+    /* The decision panel is a viewport overlay inside #view-bracket, which is
+       also the browser-fullscreen owner. Keeping it fixed and out of flow
+       preserves the visible bracket and prevents any fullscreen re-fit. */
+    #competitionDecisionPanel.competition-decision-panel {
+      position: fixed;
+      inset: 0;
+      z-index: 1600;
+      display: grid;
+      width: auto;
+      margin: 0;
+      padding: clamp(14px, 4vw, 48px);
+      place-items: center;
+      isolation: isolate;
+    }
+
+    .competition-decision-panel::before,
+    .competition-decision-panel::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .competition-decision-panel::before {
+      z-index: -2;
+      background: radial-gradient(ellipse at center, rgba(6, 8, 13, 0.42), rgba(6, 8, 13, 0.68) 78%);
+      backdrop-filter: blur(2.5px) saturate(0.9);
+      -webkit-backdrop-filter: blur(2.5px) saturate(0.9);
+      animation: competitionRevealBackdropIn var(--motion-state) ease both;
+    }
+
+    .competition-decision-panel::after {
+      z-index: -1;
+      background: radial-gradient(circle at center, rgba(208, 160, 107, 0.2), transparent 44%);
+      animation: competitionRevealBackdropIn 560ms ease 120ms both;
+    }
+
+    .competition-decision-panel.is-omt::after,
+    .competition-decision-panel.is-review::after {
+      background: radial-gradient(circle at center, rgba(214, 74, 74, 0.17), transparent 44%);
+    }
+
+    @keyframes competitionRevealBackdropIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .competition-result-reveal,
+    #competitionDecisionPanel .competition-decision-card.is-review-hold {
       position: relative;
       isolation: isolate;
       display: grid;
-      gap: 16px;
-      overflow: hidden;
-      padding: clamp(22px, 3vw, 34px);
-      border: 2px solid var(--gold);
-      border-radius: 30px;
+      width: min(680px, 100%);
+      max-height: calc(100dvh - 28px);
+      gap: 14px;
+      overflow-x: hidden;
+      overflow-y: auto;
+      padding: clamp(22px, 3.2vw, 38px) clamp(18px, 3vw, 42px);
+      border: 1px solid var(--gold-ring-mid);
+      border-radius: 28px;
       background:
-        radial-gradient(circle at 15% 0%, rgba(231, 182, 103, 0.24), transparent 40%),
-        linear-gradient(145deg, rgba(255, 252, 244, 0.98), rgba(244, 237, 222, 0.95));
-      color: #17130d;
-      box-shadow: var(--gold-glow), 0 24px 58px rgba(33, 24, 10, 0.18);
+        radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.06), transparent 36%),
+        linear-gradient(180deg, rgba(24, 27, 36, 0.96), rgba(11, 13, 19, 0.98));
+      color: #f5eee6;
+      text-align: center;
+      box-shadow: 0 34px 90px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      animation: competitionRevealCardIn var(--motion-state) var(--ease-snap) 60ms both;
+    }
+
+    .competition-result-reveal.is-omt,
+    #competitionDecisionPanel .competition-decision-card.is-review-hold {
+      border-color: rgba(214, 74, 74, 0.58);
+      background:
+        radial-gradient(circle at 50% 0%, rgba(214, 74, 74, 0.12), transparent 38%),
+        linear-gradient(180deg, rgba(35, 18, 23, 0.96), rgba(12, 10, 15, 0.98));
+    }
+
+    @keyframes competitionRevealCardIn {
+      from { opacity: 0; transform: scale(0.955) translateY(10px); filter: blur(4px); }
+      to { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
+    }
+
+    .competition-result-reveal::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      padding: 2px;
+      border-radius: 28px;
+      background: conic-gradient(from var(--competition-reveal-trace-angle), transparent 0deg, var(--gold-bright) 34deg, var(--gold) 62deg, transparent 100deg);
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+      mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      mask-composite: exclude;
+      pointer-events: none;
+      animation: competitionRevealBorderTrace 1150ms ease-out 160ms both;
+    }
+
+    .competition-result-reveal.is-omt::before {
+      background: conic-gradient(from var(--competition-reveal-trace-angle), transparent 0deg, rgba(255, 236, 236, 0.92) 26deg, #e05252 60deg, transparent 100deg);
+    }
+
+    @property --competition-reveal-trace-angle {
+      syntax: "<angle>";
+      inherits: false;
+      initial-value: 0deg;
+    }
+
+    @keyframes competitionRevealBorderTrace {
+      0% { --competition-reveal-trace-angle: 0deg; opacity: 0; }
+      12%, 82% { opacity: 1; }
+      100% { --competition-reveal-trace-angle: 720deg; opacity: 0; }
     }
 
     .competition-result-reveal-glow {
@@ -4498,110 +4598,245 @@
       z-index: -1;
       inset: -55% 42% 10% -18%;
       transform: rotate(-12deg);
-      background: linear-gradient(110deg, transparent, rgba(255, 255, 255, 0.72), transparent);
+      background: linear-gradient(110deg, transparent, rgba(255, 255, 255, 0.16), transparent);
       animation: podiumBannerReveal var(--motion-reveal) var(--ease-snap) both;
       pointer-events: none;
     }
 
     .competition-result-reveal-head {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 20px;
+      display: grid;
+      justify-items: center;
+      gap: 14px;
+    }
+
+    .competition-result-reveal-head > div:first-child {
+      display: grid;
+      justify-items: center;
     }
 
     .competition-result-label {
-      display: block;
+      display: inline-flex;
+      align-items: center;
       margin-top: 4px;
-      color: var(--gold-deep);
-      font-size: 0.82rem;
-      font-weight: 950;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-    }
-
-    .competition-result-reveal h3 {
-      margin: 8px 0 0;
-      font-family: var(--font-graffiti);
-      font-size: clamp(2.2rem, 6vw, 5rem);
-      line-height: 0.88;
-      text-transform: uppercase;
-      text-wrap: balance;
-    }
-
-    .competition-result-context {
-      margin: 0;
-      font-size: 0.82rem;
-      font-weight: 900;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-    }
-
-    .competition-result-countdown {
-      flex: 0 0 auto;
-      display: grid;
-      min-width: 138px;
-      padding: 12px 16px;
+      padding: 7px 16px;
       border: 1px solid var(--gold-ring-mid);
-      border-radius: 20px;
-      background: rgba(255, 255, 255, 0.72);
-      text-align: center;
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
-    }
-
-    .competition-result-countdown strong {
-      font-family: var(--font-graffiti);
-      font-size: 2.25rem;
-      line-height: 0.9;
-    }
-
-    .competition-result-countdown span {
-      margin-top: 6px;
-      font-size: 0.65rem;
-      font-weight: 900;
-      letter-spacing: 0.12em;
+      border-radius: 999px;
+      background: linear-gradient(135deg, rgba(208, 160, 107, 0.16), rgba(208, 160, 107, 0.05));
+      color: var(--gold-bright);
+      font-size: 0.78rem;
+      font-weight: 950;
+      letter-spacing: 0.22em;
       text-transform: uppercase;
-    }
-
-    .competition-result-reveal.is-omt {
-      border-color: var(--state-error);
-      background:
-        radial-gradient(circle at 15% 0%, rgba(176, 24, 43, 0.2), transparent 42%),
-        linear-gradient(145deg, rgba(255, 249, 249, 0.98), rgba(245, 224, 226, 0.96));
-      box-shadow: 0 0 0 1px rgba(176, 24, 43, 0.2), 0 24px 58px rgba(72, 12, 22, 0.18);
     }
 
     .competition-result-reveal.is-omt .competition-result-label,
     .competition-vote-pill.is-omt {
-      color: var(--state-error);
+      border-color: rgba(214, 74, 74, 0.5);
+      color: #ffb1b1;
     }
 
-    body[data-theme="dark"] .competition-result-reveal {
-      color: var(--text);
-      background:
-        radial-gradient(circle at 15% 0%, rgba(208, 160, 107, 0.18), transparent 42%),
-        linear-gradient(145deg, rgba(28, 25, 21, 0.98), rgba(11, 13, 18, 0.98));
+    .competition-result-reveal h3 {
+      max-width: 100%;
+      margin: 10px 0 0;
+      color: #fff;
+      font-family: var(--font-graffiti);
+      font-size: clamp(2rem, 5vw, 4rem);
+      line-height: 0.96;
+      text-transform: uppercase;
+      text-wrap: balance;
+      overflow-wrap: anywhere;
+      text-shadow: 0 2px 24px rgba(208, 160, 107, 0.35);
     }
 
-    body[data-theme="dark"] .competition-result-reveal.is-omt {
-      background:
-        radial-gradient(circle at 15% 0%, rgba(255, 77, 103, 0.17), transparent 42%),
-        linear-gradient(145deg, rgba(35, 18, 23, 0.98), rgba(12, 10, 15, 0.98));
+    .competition-result-reveal.is-omt h3 {
+      color: #ffd9d9;
+      text-shadow: 0 2px 24px rgba(214, 74, 74, 0.4);
     }
 
-    body[data-theme="dark"] .competition-result-countdown {
-      background: rgba(0, 0, 0, 0.28);
+    .competition-result-reveal.is-long-name h3 {
+      font-size: clamp(1.55rem, 3.2vw, 2.55rem);
+      line-height: 1;
     }
 
-    @media (max-width: 700px) {
-      .competition-result-reveal-head { display: grid; }
-      .competition-result-countdown { width: 100%; }
-      .competition-result-reveal h3 { font-size: clamp(2rem, 15vw, 3.6rem); }
-      .competition-result-reveal .competition-decision-actions { grid-template-columns: 1fr; }
+    .competition-result-context {
+      margin: 0;
+      color: rgba(245, 238, 230, 0.78);
+      font-size: 0.82rem;
+      font-weight: 900;
+      letter-spacing: 0.12em;
+      line-height: 1.45;
+      text-transform: uppercase;
+      overflow-wrap: anywhere;
+    }
+
+    .competition-result-reveal .competition-decision-copy,
+    #competitionDecisionPanel .competition-decision-card.is-review-hold .competition-decision-copy {
+      color: rgba(245, 238, 230, 0.72);
+    }
+
+    .competition-result-countdown {
+      display: grid;
+      justify-items: center;
+      gap: 4px;
+    }
+
+    .competition-result-countdown-dial {
+      position: relative;
+      display: grid;
+      width: 74px;
+      height: 74px;
+      place-items: center;
+    }
+
+    .competition-result-countdown-dial svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+
+    .competition-result-countdown-dial circle {
+      fill: none;
+      stroke-width: 4;
+    }
+
+    .competition-result-countdown-track { stroke: rgba(255, 255, 255, 0.14); }
+
+    .competition-result-countdown-ring {
+      stroke: var(--gold);
+      stroke-linecap: round;
+      stroke-dasharray: 201.06;
+      stroke-dashoffset: var(--competition-countdown-offset, 0);
+      transition: stroke-dashoffset 240ms linear, stroke 300ms ease;
+    }
+
+    .competition-result-reveal.is-omt .competition-result-countdown-ring { stroke: #e05252; }
+
+    .competition-result-countdown strong {
+      color: #fff;
+      font-family: var(--font-graffiti);
+      font-size: 1.7rem;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+    }
+
+    .competition-result-countdown > span {
+      color: rgba(245, 238, 230, 0.62);
+      font-size: 0.68rem;
+      font-weight: 900;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    .competition-result-countdown.is-final strong {
+      color: var(--gold-bright);
+      animation: competitionRevealTimerFinal 1s ease-in-out infinite;
+    }
+
+    .competition-result-reveal.is-omt .competition-result-countdown.is-final strong { color: #ffb1b1; }
+
+    @keyframes competitionRevealTimerFinal {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.12); }
+    }
+
+    .competition-result-reveal .competition-vote-tally { justify-content: center; }
+
+    .competition-result-reveal .competition-vote-pill {
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      background: rgba(255, 255, 255, 0.06);
+      color: rgba(245, 238, 230, 0.86);
+    }
+
+    .competition-result-reveal .competition-decision-actions,
+    #competitionDecisionPanel .competition-decision-card.is-review-hold .competition-decision-actions {
+      display: flex;
+      width: 100%;
+      justify-content: center;
+    }
+
+    .competition-result-reveal .competition-decision-actions .button { min-width: 180px; }
+
+    .competition-result-reveal .button[data-action="continue-competition-flow"] {
+      border-color: transparent;
+      background: var(--gold-fill);
+      color: var(--gold-ink);
+      box-shadow: var(--gold-glow);
+    }
+
+    .competition-result-reveal-head,
+    .competition-result-context,
+    .competition-result-reveal .competition-decision-copy,
+    .competition-result-reveal .competition-vote-tally,
+    .competition-result-reveal .competition-decision-actions {
+      animation: competitionRevealItemIn 340ms var(--ease-snap) both;
+    }
+
+    .competition-result-reveal-head { animation-delay: 240ms; }
+    .competition-result-context { animation-delay: 420ms; }
+    .competition-result-reveal .competition-decision-copy { animation-delay: 500ms; }
+    .competition-result-reveal .competition-vote-tally { animation-delay: 560ms; }
+    .competition-result-reveal .competition-decision-actions { animation-delay: 620ms; }
+
+    @keyframes competitionRevealItemIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .competition-decision-panel.is-exiting .competition-result-reveal,
+    #competitionDecisionPanel.is-exiting .competition-decision-card.is-review-hold {
+      animation: competitionRevealCardOut 360ms ease both;
+    }
+
+    .competition-decision-panel.is-exiting::before,
+    .competition-decision-panel.is-exiting::after {
+      animation: none;
+      opacity: 0;
+      transition: opacity 380ms ease;
+    }
+
+    .competition-decision-panel.is-exiting .competition-decision-actions .button {
+      pointer-events: none;
+      opacity: 0.72;
+    }
+
+    @keyframes competitionRevealCardOut {
+      from { opacity: 1; transform: scale(1); }
+      to { opacity: 0; transform: scale(0.965); }
+    }
+
+    @media (max-width: 480px) {
+      #competitionDecisionPanel.competition-decision-panel { padding: 12px; }
+      .competition-result-reveal {
+        gap: 10px;
+        padding: 18px 14px;
+      }
+      .competition-result-reveal h3 { font-size: clamp(1.7rem, 10vw, 2.45rem); }
+      .competition-result-reveal.is-long-name h3 { font-size: clamp(1.3rem, 7.2vw, 1.75rem); }
+      .competition-result-reveal .competition-decision-copy { font-size: 0.82rem; line-height: 1.4; }
+      .competition-result-reveal .competition-decision-actions { flex-direction: column; }
+      .competition-result-reveal .competition-decision-actions .button { width: 100%; min-width: 0; }
+      .competition-result-countdown-dial { width: 62px; height: 62px; }
     }
 
     @media (prefers-reduced-motion: reduce) {
+      .competition-decision-panel::before,
+      .competition-decision-panel::after,
+      .competition-result-reveal,
+      #competitionDecisionPanel .competition-decision-card.is-review-hold {
+        animation: competitionRevealBackdropIn 1ms ease both;
+      }
+      .competition-result-reveal::before,
       .competition-result-reveal-glow { animation: none; opacity: 0; }
+      .competition-result-reveal-head,
+      .competition-result-context,
+      .competition-result-reveal .competition-decision-copy,
+      .competition-result-reveal .competition-vote-tally,
+      .competition-result-reveal .competition-decision-actions,
+      .competition-result-countdown.is-final strong { animation: none; }
+      .competition-decision-panel.is-exiting .competition-result-reveal,
+      #competitionDecisionPanel.is-exiting .competition-decision-card.is-review-hold { animation: none; opacity: 0; }
     }
 
     .competition-judge-card {
@@ -14592,7 +14827,7 @@
           <div id="battleFlowContent"></div>
         </section>
         <div id="competitionReviewBanner" class="competition-review-banner hidden" aria-live="polite"></div>
-        <section id="competitionDecisionPanel" class="competition-decision-panel hidden admin-only" aria-live="polite"></section>
+        <section id="competitionDecisionPanel" class="competition-decision-panel hidden admin-only" role="dialog" aria-modal="false" aria-label="Battle result" aria-live="polite"></section>
         <section id="competitionJudgePanel" class="competition-judge-panel hidden judge-only" aria-live="polite"></section>
 
         <nav id="competitionBracketTabs" class="mode-tabs competition-subtabs hidden" aria-label="Competition Brackets">
@@ -14925,6 +15160,11 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script type="module">
     import { parseVoiceCommandsWithFallback, sendResultsSummaryEmail } from "./assets/js/legacy-client-features.js";
+    import {
+      createSelectedEventSubscriptionController,
+      resolveSelectionEventMeta,
+      shouldReplaceCachedSelection,
+    } from "./assets/js/event-selection-sync.js";
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, connectAuthEmulator } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, collection, doc, setDoc, onSnapshot, deleteDoc, deleteField, getDoc, runTransaction, connectFirestoreEmulator } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -16321,6 +16561,43 @@
       };
     }
 
+    function buildRound3PdfRecoverySnapshot(eventMeta = activeEventMeta) {
+      if (!eventMeta || !isRound3PdfRecoveryEvent(eventMeta)) return null;
+      const drivers = buildRecoveredRound3Drivers();
+      const formatMode = FORMAT_SDC_TOP_16;
+      const lowerCount = "16";
+      const bracket = createTournamentState(rankDrivers(drivers), formatMode, Number(lowerCount));
+      const qualifyingFlow = {
+        currentDriverId: null,
+        readyRoles: {},
+        started: true,
+        completed: true,
+      };
+      const results = buildRecoveredRound3Results();
+      const updatedAt = new Date().toISOString();
+      const recoveredEventMeta = {
+        ...eventMeta,
+        status: EVENT_STATUS_COMPLETED,
+        updatedAt,
+        results: {
+          ...results,
+          updatedAt,
+        },
+      };
+      return {
+        eventMeta: recoveredEventMeta,
+        eventPayload: {
+          ...recoveredEventMeta,
+          drivers,
+          bracket,
+          qualifyingFlow,
+          formatMode,
+          lowerCount,
+        },
+        archivedRecord: buildArchivedResultsRecord(recoveredEventMeta, recoveredEventMeta.results),
+      };
+    }
+
     async function commitRound3PdfRestore({ eventId, eventMeta, eventPayload, archivedRecord, syncStamp }) {
       if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE && prodigyActionCallable) {
         const result = await callProdigyAction("commitEventSnapshot", {
@@ -16377,28 +16654,15 @@
       const confirmed = window.confirm("Restore SDC Round 3 from the exported PDF? This will replace the current roster, qualifying scores, and saved podium summary for the selected event.");
       if (!confirmed) return;
 
-      const restoredDrivers = buildRecoveredRound3Drivers();
-      const restoredFormatMode = FORMAT_SDC_TOP_16;
-      const restoredLowerCount = "16";
-      const restoredBracket = createTournamentState(rankDrivers(restoredDrivers), restoredFormatMode, Number(restoredLowerCount));
-      const restoredFlow = {
-        currentDriverId: null,
-        readyRoles: {},
-        started: true,
-        completed: true,
-      };
-      const restoredResults = buildRecoveredRound3Results();
-      const updatedAt = new Date().toISOString();
-      const restoredEventMeta = {
-        ...activeEventMeta,
-        status: EVENT_STATUS_COMPLETED,
-        updatedAt,
-        results: {
-          ...restoredResults,
-          updatedAt,
-        },
-      };
-      const archivedRecord = buildArchivedResultsRecord(restoredEventMeta, restoredEventMeta.results);
+      const recovery = buildRound3PdfRecoverySnapshot(activeEventMeta);
+      if (!recovery) return;
+      const restoredDrivers = recovery.eventPayload.drivers;
+      const restoredFormatMode = recovery.eventPayload.formatMode;
+      const restoredLowerCount = recovery.eventPayload.lowerCount;
+      const restoredBracket = recovery.eventPayload.bracket;
+      const restoredFlow = recovery.eventPayload.qualifyingFlow;
+      const restoredEventMeta = recovery.eventMeta;
+      const archivedRecord = recovery.archivedRecord;
 
       if (db) {
         lastLocalPush = Date.now();
@@ -17600,6 +17864,7 @@
       const expectedAttemptId = expectedControl?.attemptId || "";
       if (!expectedEntryKey || !["continue", "review"].includes(decision)) return false;
       competitionDecisionActionInFlight = true;
+      competitionDecisionPanel?.classList.add("is-exiting");
       cancelCompetitionDecisionCountdown();
       try {
         if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE && prodigyActionCallable) {
@@ -20044,7 +20309,7 @@
     let syncTimeout = null;
     let lastLocalPush = 0;
     let activeEventServerReady = false;
-    let eventDocUnsubscribe = null;
+    let activeEventSubscriptionController = null;
     let directoryDocUnsubscribe = null;
     let activeEventSelectionUnsubscribe = null;
     let archivedResultsDocUnsubscribe = null;
@@ -21738,6 +22003,43 @@
       if (cachedLifecycle.archivedResultsChanged) saveArchivedResultsCache();
     }
 
+    function isMissingEventSelectionError(error) {
+      const code = String(error?.code || "").toLowerCase();
+      const message = String(error?.message || "").toLowerCase();
+      return code === "functions/not-found" || code === "not-found" || message.includes("event no longer exists");
+    }
+
+    async function restoreRecoverableMissingEventForSelection(eventId, selectionError) {
+      if (!isWebsiteAdmin || !isMissingEventSelectionError(selectionError)) return null;
+      const eventMeta = eventDirectory[eventId];
+      const recovery = buildRound3PdfRecoverySnapshot(eventMeta);
+      if (!recovery) return null;
+
+      const restored = await callProdigyAction("restoreMissingEvent", {
+        eventId,
+        eventPayload: recovery.eventPayload,
+        eventMeta: recovery.eventMeta,
+        archivedResultRecord: recovery.archivedRecord,
+      });
+      if (!restored?.ok || !restored.eventPayload || !restored.eventMeta) return null;
+
+      eventDirectory[eventId] = cloneEventMeta(restored.eventMeta);
+      lastRemoteDirectoryEvents[eventId] = cloneEventMeta(restored.eventMeta);
+      if (recovery.archivedRecord) {
+        archivedResultsDirectory[eventId] = normalizeArchivedResultsRecord(recovery.archivedRecord, eventId);
+        saveArchivedResultsCache();
+      }
+      if (eventId === activeEventId) {
+        applyRemoteEventState(restored.eventPayload);
+      }
+      saveDirectoryCache();
+      return {
+        activeEventId: eventId,
+        eventMeta: cloneEventMeta(restored.eventMeta),
+        syncStamp: Number(restored.syncStamp || Date.now()),
+      };
+    }
+
     async function publishActiveEventSelection() {
       if (!db || !activeEventId) return false;
       if (!auth?.currentUser) {
@@ -21753,15 +22055,20 @@
         let superseded = false;
         try {
           if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE && prodigyActionCallable) {
-            const result = await callProdigyAction("setActiveSelection", {
-              eventId: selectedEventId,
-              syncStamp: publishSyncStamp,
-            });
-            activeEventPayload = {
-              activeEventId: selectedEventId,
-              eventMeta: cloneEventMeta(eventDirectory[selectedEventId]),
-              syncStamp: result.syncStamp || publishSyncStamp,
-            };
+            try {
+              const result = await callProdigyAction("setActiveSelection", {
+                eventId: selectedEventId,
+                syncStamp: publishSyncStamp,
+              });
+              activeEventPayload = {
+                activeEventId: selectedEventId,
+                eventMeta: cloneEventMeta(result.eventMeta || eventDirectory[selectedEventId]),
+                syncStamp: result.syncStamp || publishSyncStamp,
+              };
+            } catch (error) {
+              activeEventPayload = await restoreRecoverableMissingEventForSelection(selectedEventId, error);
+              if (!activeEventPayload) throw error;
+            }
           } else await runTransaction(db, async (transaction) => {
             activeEventPayload = null;
             superseded = requestRevision !== activeEventSelectionRequestRevision;
@@ -21800,7 +22107,7 @@
         lastLocalPush = publishSyncStamp;
         if (activeEventId === selectedEventId) {
           lastKnownRemoteActiveEventSelection = normalizeActiveEventSelectionSnapshot(activeEventPayload);
-          saveCachedActiveEventSelection(activeEventPayload);
+          saveCachedActiveEventSelection(activeEventPayload, { authoritative: true });
           saveDirectoryCache();
         }
         return true;
@@ -21865,13 +22172,6 @@
       lastRemoteDirectorySyncStamp = nextSyncStamp;
       lastRemoteDirectoryEvents = mergeDirectoryMaps(data.events || {});
       eventDirectory = getRecoveredDirectorySnapshot(data.events || {});
-      if (data.activeEventId && eventDirectory[data.activeEventId]) {
-        saveCachedActiveEventSelection({
-          activeEventId: data.activeEventId,
-          eventMeta: data.events?.[data.activeEventId] || eventDirectory[data.activeEventId],
-          syncStamp: nextSyncStamp,
-        });
-      }
       const keepLocalSelection = shouldKeepCurrentRouteEventSelectionLocal();
       const resolvedEvent = resolvePlatformCurrentEvent({
         directoryActiveEventId: data.activeEventId,
@@ -21924,9 +22224,12 @@
       const nextSyncStamp = Number(data.syncStamp || 0);
       lastRemoteActiveEventSyncStamp = nextSyncStamp;
       lastKnownRemoteActiveEventSelection = normalizedSelection;
-      saveCachedActiveEventSelection(normalizedSelection);
-      if (normalizedSelection.eventMeta) {
-        eventDirectory[nextActiveEventId] = cloneEventMeta(normalizedSelection.eventMeta);
+      saveCachedActiveEventSelection(normalizedSelection, { authoritative: true });
+      const authoritativeEventMeta = hasLoadedRemoteDirectory
+        ? lastRemoteDirectoryEvents[nextActiveEventId]
+        : eventDirectory[nextActiveEventId] || normalizedSelection.eventMeta;
+      if (authoritativeEventMeta) {
+        eventDirectory[nextActiveEventId] = cloneEventMeta(authoritativeEventMeta);
       }
       const keepLocalSelection = shouldKeepCurrentRouteEventSelectionLocal();
       if (keepLocalSelection && activeEventId && eventDirectory[activeEventId] && nextActiveEventId !== activeEventId) {
@@ -21961,33 +22264,43 @@
       lastRemoteEventSyncStamp = 0;
       activeEventServerReady = false;
       syncNetworkStatusIndicator();
-      if (!db || !auth?.currentUser || !activeEventId) return;
-      if (eventDocUnsubscribe) eventDocUnsubscribe();
+      if (!activeEventSubscriptionController) {
+        activeEventSubscriptionController = createSelectedEventSubscriptionController({
+          subscribe: (eventId, next, error) => onSnapshot(
+            getEventDocRef(eventId),
+            { includeMetadataChanges: true },
+            next,
+            error,
+          ),
+          onSnapshot: (eventId, snap) => {
+            if (eventId !== activeEventId) return;
+            activeEventServerReady = snap.metadata?.fromCache === false;
+            syncNetworkStatusIndicator();
+            if (testScenarioSeedInFlight || !snap.exists()) return;
+            applyRemoteEventState(snap.data());
+            renderAfterRemoteSync();
+            if (activeEventServerReady && pendingCloudBootstrapSync) {
+              pendingCloudBootstrapSync = false;
+              showSyncRecoveryNotice();
+            }
+          },
+          onError: (eventId, error) => {
+            if (eventId !== activeEventId) return;
+            activeEventServerReady = false;
+            const statusEl = document.getElementById('syncStatus');
+            statusEl.textContent = "Sync Error";
+            statusEl.classList.remove("online");
+            statusEl.classList.add("offline-protected");
+            console.error(error);
+          },
+        });
+      }
+      if (!db || !auth?.currentUser || !activeEventId) {
+        activeEventSubscriptionController.stop();
+        return;
+      }
       subscribeToNativeLiveStream();
-
-      const eventDoc = getEventDocRef(activeEventId);
-      const subscribedEventId = activeEventId;
-      eventDocUnsubscribe = onSnapshot(eventDoc, { includeMetadataChanges: true }, (snap) => {
-        if (subscribedEventId !== activeEventId) return;
-        activeEventServerReady = snap.metadata?.fromCache === false;
-        syncNetworkStatusIndicator();
-        if (testScenarioSeedInFlight) return;
-        if (!snap.exists()) return;
-        const data = snap.data();
-        applyRemoteEventState(data);
-        renderAfterRemoteSync();
-        if (activeEventServerReady && pendingCloudBootstrapSync) {
-          pendingCloudBootstrapSync = false;
-          showSyncRecoveryNotice();
-        }
-      }, (error) => {
-        activeEventServerReady = false;
-        const statusEl = document.getElementById('syncStatus');
-        statusEl.textContent = "Sync Error";
-        statusEl.classList.remove("online");
-        statusEl.classList.add("offline-protected");
-        console.error(error);
-      });
+      activeEventSubscriptionController.select(activeEventId, { force: true });
     }
 
     function showSyncRecoveryNotice() {
@@ -24983,11 +25296,14 @@
       if (!snapshot || typeof snapshot !== "object") return null;
       const resolvedEventId = String(snapshot.activeEventId || fallbackEventId || "").trim();
       if (!resolvedEventId) return null;
-      const resolvedMeta = snapshot.eventMeta
-        ? extractEventMeta(snapshot.eventMeta, resolvedEventId)
-        : eventDirectory[resolvedEventId]
-          ? cloneEventMeta(eventDirectory[resolvedEventId])
-          : null;
+      const metaCandidate = resolveSelectionEventMeta({
+        eventId: resolvedEventId,
+        authoritativeDirectory: lastRemoteDirectoryEvents,
+        authoritativeDirectoryLoaded: hasLoadedRemoteDirectory,
+        localDirectory: eventDirectory,
+        embeddedEventMeta: snapshot.eventMeta,
+      });
+      const resolvedMeta = metaCandidate ? extractEventMeta(metaCandidate, resolvedEventId) : null;
       return {
         activeEventId: resolvedEventId,
         eventMeta: resolvedMeta ? cloneEventMeta(resolvedMeta) : null,
@@ -25006,7 +25322,7 @@
       }
     }
 
-    function saveCachedActiveEventSelection(snapshot) {
+    function saveCachedActiveEventSelection(snapshot, options = {}) {
       if (STANDALONE_DEMO_MODE) return null;
       const normalizedSnapshot = normalizeActiveEventSelectionSnapshot(snapshot);
       if (!normalizedSnapshot) {
@@ -25014,7 +25330,7 @@
         return null;
       }
       const existingSnapshot = readCachedActiveEventSelection();
-      if (existingSnapshot && existingSnapshot.syncStamp > normalizedSnapshot.syncStamp) {
+      if (!shouldReplaceCachedSelection(existingSnapshot, normalizedSnapshot, options)) {
         return existingSnapshot;
       }
       localStorage.setItem(ACTIVE_EVENT_SELECTION_CACHE_KEY, JSON.stringify(normalizedSnapshot));
@@ -27277,7 +27593,7 @@
           eventMeta: seeded.directory[seeded.activeEventId],
           syncStamp: seeded.syncStamp,
         });
-        saveCachedActiveEventSelection(lastKnownRemoteActiveEventSelection);
+        saveCachedActiveEventSelection(lastKnownRemoteActiveEventSelection, { authoritative: true });
         applyActiveEventState(seeded.activeState, { syncQualifying: false });
         currentRole = "admin";
         setRoleUnlockedForEvent(activeEventId, "admin", true);
@@ -32576,7 +32892,7 @@
             syncStamp: cloudDeletionResult.publishSyncStamp,
           };
           lastKnownRemoteActiveEventSelection = normalizeActiveEventSelectionSnapshot(activeEventPayload);
-          saveCachedActiveEventSelection(activeEventPayload);
+          saveCachedActiveEventSelection(activeEventPayload, { authoritative: true });
         }
 
         saveDirectoryCache();
@@ -35799,7 +36115,13 @@
         }
         const remainingMs = Date.parse(latest.reviewDeadlineAt) - Date.now();
         const countdownEl = document.getElementById("competitionDecisionCountdown");
-        if (countdownEl) countdownEl.textContent = String(Math.max(0, Math.ceil(remainingMs / 1000)));
+        if (countdownEl) {
+          countdownEl.textContent = String(Math.max(0, Math.ceil(remainingMs / 1000)));
+          const countdown = countdownEl.closest(".competition-result-countdown");
+          const remainingRatio = Math.max(0, Math.min(1, remainingMs / COMPETITION_RESULT_REVIEW_MS));
+          countdown?.style.setProperty("--competition-countdown-offset", String(201.06 * (1 - remainingRatio)));
+          countdown?.classList.toggle("is-final", remainingMs > 0 && remainingMs <= 3_000);
+        }
         if (remainingMs > 0) return;
         cancelCompetitionDecisionCountdown();
         void continueCompetitionFlow(expectedControl);
@@ -35820,6 +36142,7 @@
       if (!adminCanEdit() || !control.entry || (control.status !== "admin_decision" && control.status !== "review_hold")) {
         cancelCompetitionDecisionCountdown();
         competitionDecisionPanel.classList.add("hidden");
+        competitionDecisionPanel.classList.remove("is-winner", "is-omt", "is-review", "is-exiting");
         competitionDecisionPanel.innerHTML = "";
         return;
       }
@@ -35830,13 +36153,17 @@
       const winnerDriver = control.resolvedWinnerSide ? control.entry.match?.[control.resolvedWinnerSide] : null;
       if (control.status === "admin_decision") {
         const isOmt = control.decisionType === "omt" || control.reason === "omt";
+        competitionDecisionPanel.classList.toggle("is-winner", !isOmt);
+        competitionDecisionPanel.classList.toggle("is-omt", isOmt);
+        competitionDecisionPanel.classList.remove("is-review", "is-exiting");
+        competitionDecisionPanel.setAttribute("aria-label", isOmt ? "One More Time battle result" : "Winner battle result");
         const resultName = isOmt ? "OMT" : (winnerDriver?.name || "Winner");
         const resultLabel = isOmt ? "One More Time" : "Winner";
         const copy = isOmt
           ? "The judges called One More Time. Continue now or let the contest window expire to reset this same battle for a clean rerun."
           : `${winnerDriver?.name || "The winning competitor"} holds the authoritative result. Continue now or let the contest window expire to advance the bracket.`;
         competitionDecisionPanel.innerHTML = `
-          <article class="competition-result-reveal ${isOmt ? "is-omt" : "is-winner"}">
+          <article class="competition-result-reveal ${isOmt ? "is-omt" : "is-winner"}${resultName.length > 32 ? " is-long-name" : ""}">
             <div class="competition-result-reveal-glow" aria-hidden="true"></div>
             <div class="competition-result-reveal-head">
               <div>
@@ -35845,7 +36172,13 @@
                 <h3>${escapeHtml(resultName)}</h3>
               </div>
               <div class="competition-result-countdown" aria-label="Contest window countdown">
-                <strong id="competitionDecisionCountdown">15</strong>
+                <div class="competition-result-countdown-dial">
+                  <svg viewBox="0 0 74 74" aria-hidden="true" focusable="false">
+                    <circle class="competition-result-countdown-track" cx="37" cy="37" r="32"></circle>
+                    <circle class="competition-result-countdown-ring" cx="37" cy="37" r="32"></circle>
+                  </svg>
+                  <strong id="competitionDecisionCountdown">15</strong>
+                </div>
                 <span>Seconds To Contest</span>
               </div>
             </div>
@@ -35864,6 +36197,9 @@
           </article>
         `;
       } else {
+        competitionDecisionPanel.classList.add("is-review");
+        competitionDecisionPanel.classList.remove("is-winner", "is-omt", "is-exiting");
+        competitionDecisionPanel.setAttribute("aria-label", "Battle result under review");
         const copy = control.reason === "tie"
           ? `The judges returned a ${isTeamTandemMode(activeEventMeta) ? "scoring tie" : "split decision"}. Continue to reopen ${isTeamTandemMode(activeEventMeta) ? "scoring" : "voting"} on this same battle.`
           : `Automatic progression is paused. Continue when the review is resolved and judges are ready to ${isTeamTandemMode(activeEventMeta) ? "score" : "vote on"} this same battle again.`;

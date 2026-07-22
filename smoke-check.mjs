@@ -12,6 +12,7 @@ const firebaseProjectConfig = JSON.parse(fs.readFileSync(path.join(repoRoot, "fi
 const backendSource = fs.readFileSync(path.join(repoRoot, "functions", "index.js"), "utf8");
 const legacyBackendSource = fs.readFileSync(path.join(repoRoot, "functions", "legacy-http.js"), "utf8");
 const legacyClientSource = fs.readFileSync(path.join(repoRoot, "assets", "js", "legacy-client-features.js"), "utf8");
+const eventSelectionSyncSource = fs.readFileSync(path.join(repoRoot, "assets", "js", "event-selection-sync.js"), "utf8");
 
 function sourceBetween(startMarker, endMarker) {
   const startIndex = html.indexOf(startMarker);
@@ -442,8 +443,9 @@ const checks = [
     name: "event snapshots are not rejected using cross-device client clocks",
     test: () => remoteEventApplySource.includes("Firestore's document listener is authoritative; always apply its snapshot.")
       && !remoteEventApplySource.includes("nextSyncStamp < lastRemoteEventSyncStamp")
-      && activeEventSubscriptionSource.includes("eventDocUnsubscribe = onSnapshot(eventDoc")
-      && !activeEventSubscriptionSource.includes("getDoc(eventDoc)"),
+      && activeEventSubscriptionSource.includes("createSelectedEventSubscriptionController({")
+      && activeEventSubscriptionSource.includes("activeEventSubscriptionController.select(activeEventId, { force: true })")
+      && !activeEventSubscriptionSource.includes("getDoc(getEventDocRef"),
   },
   {
     name: "full-state publishes block stale overwrites without ordering client clocks",
@@ -503,6 +505,18 @@ const checks = [
       && html.includes('id="dismissSyncRecoveryNoticeBtn"')
       && !html.includes('window.alert("The connection became ready after your last change.')
       && !onlineRecoverySource.includes("publishStateImmediately()"),
+  },
+  {
+    name: "active-event selection keeps one live pointer and event-scoped metadata",
+    test: () => activeEventSelectionApplySource.includes("saveCachedActiveEventSelection(normalizedSelection, { authoritative: true })")
+      && activeEventSelectionApplySource.includes("lastRemoteDirectoryEvents[nextActiveEventId]")
+      && !directorySnapshotApplySource.includes("saveCachedActiveEventSelection")
+      && eventSelectionSyncSource.includes("authoritativeDirectoryLoaded")
+      && eventSelectionSyncSource.includes("embeddedEventId === normalizedEventId")
+      && eventSelectionSyncSource.includes("subscribedRevision !== revision")
+      && backendSource.includes("function activeSelectionPayload(eventId, eventData, syncStamp)")
+      && backendSource.includes("if (action === \"restoreMissingEvent\") return restoreMissingEvent(request)")
+      && backendSource.includes("transaction.set(selectionRef(appId), activeSelectionPayload(eventId, eventData, syncStamp))"),
   },
   {
     name: "judge transactions cannot overwrite the shared event directory",
@@ -629,7 +643,7 @@ const checks = [
       && testScenarioSeedSource.includes("lastRemoteDirectoryEvents = mergeDirectoryMaps(seeded.directory)")
       && testScenarioSeedSource.includes("testScenarioSeedInFlight = false")
       && testScenarioSeedSource.includes("setupCloudSync(auth.currentUser)")
-      && activeEventSubscriptionSource.includes("if (testScenarioSeedInFlight) return;")
+      && activeEventSubscriptionSource.includes("if (testScenarioSeedInFlight || !snap.exists()) return;")
       && cloudSyncSetupSource.match(/if \(testScenarioSeedInFlight\) return;/g)?.length === 3,
   },
   {

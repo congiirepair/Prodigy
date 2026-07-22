@@ -211,6 +211,15 @@ function sanitizeEventMeta(meta, eventPayload) {
   return candidate;
 }
 
+function activeSelectionPayload(eventId, eventData, syncStamp) {
+  const selectionEvent = { ...(eventData || {}), id: eventId, syncStamp };
+  return {
+    activeEventId: eventId,
+    eventMeta: sanitizeEventMeta(selectionEvent, selectionEvent),
+    syncStamp,
+  };
+}
+
 function assertEventSize(payload) {
   const bytes = Buffer.byteLength(JSON.stringify(payload), "utf8");
   if (bytes > MAX_EVENT_BYTES) fail("invalid-argument", "The event state is too large to save safely.");
@@ -561,8 +570,12 @@ async function createEvent(request) {
     const snap = await transaction.get(document);
     if (snap.exists) fail("already-exists", "An event with this identifier already exists.");
     transaction.create(document, eventPayload);
-    transaction.set(directoryRef(appId), { events: { [eventId]: eventMeta }, syncStamp: publishSyncStamp }, { merge: true });
-    if (data.makeActive) transaction.set(selectionRef(appId), { activeEventId: eventId, syncStamp: publishSyncStamp }, { merge: true });
+    transaction.set(directoryRef(appId), {
+      events: { [eventId]: eventMeta },
+      ...(data.makeActive ? { activeEventId: eventId } : {}),
+      syncStamp: publishSyncStamp,
+    }, { merge: true });
+    if (data.makeActive) transaction.set(selectionRef(appId), activeSelectionPayload(eventId, eventPayload, publishSyncStamp));
   });
   return { ok: true, eventPayload, eventMeta, syncStamp: publishSyncStamp };
 }
@@ -572,17 +585,72 @@ async function setActiveSelection(request) {
   const data = request.data || {};
   const appId = requireAppId(data.appId);
   const eventId = requireEventId(data.eventId);
+  let response;
   await db.runTransaction(async (transaction) => {
     const [eventSnap, directorySnap] = await Promise.all([
       transaction.get(eventRef(appId, eventId)),
       transaction.get(directoryRef(appId)),
     ]);
-    if (!eventSnap.exists || String(eventSnap.data()?.status || "active") === "archived") fail("failed-precondition", "Only a live event can become active.");
+    if (!eventSnap.exists) fail("not-found", "This event no longer exists.");
+    const eventData = eventSnap.data() || {};
+    if (String(eventData.status || "active") === "archived") fail("failed-precondition", "Archived events cannot become active.");
     const syncStamp = nextServerSyncStamp(directorySnap.data()?.syncStamp);
-    transaction.set(selectionRef(appId), { activeEventId: eventId, syncStamp }, { merge: true });
+    transaction.set(selectionRef(appId), activeSelectionPayload(eventId, eventData, syncStamp));
     transaction.set(directoryRef(appId), { activeEventId: eventId, syncStamp }, { merge: true });
+    response = { ok: true, activeEventId: eventId, eventMeta: sanitizeEventMeta(eventData, eventData), syncStamp };
   });
-  return { ok: true, activeEventId: eventId, syncStamp };
+  return response;
+}
+
+async function restoreMissingEvent(request) {
+  requireOwner(request);
+  const data = request.data || {};
+  const appId = requireAppId(data.appId);
+  const eventId = requireEventId(data.eventId);
+  let response;
+  await db.runTransaction(async (transaction) => {
+    const document = eventRef(appId, eventId);
+    const directoryDocument = directoryRef(appId);
+    const [eventSnap, directorySnap] = await Promise.all([
+      transaction.get(document),
+      transaction.get(directoryDocument),
+    ]);
+    const directoryData = directorySnap.data() || {};
+    const directoryMeta = directoryData.events?.[eventId];
+    if (!directoryMeta) fail("not-found", "This event is absent from the authoritative directory.");
+
+    const existingEvent = eventSnap.exists ? eventSnap.data() || {} : null;
+    const recoveredEvent = existingEvent || sanitizePublicEvent({ ...(data.eventPayload || {}), id: eventId }, directoryMeta);
+    if (!existingEvent && (!recoveredEvent.name || String(recoveredEvent.status || "") !== "completed")) {
+      fail("failed-precondition", "Only a complete, known event recovery snapshot can restore a missing event.");
+    }
+    if (String(recoveredEvent.status || "active") === "archived") {
+      fail("failed-precondition", "Archived events cannot become active.");
+    }
+
+    const syncStamp = nextServerSyncStamp(directoryData.syncStamp, recoveredEvent.syncStamp);
+    const eventPayload = existingEvent
+      ? recoveredEvent
+      : sanitizePublicEvent({ ...recoveredEvent, id: eventId, syncStamp }, directoryMeta);
+    const eventMeta = sanitizeEventMeta({ ...directoryMeta, ...(data.eventMeta || {}), syncStamp }, eventPayload);
+    assertEventSize(eventPayload);
+
+    if (!existingEvent) transaction.create(document, eventPayload);
+    transaction.set(directoryDocument, {
+      events: { [eventId]: eventMeta },
+      activeEventId: eventId,
+      syncStamp,
+    }, { merge: true });
+    transaction.set(selectionRef(appId), activeSelectionPayload(eventId, eventPayload, syncStamp));
+    if (!existingEvent && Object.prototype.hasOwnProperty.call(data, "archivedResultRecord")) {
+      transaction.set(archiveRef(appId), {
+        events: { [eventId]: cleanObject(clone(data.archivedResultRecord || null)) },
+        syncStamp,
+      }, { merge: true });
+    }
+    response = { ok: true, restored: !existingEvent, eventPayload, eventMeta, syncStamp };
+  });
+  return response;
 }
 
 async function deleteEvent(request) {
@@ -604,7 +672,11 @@ async function deleteEvent(request) {
     transaction.delete(eventRef(appId, eventId));
     transaction.delete(accessRef(appId, eventId));
     transaction.set(directoryRef(appId), { events, activeEventId: nextActive, syncStamp });
-    transaction.set(selectionRef(appId), { activeEventId: nextActive, syncStamp }, { merge: true });
+    transaction.set(selectionRef(appId), {
+      activeEventId: nextActive,
+      eventMeta: cleanObject(clone(events[nextActive] || null)),
+      syncStamp,
+    });
     transaction.set(archiveRef(appId), { events: { [eventId]: FieldValue.delete() }, syncStamp }, { merge: true });
   });
   return { ok: true, deletedEventId: eventId, syncStamp };
@@ -1206,6 +1278,7 @@ async function routeAction(request) {
   if (action === "commitEventSnapshot") return commitEventSnapshot(request);
   if (action === "createEvent") return createEvent(request);
   if (action === "setActiveSelection") return setActiveSelection(request);
+  if (action === "restoreMissingEvent") return restoreMissingEvent(request);
   if (action === "deleteEvent") return deleteEvent(request);
   if (action === "claimJudgeRole") return claimJudgeRole(request);
   if (action === "submitJudgeQualifying") return submitJudgeQualifying(request);

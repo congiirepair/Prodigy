@@ -55,7 +55,10 @@ const adminAuth = getAdminAuth(adminApp);
 const adminDb = getAdminFirestore(adminApp);
 const eventPath = `artifacts/${appId}/public/data/events/security-event`;
 const twinEventPath = `artifacts/${appId}/public/data/events/security-twin-event`;
+const recoveredEventId = "sdc-round-3-las-vegas";
+const recoveredEventPath = `artifacts/${appId}/public/data/events/${recoveredEventId}`;
 const directoryPath = `artifacts/${appId}/public/data/meta/eventDirectory`;
+const selectionPath = `artifacts/${appId}/public/data/meta/activeEventSelection`;
 const judgePassword = "Local-Judge-Test-Password";
 const now = new Date().toISOString();
 const baseScores = () => ({
@@ -125,8 +128,20 @@ const twinEvent = {
 };
 const twinMeta = structuredClone(twinEvent);
 for (const field of ["drivers", "bracket", "twinComp", "qualifyingFlow", "formatMode", "lowerCount"]) delete twinMeta[field];
+const recoveredMeta = {
+  ...structuredClone(seedMeta),
+  id: recoveredEventId,
+  name: "SDC Round 3 | Las Vegas",
+  status: "completed",
+  judgingMode: "average",
+  results: { completedAt: "2026-04-11T22:11:00-07:00", championName: "Recovered Champion" },
+};
 await adminDb.doc(twinEventPath).set(twinEvent);
-await adminDb.doc(directoryPath).set({ events: { "security-event": seedMeta, "security-twin-event": twinMeta }, syncStamp: 1 });
+await adminDb.doc(directoryPath).set({
+  events: { "security-event": seedMeta, "security-twin-event": twinMeta, [recoveredEventId]: recoveredMeta },
+  activeEventId: "security-event",
+  syncStamp: 1,
+});
 
 const clients = [];
 try {
@@ -145,6 +160,11 @@ try {
   await adminAuth.setCustomUserClaims(expiredOwner.auth.currentUser.uid, { owner: true, ownerExpiresAt: Date.now() - 60_000 });
   await expiredOwner.auth.currentUser.getIdToken(true);
   await assert.rejects(expiredOwner.call("setActiveSelection", { eventId: "security-event" }));
+  await assert.rejects(attacker.call("restoreMissingEvent", {
+    eventId: recoveredEventId,
+    eventPayload: recoveredMeta,
+    eventMeta: recoveredMeta,
+  }));
 
   await assert.rejects(setDoc(doc(spectator.firestore, eventPath), { name: "Forged" }, { merge: true }));
 
@@ -152,6 +172,52 @@ try {
   const ownerToken = await owner.auth.currentUser.getIdTokenResult(true);
   assert.equal(ownerToken.claims.owner, true);
   assert.ok(Number(ownerToken.claims.ownerExpiresAt) > Date.now());
+
+  const recoveredPayload = {
+    ...structuredClone(recoveredMeta),
+    drivers: [{ id: "round3-driver", name: "Round 3 Driver", reg: 1 }],
+    bracket: { plan: { resolvedFormat: "sdc", mainBracketSize: 16 }, mainBracket: { rounds: [] }, lowerBracket: null },
+    twinComp: null,
+    qualifyingFlow: { currentDriverId: null, readyRoles: {}, started: true, completed: true },
+    formatMode: "sdc-top-16",
+    lowerCount: "16",
+  };
+  const recovered = await owner.call("restoreMissingEvent", {
+    eventId: recoveredEventId,
+    eventPayload: recoveredPayload,
+    eventMeta: recoveredMeta,
+    archivedResultRecord: { id: recoveredEventId, name: recoveredMeta.name, status: "completed", results: recoveredMeta.results },
+  });
+  assert.equal(recovered.ok, true);
+  assert.equal(recovered.restored, true);
+  assert.equal(recovered.eventPayload.formatMode, "sdc-top-16");
+  let sharedSelection = (await adminDb.doc(selectionPath).get()).data();
+  let sharedDirectory = (await adminDb.doc(directoryPath).get()).data();
+  assert.equal(sharedSelection.activeEventId, recoveredEventId);
+  assert.equal(sharedSelection.eventMeta.id, recoveredEventId);
+  assert.equal(sharedSelection.eventMeta.name, recoveredMeta.name);
+  assert.equal(sharedDirectory.activeEventId, recoveredEventId);
+  assert.equal((await adminDb.doc(recoveredEventPath).get()).exists, true);
+
+  const idempotentRecovery = await owner.call("restoreMissingEvent", {
+    eventId: recoveredEventId,
+    eventPayload: { ...recoveredPayload, name: "Must Not Overwrite" },
+    eventMeta: { ...recoveredMeta, name: "Must Not Overwrite" },
+  });
+  assert.equal(idempotentRecovery.restored, false);
+  assert.equal(idempotentRecovery.eventPayload.name, recoveredMeta.name);
+
+  const selectedLive = await owner.call("setActiveSelection", { eventId: "security-event" });
+  assert.equal(selectedLive.eventMeta.id, "security-event");
+  sharedSelection = (await adminDb.doc(selectionPath).get()).data();
+  sharedDirectory = (await adminDb.doc(directoryPath).get()).data();
+  assert.equal(sharedSelection.activeEventId, "security-event");
+  assert.equal(sharedSelection.eventMeta.id, "security-event");
+  assert.equal(sharedDirectory.activeEventId, "security-event");
+
+  const selectedCompletedSdc = await owner.call("setActiveSelection", { eventId: recoveredEventId });
+  assert.equal(selectedCompletedSdc.activeEventId, recoveredEventId);
+  assert.equal(selectedCompletedSdc.eventMeta.status, "completed");
 
   const migrated = (await getDoc(doc(owner.firestore, eventPath))).data();
   assert.equal(migrated.roleAccess.j1.passwordConfigured, true);
