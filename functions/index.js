@@ -23,6 +23,7 @@ const {
   HISTORICAL_BRACKET_UNAVAILABLE,
   ROUND3_EVENT_ID,
   bracketHash,
+  collectRound3BracketDiagnostics,
   inspectRound3SyntheticBracket,
   repairFingerprintMatches,
 } = require("./historical-bracket");
@@ -697,7 +698,13 @@ async function repairHistoricalBracketUnavailable(request) {
     const eventData = eventSnap.data() || {};
     const inspection = inspectRound3SyntheticBracket(eventId, eventData);
     if (!inspection.valid) {
-      fail("failed-precondition", `The Round 3 event no longer matches the guarded repair state (${inspection.reason}).`);
+      const details = (!execute && inspection.reason === "unexpected-bracket-hash")
+        ? {
+          reason: inspection.reason,
+          diagnostic: collectRound3BracketDiagnostics(eventData),
+        }
+        : { reason: inspection.reason };
+      fail("failed-precondition", `The Round 3 event no longer matches the guarded repair state (${inspection.reason}).`, details);
     }
     if (inspection.alreadyRepaired) {
       response = {

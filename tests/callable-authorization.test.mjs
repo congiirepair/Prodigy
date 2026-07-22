@@ -14,7 +14,7 @@ const { getFunctions, connectFunctionsEmulator, httpsCallable } = requireFromRep
 const { initializeApp: initializeAdminApp, deleteApp: deleteAdminApp } = requireFromFunctions("firebase-admin/app");
 const { getAuth: getAdminAuth } = requireFromFunctions("firebase-admin/auth");
 const { getFirestore: getAdminFirestore } = requireFromFunctions("firebase-admin/firestore");
-const { bracketHash } = requireFromFunctions("./historical-bracket.js");
+const { ROUND3_SYNTHETIC_BRACKET_HASH, bracketHash } = requireFromFunctions("./historical-bracket.js");
 
 const projectId = "prodigy-rc-competitions";
 const appId = "1:292850527697:web:6b9cb5249f2716e42e44f0";
@@ -266,9 +266,25 @@ try {
   await adminDb.doc(recoveredEventPath).set(syntheticEvent);
   await assert.rejects(attacker.call("repairHistoricalBracketUnavailable", { eventId: recoveredEventId }));
   await assert.rejects(owner.call("repairHistoricalBracketUnavailable", { eventId: "wrong-event" }));
-  await assert.rejects(owner.call("repairHistoricalBracketUnavailable", { eventId: recoveredEventId }), (error) => (
-    String(error?.message || "").includes("unexpected-bracket-hash")
-  ));
+  let repairPreviewError = null;
+  try {
+    await owner.call("repairHistoricalBracketUnavailable", { eventId: recoveredEventId });
+  } catch (error) {
+    repairPreviewError = error;
+  }
+  assert.ok(repairPreviewError);
+  assert.match(String(repairPreviewError?.message || ""), /unexpected-bracket-hash/);
+  assert.equal(repairPreviewError?.details?.reason, "unexpected-bracket-hash");
+  assert.equal(repairPreviewError?.details?.diagnostic?.expectedBracketHash, ROUND3_SYNTHETIC_BRACKET_HASH);
+  assert.equal(repairPreviewError?.details?.diagnostic?.normalizedBracketCreatedAt, "2026-07-22T12:53:23.500Z");
+  assert.equal(repairPreviewError?.details?.diagnostic?.winnerCount, 0);
+  assert.equal(repairPreviewError?.details?.diagnostic?.completedMatchCount, 0);
+  assert.equal(repairPreviewError?.details?.diagnostic?.totalBattles, 0);
+  assert.equal(repairPreviewError?.details?.diagnostic?.completedBattles, 0);
+  assert.equal(repairPreviewError?.details?.diagnostic?.syncStamp, 77);
+  assert.deepEqual(repairPreviewError?.details?.diagnostic?.topLevelBracketKeys, ["createdAt", "lowerBracket", "mainBracket", "plan", "version"]);
+  assert.equal((await adminDb.doc(`artifacts/${appId}/private/historicalBracketRepairs/events/${recoveredEventId}`).get()).exists, false);
+  assert.equal((await adminDb.doc(recoveredEventPath).get()).data()?.preservedMarker, "must-remain");
 
   const selectedLive = await owner.call("setActiveSelection", { eventId: "security-event" });
   assert.equal(selectedLive.eventMeta.id, "security-event");

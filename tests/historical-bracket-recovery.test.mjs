@@ -16,12 +16,14 @@ const {
   ROUND3_SYNTHETIC_BRACKET_CREATED_AT,
   ROUND3_SYNTHETIC_BRACKET_HASH,
   bracketHash,
+  collectRound3BracketDiagnostics,
   inspectRound3SyntheticBracket,
   normalizeTimestamp,
   repairFingerprintMatches,
 } = require("../functions/historical-bracket.js");
 const html = fs.readFileSync(`${repoRoot}index.html`, "utf8");
 const backend = fs.readFileSync(`${repoRoot}functions/index.js`, "utf8");
+const historicalBackend = fs.readFileSync(`${repoRoot}functions/historical-bracket.js`, "utf8");
 
 const unavailable = resolveRecoveredBracket({
   eventStatus: "completed",
@@ -131,6 +133,22 @@ assert.equal(repairFingerprintMatches(rawProductionFingerprint, {
   ...rawProductionFingerprint,
   createdAt: "2026-07-22T12:53:24.500Z",
 }), false);
+const mismatchDiagnostics = collectRound3BracketDiagnostics({
+  bracket: firestoreTimestampBracket,
+  results: { totalBattles: 0, completedBattles: 0 },
+  syncStamp: 1784724804275,
+});
+assert.equal(mismatchDiagnostics.serverComputedBracketHash, bracketHash(syntheticBracket));
+assert.equal(mismatchDiagnostics.expectedBracketHash, ROUND3_SYNTHETIC_BRACKET_HASH);
+assert.equal(mismatchDiagnostics.normalizedBracketCreatedAt, ROUND3_SYNTHETIC_BRACKET_CREATED_AT);
+assert.equal(mismatchDiagnostics.expectedBracketCreatedAt, ROUND3_SYNTHETIC_BRACKET_CREATED_AT);
+assert.equal(mismatchDiagnostics.winnerCount, 0);
+assert.equal(mismatchDiagnostics.completedMatchCount, 0);
+assert.equal(mismatchDiagnostics.totalBattles, 0);
+assert.equal(mismatchDiagnostics.completedBattles, 0);
+assert.deepEqual(mismatchDiagnostics.topLevelBracketKeys, ["createdAt", "lowerBracket", "mainBracket", "plan", "version"]);
+assert.equal(Array.isArray(mismatchDiagnostics.canonicalizationAnomalies), true);
+assert.equal(mismatchDiagnostics.canonicalizationAnomalies.some((entry) => entry.type === "Object" || entry.type === "Date"), false);
 
 const structurallySimilarBracket = {
   ...syntheticBracket,
@@ -186,5 +204,8 @@ assert.match(backend, /bracket: FieldValue\.delete\(\)/);
 assert.match(backend, /expectedBracketHash/);
 assert.match(backend, /expectedSyncStamp/);
 assert.match(backend, /alreadyRepaired/);
+assert.match(backend, /collectRound3BracketDiagnostics/);
+assert.match(historicalBackend, /serverComputedBracketHash/);
+assert.match(historicalBackend, /canonicalByteLength/);
 
 console.log("historical bracket recovery regression tests passed");

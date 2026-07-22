@@ -39,6 +39,36 @@ function bracketHash(bracket) {
   return crypto.createHash("sha256").update(canonicalJson(normalizeCanonicalValue(bracket))).digest("hex");
 }
 
+function objectTag(value) {
+  return Object.prototype.toString.call(value).slice(8, -1);
+}
+
+function isPlainObject(value) {
+  if (!value || typeof value !== "object") return false;
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
+
+function describeCanonicalizationAnomalies(value, path = "bracket", results = []) {
+  if (Array.isArray(value)) {
+    value.forEach((entry, index) => describeCanonicalizationAnomalies(entry, `${path}[${index}]`, results));
+    return results;
+  }
+  if (!value || typeof value !== "object") return results;
+  const tag = objectTag(value);
+  if (!isPlainObject(value) && tag !== "Array") {
+    results.push({ path, type: tag });
+  }
+  for (const [key, entry] of Object.entries(value)) {
+    if (entry === undefined) {
+      results.push({ path: `${path}.${key}`, type: "Undefined" });
+      continue;
+    }
+    describeCanonicalizationAnomalies(entry, `${path}.${key}`, results);
+  }
+  return results;
+}
+
 function countBracketWinners(value) {
   if (Array.isArray(value)) return value.reduce((total, entry) => total + countBracketWinners(entry), 0);
   if (!value || typeof value !== "object") return 0;
@@ -51,6 +81,42 @@ function repairFingerprintMatches(current = {}, expected = {}) {
   return String(expected.bracketHash || "") === String(current.bracketHash || "")
     && normalizeTimestamp(expected.createdAt) === normalizeTimestamp(current.createdAt)
     && Number(expected.syncStamp) === Number(current.syncStamp);
+}
+
+function collectRound3BracketDiagnostics(eventData = {}, expected = {}) {
+  const bracket = eventData?.bracket || null;
+  const normalizedBracketCreatedAt = normalizeTimestamp(bracket?.createdAt);
+  const canonical = bracket ? canonicalJson(normalizeCanonicalValue(bracket)) : "null";
+  const winnerCount = countBracketWinners(bracket);
+  const completedMatchCount = (() => {
+    let total = 0;
+    const visit = (value) => {
+      if (Array.isArray(value)) {
+        value.forEach(visit);
+        return;
+      }
+      if (!value || typeof value !== "object") return;
+      if (Object.prototype.hasOwnProperty.call(value, "winner") && value.winner) total += 1;
+      Object.values(value).forEach(visit);
+    };
+    visit(bracket);
+    return total;
+  })();
+  return {
+    serverComputedBracketHash: bracket ? bracketHash(bracket) : null,
+    expectedBracketHash: expected.bracketHash || ROUND3_SYNTHETIC_BRACKET_HASH,
+    normalizedBracketCreatedAt,
+    expectedBracketCreatedAt: normalizeTimestamp(expected.createdAt || ROUND3_SYNTHETIC_BRACKET_CREATED_AT),
+    winnerCount,
+    completedMatchCount,
+    totalBattles: Number(eventData?.results?.totalBattles || 0),
+    completedBattles: Number(eventData?.results?.completedBattles || 0),
+    syncStamp: Number(eventData?.syncStamp || 0),
+    canonicalJsonLength: canonical.length,
+    canonicalByteLength: Buffer.byteLength(canonical, "utf8"),
+    topLevelBracketKeys: bracket && typeof bracket === "object" ? Object.keys(bracket).sort() : [],
+    canonicalizationAnomalies: describeCanonicalizationAnomalies(bracket).slice(0, 25),
+  };
 }
 
 function inspectRound3SyntheticBracket(eventId, eventData = {}, expected = {}) {
@@ -83,6 +149,7 @@ module.exports = {
   ROUND3_SYNTHETIC_BRACKET_HASH,
   bracketHash,
   canonicalJson,
+  collectRound3BracketDiagnostics,
   countBracketWinners,
   inspectRound3SyntheticBracket,
   normalizeTimestamp,
