@@ -14,8 +14,11 @@ const require = createRequire(import.meta.url);
 const {
   ROUND3_EVENT_ID,
   ROUND3_SYNTHETIC_BRACKET_CREATED_AT,
+  ROUND3_SYNTHETIC_BRACKET_HASH,
   bracketHash,
   inspectRound3SyntheticBracket,
+  normalizeTimestamp,
+  repairFingerprintMatches,
 } = require("../functions/historical-bracket.js");
 const html = fs.readFileSync(`${repoRoot}index.html`, "utf8");
 const backend = fs.readFileSync(`${repoRoot}functions/index.js`, "utf8");
@@ -64,7 +67,11 @@ const syntheticEvent = {
   bracket: syntheticBracket,
   results: { totalBattles: 0, completedBattles: 0 },
 };
-const inspection = inspectRound3SyntheticBracket(ROUND3_EVENT_ID, syntheticEvent);
+const syntheticExpected = {
+  bracketHash: bracketHash(syntheticBracket),
+  createdAt: ROUND3_SYNTHETIC_BRACKET_CREATED_AT,
+};
+const inspection = inspectRound3SyntheticBracket(ROUND3_EVENT_ID, syntheticEvent, syntheticExpected);
 assert.equal(inspection.valid, true);
 assert.equal(inspection.alreadyRepaired, false);
 assert.equal(inspection.bracketHash, bracketHash(syntheticBracket));
@@ -73,11 +80,48 @@ assert.equal(inspectRound3SyntheticBracket(ROUND3_EVENT_ID, { ...syntheticEvent,
 assert.equal(inspectRound3SyntheticBracket(ROUND3_EVENT_ID, {
   ...syntheticEvent,
   bracket: { ...syntheticBracket, createdAt: "changed" },
-}).reason, "unexpected-created-at");
+}, syntheticExpected).reason, "unexpected-bracket-hash");
 assert.equal(inspectRound3SyntheticBracket(ROUND3_EVENT_ID, {
   ...syntheticEvent,
   bracket: { ...syntheticBracket, mainBracket: { rounds: [{ matches: [{ winner: { name: "Changed" } }] }] } },
-}).reason, "bracket-has-winners");
+}, syntheticExpected).reason, "bracket-has-winners");
+assert.equal(inspectRound3SyntheticBracket(ROUND3_EVENT_ID, syntheticEvent, {
+  ...syntheticExpected,
+  bracketHash: "changed",
+}).reason, "unexpected-bracket-hash");
+
+const productionMillis = Date.parse(ROUND3_SYNTHETIC_BRACKET_CREATED_AT);
+const firestoreTimestampBracket = {
+  ...syntheticBracket,
+  createdAt: {
+    seconds: Math.floor(productionMillis / 1000),
+    nanoseconds: (productionMillis % 1000) * 1e6,
+  },
+};
+assert.equal(normalizeTimestamp(firestoreTimestampBracket.createdAt), ROUND3_SYNTHETIC_BRACKET_CREATED_AT);
+assert.equal(bracketHash(firestoreTimestampBracket), bracketHash(syntheticBracket));
+assert.equal(inspectRound3SyntheticBracket(ROUND3_EVENT_ID, {
+  ...syntheticEvent,
+  bracket: firestoreTimestampBracket,
+}, syntheticExpected).valid, true);
+const alternateTimestampBracket = { ...syntheticBracket, createdAt: "2026-07-22T12:53:24.500Z" };
+assert.equal(inspectRound3SyntheticBracket(ROUND3_EVENT_ID, {
+  ...syntheticEvent,
+  bracket: alternateTimestampBracket,
+}, {
+  bracketHash: bracketHash(alternateTimestampBracket),
+  createdAt: ROUND3_SYNTHETIC_BRACKET_CREATED_AT,
+}).reason, "unexpected-created-at");
+assert.equal(ROUND3_SYNTHETIC_BRACKET_HASH, "988b8bd232911ee6fbb5a42d26ffbc314054cc6e0b11b22ba4aea97f5c1d7f6a");
+const liveFingerprint = {
+  bracketHash: ROUND3_SYNTHETIC_BRACKET_HASH,
+  createdAt: ROUND3_SYNTHETIC_BRACKET_CREATED_AT,
+  syncStamp: 1784724804275,
+};
+assert.equal(repairFingerprintMatches(liveFingerprint, { ...liveFingerprint }), true);
+assert.equal(repairFingerprintMatches(liveFingerprint, { ...liveFingerprint, syncStamp: liveFingerprint.syncStamp + 1 }), false);
+assert.equal(repairFingerprintMatches(liveFingerprint, { ...liveFingerprint, bracketHash: "changed" }), false);
+assert.equal(repairFingerprintMatches(liveFingerprint, { ...liveFingerprint, createdAt: "2026-07-22T12:53:24.500Z" }), false);
 assert.deepEqual(inspectRound3SyntheticBracket(ROUND3_EVENT_ID, {
   status: "completed",
   historicalBracketStatus: "unavailable",

@@ -22,9 +22,9 @@ const {
 const {
   HISTORICAL_BRACKET_UNAVAILABLE,
   ROUND3_EVENT_ID,
-  ROUND3_SYNTHETIC_BRACKET_CREATED_AT,
   bracketHash,
   inspectRound3SyntheticBracket,
+  repairFingerprintMatches,
 } = require("./historical-bracket");
 
 initializeApp();
@@ -724,9 +724,15 @@ async function repairHistoricalBracketUnavailable(request) {
     }
 
     if (auditSnap.exists) fail("failed-precondition", "A repair audit already exists while the synthetic bracket is still present.");
-    if (String(data.expectedBracketHash || "") !== inspection.bracketHash
-      || String(data.expectedBracketCreatedAt || "") !== ROUND3_SYNTHETIC_BRACKET_CREATED_AT
-      || Number(data.expectedSyncStamp) !== Number(eventData.syncStamp || 0)) {
+    if (!repairFingerprintMatches({
+      bracketHash: inspection.bracketHash,
+      createdAt: eventData.bracket.createdAt,
+      syncStamp: eventData.syncStamp,
+    }, {
+      bracketHash: data.expectedBracketHash,
+      createdAt: data.expectedBracketCreatedAt,
+      syncStamp: data.expectedSyncStamp,
+    })) {
       fail("failed-precondition", "The expected bracket hash, timestamp, or sync stamp does not match the current production event.");
     }
 
