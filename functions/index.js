@@ -10,8 +10,10 @@ const {
   activeJudgeRoles,
   clampJudgeScore,
   clone,
+  continueDecision,
   recordScorecard,
   recordVote,
+  reviewDecision,
 } = require("./competition");
 const {
   emailEventResultsSummary,
@@ -764,6 +766,39 @@ async function submitJudgeCompetition(request, scorecard = false) {
   return response;
 }
 
+async function adminCompetitionDecision(request) {
+  const data = request.data || {};
+  const appId = requireAppId(data.appId);
+  const eventId = requireEventId(data.eventId);
+  const auth = requireEventAdmin(request, eventId);
+  const decision = data.decision === "review" ? "review" : data.decision === "continue" ? "continue" : null;
+  if (!decision) fail("invalid-argument", "Choose a valid competition decision action.");
+  const expectedEntryKey = String(data.expectedEntryKey || "");
+  const expectedAttemptId = String(data.expectedAttemptId || "");
+  let response;
+  await db.runTransaction(async (transaction) => {
+    const document = eventRef(appId, eventId);
+    const snap = await transaction.get(document);
+    if (!snap.exists) fail("not-found", "This event no longer exists.");
+    const eventData = snap.data() || {};
+    assertRoleGrantCurrent(auth, eventData, eventId, "admin");
+    if (!eventData.bracket?.mainBracket?.rounds?.length) fail("failed-precondition", "The current battle is no longer available.");
+    const result = decision === "review"
+      ? reviewDecision(eventData.bracket, expectedEntryKey, expectedAttemptId)
+      : continueDecision(eventData.bracket, expectedEntryKey, expectedAttemptId);
+    if (!result.changed) {
+      response = { ok: true, changed: false, eventPayload: eventData, syncStamp: Number(eventData.syncStamp || 0) };
+      return;
+    }
+    const syncStamp = nextServerSyncStamp(eventData.syncStamp);
+    const next = { ...eventData, bracket: result.state, updatedAt: new Date().toISOString(), syncStamp };
+    transaction.set(document, next);
+    transaction.set(directoryRef(appId), { events: { [eventId]: sanitizeEventMeta(next, next) }, syncStamp }, { merge: true });
+    response = { ok: true, changed: true, eventPayload: next, syncStamp };
+  });
+  return response;
+}
+
 function safeText(value, max = 160) {
   return String(value || "").trim().replace(/[\u0000-\u001f\u007f]/g, "").slice(0, max);
 }
@@ -1176,6 +1211,7 @@ async function routeAction(request) {
   if (action === "submitJudgeQualifying") return submitJudgeQualifying(request);
   if (action === "submitJudgeVote") return submitJudgeCompetition(request, false);
   if (action === "submitJudgeScorecard") return submitJudgeCompetition(request, true);
+  if (action === "adminCompetitionDecision") return adminCompetitionDecision(request);
   if (action === "submitSelfRegistration") return submitSelfRegistration(request);
   if (action === "adminRegistration") return adminRegistration(request);
   if (action === "spectatorArrival") return spectatorArrival(request);

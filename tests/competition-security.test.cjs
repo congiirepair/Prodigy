@@ -1,7 +1,15 @@
 "use strict";
 
 const assert = require("node:assert/strict");
-const { entryKey, normalizeBracketState, recordScorecard, recordVote } = require("../functions/competition");
+const {
+  COMPETITION_REVIEW_WINDOW_MS,
+  continueDecision,
+  entryKey,
+  normalizeBracketState,
+  recordScorecard,
+  recordVote,
+  reviewDecision,
+} = require("../functions/competition");
 
 function driver(id, seed, memberCount = 1) {
   return {
@@ -51,6 +59,12 @@ assert.equal(result.resolution.winnerSide, "left");
 assert.equal(result.state.mainBracket.rounds[0].matches[0].winner.id, "a");
 assert.equal(result.state.mainBracket.rounds[1].matches[0].left.id, "a");
 assert.equal(result.state.competitionJudgeControl.status, "admin_decision");
+assert.equal(result.state.competitionJudgeControl.decisionType, "winner");
+assert.equal(
+  Date.parse(result.state.competitionJudgeControl.reviewDeadlineAt) - Date.parse(result.state.competitionJudgeControl.resolvedAt),
+  COMPETITION_REVIEW_WINDOW_MS,
+);
+assert.equal(result.state.competitionAttemptHistory.length, 1);
 
 result = recordVote(state(), soloMeta, "j1", "left", "main:0:1");
 assert.equal(result.changed, false);
@@ -62,8 +76,11 @@ current = recordVote(current, soloMeta, "j2", "omt", firstKey).state;
 result = recordVote(current, soloMeta, "j3", "left", firstKey);
 assert.equal(result.resolution.omtMajority, true);
 assert.equal(result.state.mainBracket.rounds[0].matches[0].winner, null);
-assert.equal(result.state.competitionJudgeControl.cycle, 2);
+assert.equal(result.state.competitionJudgeControl.status, "admin_decision");
+assert.equal(result.state.competitionJudgeControl.cycle, 1);
 assert.equal(result.state.competitionJudgeControl.reason, "omt");
+assert.equal(result.state.competitionJudgeControl.decisionType, "omt");
+assert.equal(result.state.competitionAttemptHistory[0].decisionType, "omt");
 
 const teamMeta = { judgeCount: 3, judgingMode: "line-angle-style", competitionMode: "team-tandem" };
 current = state(driver("team-a", 1, 3), driver("team-b", 2, 2));
@@ -82,7 +99,8 @@ result = recordScorecard(current, teamMeta, "j3", { side: "right", score: 99 }, 
 assert.equal(result.resolution.rightBase, 24);
 assert.equal(result.resolution.winnerSide, "left");
 assert.equal(result.state.mainBracket.rounds[0].matches[0].winner.id, "team-a");
-assert.equal(result.state.competitionJudgeControl.status, "idle");
+assert.equal(result.state.competitionJudgeControl.status, "admin_decision");
+assert.equal(result.state.competitionJudgeControl.decisionType, "winner");
 
 const sdcState = {
   plan: { resolvedFormat: "sdc", mainBracketSize: 2 },

@@ -4477,6 +4477,133 @@
       align-items: stretch;
     }
 
+    .competition-result-reveal {
+      position: relative;
+      isolation: isolate;
+      display: grid;
+      gap: 16px;
+      overflow: hidden;
+      padding: clamp(22px, 3vw, 34px);
+      border: 2px solid var(--gold);
+      border-radius: 30px;
+      background:
+        radial-gradient(circle at 15% 0%, rgba(231, 182, 103, 0.24), transparent 40%),
+        linear-gradient(145deg, rgba(255, 252, 244, 0.98), rgba(244, 237, 222, 0.95));
+      color: #17130d;
+      box-shadow: var(--gold-glow), 0 24px 58px rgba(33, 24, 10, 0.18);
+    }
+
+    .competition-result-reveal-glow {
+      position: absolute;
+      z-index: -1;
+      inset: -55% 42% 10% -18%;
+      transform: rotate(-12deg);
+      background: linear-gradient(110deg, transparent, rgba(255, 255, 255, 0.72), transparent);
+      animation: podiumBannerReveal var(--motion-reveal) var(--ease-snap) both;
+      pointer-events: none;
+    }
+
+    .competition-result-reveal-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .competition-result-label {
+      display: block;
+      margin-top: 4px;
+      color: var(--gold-deep);
+      font-size: 0.82rem;
+      font-weight: 950;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+
+    .competition-result-reveal h3 {
+      margin: 8px 0 0;
+      font-family: var(--font-graffiti);
+      font-size: clamp(2.2rem, 6vw, 5rem);
+      line-height: 0.88;
+      text-transform: uppercase;
+      text-wrap: balance;
+    }
+
+    .competition-result-context {
+      margin: 0;
+      font-size: 0.82rem;
+      font-weight: 900;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .competition-result-countdown {
+      flex: 0 0 auto;
+      display: grid;
+      min-width: 138px;
+      padding: 12px 16px;
+      border: 1px solid var(--gold-ring-mid);
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.72);
+      text-align: center;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+    }
+
+    .competition-result-countdown strong {
+      font-family: var(--font-graffiti);
+      font-size: 2.25rem;
+      line-height: 0.9;
+    }
+
+    .competition-result-countdown span {
+      margin-top: 6px;
+      font-size: 0.65rem;
+      font-weight: 900;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .competition-result-reveal.is-omt {
+      border-color: var(--state-error);
+      background:
+        radial-gradient(circle at 15% 0%, rgba(176, 24, 43, 0.2), transparent 42%),
+        linear-gradient(145deg, rgba(255, 249, 249, 0.98), rgba(245, 224, 226, 0.96));
+      box-shadow: 0 0 0 1px rgba(176, 24, 43, 0.2), 0 24px 58px rgba(72, 12, 22, 0.18);
+    }
+
+    .competition-result-reveal.is-omt .competition-result-label,
+    .competition-vote-pill.is-omt {
+      color: var(--state-error);
+    }
+
+    body[data-theme="dark"] .competition-result-reveal {
+      color: var(--text);
+      background:
+        radial-gradient(circle at 15% 0%, rgba(208, 160, 107, 0.18), transparent 42%),
+        linear-gradient(145deg, rgba(28, 25, 21, 0.98), rgba(11, 13, 18, 0.98));
+    }
+
+    body[data-theme="dark"] .competition-result-reveal.is-omt {
+      background:
+        radial-gradient(circle at 15% 0%, rgba(255, 77, 103, 0.17), transparent 42%),
+        linear-gradient(145deg, rgba(35, 18, 23, 0.98), rgba(12, 10, 15, 0.98));
+    }
+
+    body[data-theme="dark"] .competition-result-countdown {
+      background: rgba(0, 0, 0, 0.28);
+    }
+
+    @media (max-width: 700px) {
+      .competition-result-reveal-head { display: grid; }
+      .competition-result-countdown { width: 100%; }
+      .competition-result-reveal h3 { font-size: clamp(2rem, 15vw, 3.6rem); }
+      .competition-result-reveal .competition-decision-actions { grid-template-columns: 1fr; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .competition-result-reveal-glow { animation: none; opacity: 0; }
+    }
+
     .competition-judge-card {
       min-height: auto;
       gap: 12px;
@@ -15022,6 +15149,7 @@
     const TEAM_TANDEM_MIN_DRIVERS = 2;
     const TEAM_TANDEM_MAX_DRIVERS = 3;
     const TEAM_TANDEM_THREE_DRIVER_BONUS = 3;
+    const COMPETITION_RESULT_REVIEW_MS = 15_000;
     const EVENT_STATUS_ACTIVE = "active";
     const EVENT_STATUS_COMPLETED = "completed";
     const EVENT_STATUS_ARCHIVED = "archived";
@@ -16086,6 +16214,10 @@
         resolvedWinnerSide: null,
         resolvedAt: null,
         reason: null,
+        decisionType: null,
+        reviewDeadlineAt: null,
+        attemptId: null,
+        reviewSourceReason: null,
         updatedAt: null,
       };
     }
@@ -16122,6 +16254,10 @@
         resolvedWinnerSide: ["left", "right"].includes(control.resolvedWinnerSide) ? control.resolvedWinnerSide : null,
         resolvedAt: control.resolvedAt || null,
         reason: typeof control.reason === "string" ? control.reason : null,
+        decisionType: ["winner", "omt"].includes(control.decisionType) ? control.decisionType : null,
+        reviewDeadlineAt: control.reviewDeadlineAt || null,
+        attemptId: typeof control.attemptId === "string" ? control.attemptId : null,
+        reviewSourceReason: ["winner", "omt", "tie"].includes(control.reviewSourceReason) ? control.reviewSourceReason : null,
         updatedAt: control.updatedAt || null,
       };
     }
@@ -17450,44 +17586,73 @@
       }
     }
 
-    async function requestCompetitionDecisionReview() {
-      if (!adminCanEdit() || !tournamentState?.mainBracket?.rounds?.length) return false;
-      const control = getCompetitionJudgeControl();
-      if (control.status !== "admin_decision" || !control.entry) return false;
-      clearCompetitionMatchDecision(tournamentState, control.entry);
-      tournamentState.competitionJudgeControl = {
-        ...control,
-        status: "review_hold",
-        reason: "contest",
-        resolvedWinnerSide: null,
-        resolvedAt: null,
-        updatedAt: new Date().toISOString(),
-      };
-      clearWinnerAnimationState();
-      if (!await publishStateImmediately()) return false;
-      renderBracket();
-      return true;
+    function cancelCompetitionDecisionCountdown() {
+      if (competitionDecisionCountdownTimer) {
+        window.clearInterval(competitionDecisionCountdownTimer);
+        competitionDecisionCountdownTimer = null;
+      }
+      competitionDecisionCountdownKey = null;
     }
 
-    async function continueCompetitionFlow() {
-      if (!adminCanEdit() || !tournamentState?.mainBracket?.rounds?.length) return false;
-      const control = getCompetitionJudgeControl();
-      if (!control.entry) return false;
+    async function performCompetitionDecision(decision, expectedControl = getCompetitionJudgeControl()) {
+      if (!adminCanEdit() || !tournamentState?.mainBracket?.rounds?.length || competitionDecisionActionInFlight) return false;
+      const expectedEntryKey = buildCompetitionJudgeEntryKey(expectedControl?.entry);
+      const expectedAttemptId = expectedControl?.attemptId || "";
+      if (!expectedEntryKey || !["continue", "review"].includes(decision)) return false;
+      competitionDecisionActionInFlight = true;
+      cancelCompetitionDecisionCountdown();
+      try {
+        if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE && prodigyActionCallable) {
+          const result = await callProdigyAction("adminCompetitionDecision", {
+            eventId: activeEventId,
+            decision,
+            expectedEntryKey,
+            expectedAttemptId,
+          });
+          if (!result?.eventPayload) throw new Error("The server did not return the latest battle decision state.");
+          applyRemoteEventState(result.eventPayload);
+          if (decision === "review") clearWinnerAnimationState();
+          if (decision === "continue" && result.changed) {
+            // The guarded server transition owns battle progression. Publish once more only
+            // to reconcile client-derived event completion/results metadata after it succeeds.
+            const lifecycleReconciled = await publishStateImmediately({});
+            if (!lifecycleReconciled) showSyncRecoveryNotice();
+          }
+          renderBracket();
+          return Boolean(result.ok);
+        }
 
-      if (control.status === "admin_decision") {
-        clearCompetitionJudgeControl(tournamentState);
-      } else if (control.status === "review_hold") {
-        tournamentState.competitionJudgeControl = {
-          ...buildCompetitionJudgeControlForEntry(control.entry, Math.max(control.cycle + 1, 2)),
-          reason: null,
-        };
-      } else {
+        if (!applyLocalCompetitionDecision(tournamentState, decision, expectedEntryKey, expectedAttemptId)) {
+          renderBracket();
+          return false;
+        }
+        if (decision === "review") clearWinnerAnimationState();
+        if (!await publishStateImmediately()) {
+          renderBracket();
+          return false;
+        }
+        renderBracket();
+        return true;
+      } catch (error) {
+        console.error("Competition decision transition failed:", error);
+        renderBracket();
         return false;
+      } finally {
+        competitionDecisionActionInFlight = false;
+        competitionDecisionPanel?.querySelectorAll('[data-action="review-competition-decision"], [data-action="continue-competition-flow"]')
+          .forEach((button) => { button.disabled = false; });
       }
+    }
 
-      if (!await publishStateImmediately()) return false;
-      renderBracket();
-      return true;
+    async function requestCompetitionDecisionReview() {
+      const control = getCompetitionJudgeControl();
+      if (control.status !== "admin_decision" || !control.entry) return false;
+      return performCompetitionDecision("review", control);
+    }
+
+    async function continueCompetitionFlow(expectedControl = getCompetitionJudgeControl()) {
+      if (!expectedControl?.entry || !["admin_decision", "review_hold"].includes(expectedControl.status)) return false;
+      return performCompetitionDecision("continue", expectedControl);
     }
 
     function getJudgeSubmitButtonLabel(driver, role = currentRole) {
@@ -19727,6 +19892,7 @@
           thirdPlaceMatch: plan.mainBracketSize >= 4 ? createEmptyMatch() : null,
         },
         competitionJudgeControl: createEmptyCompetitionJudgeControl(),
+        competitionAttemptHistory: [],
       };
     }
 
@@ -19813,6 +19979,9 @@
     let lastPodiumSignature = null;
     let winnerAnimationState = null;
     let winnerAnimationTimer = null;
+    let competitionDecisionCountdownTimer = null;
+    let competitionDecisionCountdownKey = null;
+    let competitionDecisionActionInFlight = false;
     let judgeSubmissionFeedback = null;
     let judgeSubmissionFeedbackTimer = null;
     let judgeRoleClaimHeartbeatTimer = null;
@@ -20306,6 +20475,9 @@
 
       return {
         ...rebuiltState,
+        competitionAttemptHistory: Array.isArray(state.competitionAttemptHistory)
+          ? state.competitionAttemptHistory.slice(-100)
+          : [],
         competitionJudgeControl: normalizeCompetitionJudgeControl(state.competitionJudgeControl),
       };
     }
@@ -35293,39 +35465,107 @@
       return cloneDriver(selectedDriver);
     }
 
+    function getCompetitionDecisionDeadline(resolvedAt) {
+      return new Date(Date.parse(resolvedAt) + COMPETITION_RESULT_REVIEW_MS).toISOString();
+    }
+
+    function recordCompetitionAttempt(state, control, resolution, resolvedAt, decisionType) {
+      const attemptId = `${buildCompetitionJudgeEntryKey(control.entry)}:${control.cycle}:${resolvedAt}`;
+      const history = Array.isArray(state.competitionAttemptHistory) ? state.competitionAttemptHistory : [];
+      if (!history.some((attempt) => attempt?.id === attemptId)) {
+        state.competitionAttemptHistory = [...history, {
+          id: attemptId,
+          entryKey: buildCompetitionJudgeEntryKey(control.entry),
+          cycle: control.cycle,
+          decisionType,
+          winnerSide: resolution.winnerSide || null,
+          resolvedAt,
+          votes: JSON.parse(JSON.stringify(control.votes || createEmptyCompetitionJudgeVotes())),
+          scorecards: JSON.parse(JSON.stringify(control.scorecards || createEmptyCompetitionJudgeScorecards())),
+          resolution: JSON.parse(JSON.stringify(resolution)),
+        }].slice(-100);
+      }
+      return attemptId;
+    }
+
     function handleCompetitionVoteResolution(state, eventMeta, control, resolution) {
       if (!control?.entry || !resolution?.allVoted) return;
+      const resolvedAt = new Date().toISOString();
       if (resolution.omtMajority) {
         clearCompetitionMatchDecision(state, control.entry);
-        state.competitionJudgeControl = {
-          ...buildCompetitionJudgeControlForEntry(control.entry, Math.max(control.cycle + 1, 2)),
-          reason: "omt",
-        };
+        control.status = "admin_decision";
+        control.reason = "omt";
+        control.decisionType = "omt";
+        control.resolvedWinnerSide = null;
+        control.resolvedAt = resolvedAt;
+        control.reviewDeadlineAt = getCompetitionDecisionDeadline(resolvedAt);
+        control.attemptId = recordCompetitionAttempt(state, control, resolution, resolvedAt, "omt");
+        control.reviewSourceReason = null;
+        control.updatedAt = resolvedAt;
+        state.competitionJudgeControl = control;
         return;
       }
       if (resolution.winnerSide) {
         applyCompetitionMatchDecision(state, control.entry, resolution.winnerSide);
         control.resolvedWinnerSide = resolution.winnerSide;
-        control.resolvedAt = new Date().toISOString();
-        const rerunResolvedFromOmt = control.reason === "omt";
+        control.resolvedAt = resolvedAt;
         control.reason = null;
-        if (isTeamTandemMode(eventMeta) || (control.cycle >= 2 && !rerunResolvedFromOmt)) {
-          state.competitionJudgeControl = createEmptyCompetitionJudgeControl();
-        } else {
-          control.status = "admin_decision";
-          control.updatedAt = control.resolvedAt;
-          state.competitionJudgeControl = control;
-        }
+        control.decisionType = "winner";
+        control.reviewDeadlineAt = getCompetitionDecisionDeadline(resolvedAt);
+        control.attemptId = recordCompetitionAttempt(state, control, resolution, resolvedAt, "winner");
+        control.reviewSourceReason = null;
+        control.status = "admin_decision";
+        control.updatedAt = resolvedAt;
+        state.competitionJudgeControl = control;
         return;
       }
 
       clearCompetitionMatchDecision(state, control.entry);
+      control.attemptId = recordCompetitionAttempt(state, control, resolution, resolvedAt, "tie");
       control.status = "review_hold";
       control.reason = "tie";
+      control.decisionType = null;
+      control.reviewDeadlineAt = null;
+      control.reviewSourceReason = "tie";
       control.resolvedWinnerSide = null;
       control.resolvedAt = null;
-      control.updatedAt = new Date().toISOString();
+      control.updatedAt = resolvedAt;
       state.competitionJudgeControl = control;
+    }
+
+    function matchesCompetitionDecision(control, expectedEntryKey = "", expectedAttemptId = "") {
+      if (expectedEntryKey && buildCompetitionJudgeEntryKey(control.entry) !== expectedEntryKey) return false;
+      if (expectedAttemptId && control.attemptId !== expectedAttemptId) return false;
+      return true;
+    }
+
+    function applyLocalCompetitionDecision(state, decision, expectedEntryKey = "", expectedAttemptId = "") {
+      const control = getCompetitionJudgeControl(state);
+      if (!control.entry || !matchesCompetitionDecision(control, expectedEntryKey, expectedAttemptId)) return false;
+      if (decision === "review") {
+        if (control.status !== "admin_decision") return false;
+        if (control.decisionType === "winner") clearCompetitionMatchDecision(state, control.entry);
+        control.status = "review_hold";
+        control.reason = "contest";
+        control.reviewSourceReason = control.decisionType || null;
+        control.decisionType = null;
+        control.reviewDeadlineAt = null;
+        control.resolvedWinnerSide = null;
+        control.updatedAt = new Date().toISOString();
+        state.competitionJudgeControl = control;
+        return true;
+      }
+      if (decision !== "continue" || !["admin_decision", "review_hold"].includes(control.status)) return false;
+      const rerunReason = control.status === "admin_decision" ? control.decisionType : control.reviewSourceReason;
+      if (rerunReason === "omt" || control.status === "review_hold") {
+        state.competitionJudgeControl = {
+          ...buildCompetitionJudgeControlForEntry(control.entry, Math.max(control.cycle + 1, 2)),
+          reason: rerunReason === "omt" ? "omt" : null,
+        };
+      } else {
+        clearCompetitionJudgeControl(state);
+      }
+      return true;
     }
 
     function recordCompetitionJudgeVote(state, eventMeta, role, side) {
@@ -35521,7 +35761,7 @@
           : "Choose the driver that should advance. The result locks after every active judge submits.";
       }
       if (resolution.omtMajority) {
-        return "OMT majority received. Resetting this battle for a rerun now.";
+        return "OMT majority received. Waiting through the contest window before this same battle is reset for a rerun.";
       }
       return isTeamTandemMode(activeEventMeta) ? "Scores are syncing now." : "Votes are syncing now.";
     }
@@ -35543,10 +35783,42 @@
       competitionReviewBanner.classList.remove("hidden");
     }
 
+    function syncCompetitionDecisionCountdown(control) {
+      if (!adminCanEdit() || control?.status !== "admin_decision" || !control.entry || !control.reviewDeadlineAt) {
+        cancelCompetitionDecisionCountdown();
+        return;
+      }
+      const countdownKey = `${activeEventId}:${buildCompetitionJudgeEntryKey(control.entry)}:${control.attemptId || ""}:${control.reviewDeadlineAt}`;
+      const expectedControl = normalizeCompetitionJudgeControl(control);
+      const tick = () => {
+        const latest = getCompetitionJudgeControl();
+        const latestKey = `${activeEventId}:${buildCompetitionJudgeEntryKey(latest.entry)}:${latest.attemptId || ""}:${latest.reviewDeadlineAt || ""}`;
+        if (latest.status !== "admin_decision" || latestKey !== countdownKey) {
+          cancelCompetitionDecisionCountdown();
+          return;
+        }
+        const remainingMs = Date.parse(latest.reviewDeadlineAt) - Date.now();
+        const countdownEl = document.getElementById("competitionDecisionCountdown");
+        if (countdownEl) countdownEl.textContent = String(Math.max(0, Math.ceil(remainingMs / 1000)));
+        if (remainingMs > 0) return;
+        cancelCompetitionDecisionCountdown();
+        void continueCompetitionFlow(expectedControl);
+      };
+      if (competitionDecisionCountdownTimer && competitionDecisionCountdownKey === countdownKey) {
+        tick();
+        return;
+      }
+      cancelCompetitionDecisionCountdown();
+      competitionDecisionCountdownKey = countdownKey;
+      competitionDecisionCountdownTimer = window.setInterval(tick, 250);
+      tick();
+    }
+
     function renderCompetitionDecisionPanel() {
       if (!competitionDecisionPanel) return;
       const control = getCompetitionJudgeControl();
       if (!adminCanEdit() || !control.entry || (control.status !== "admin_decision" && control.status !== "review_hold")) {
+        cancelCompetitionDecisionCountdown();
         competitionDecisionPanel.classList.add("hidden");
         competitionDecisionPanel.innerHTML = "";
         return;
@@ -35556,39 +35828,60 @@
       const leftDriver = control.entry.match?.left;
       const rightDriver = control.entry.match?.right;
       const winnerDriver = control.resolvedWinnerSide ? control.entry.match?.[control.resolvedWinnerSide] : null;
-      const headline = control.status === "admin_decision" ? "Review Decision / Contest" : "Review In Progress";
-      const copy = control.status === "admin_decision"
-        ? (winnerDriver?.name
-          ? `${winnerDriver.name} won the current battle ${formatScore(resolution.leftVotes)}-${formatScore(resolution.rightVotes)}. Continue to the next battle or hold the result for review.`
-          : `The judges have finished ${isTeamTandemMode(activeEventMeta) ? "scoring" : "voting"}. Continue to the next battle or hold the result for review.`)
-        : (control.reason === "tie"
-          ? `The judges returned a ${isTeamTandemMode(activeEventMeta) ? "scoring tie" : "split decision"}. Continue to reopen ${isTeamTandemMode(activeEventMeta) ? "scoring" : "voting"} on this same battle.`
-          : `The result is being reviewed. Continue when you want judges to ${isTeamTandemMode(activeEventMeta) ? "score" : "vote on"} this same battle again.`);
-
-      competitionDecisionPanel.innerHTML = `
-        <article class="competition-decision-card">
-          <div class="competition-decision-head">
-            <div>
-              <p class="section-kicker">Event Admin</p>
-              <h3>${escapeHtml(headline)}</h3>
+      if (control.status === "admin_decision") {
+        const isOmt = control.decisionType === "omt" || control.reason === "omt";
+        const resultName = isOmt ? "OMT" : (winnerDriver?.name || "Winner");
+        const resultLabel = isOmt ? "One More Time" : "Winner";
+        const copy = isOmt
+          ? "The judges called One More Time. Continue now or let the contest window expire to reset this same battle for a clean rerun."
+          : `${winnerDriver?.name || "The winning competitor"} holds the authoritative result. Continue now or let the contest window expire to advance the bracket.`;
+        competitionDecisionPanel.innerHTML = `
+          <article class="competition-result-reveal ${isOmt ? "is-omt" : "is-winner"}">
+            <div class="competition-result-reveal-glow" aria-hidden="true"></div>
+            <div class="competition-result-reveal-head">
+              <div>
+                <p class="section-kicker">Official Battle Result</p>
+                <span class="competition-result-label">${escapeHtml(resultLabel)}</span>
+                <h3>${escapeHtml(resultName)}</h3>
+              </div>
+              <div class="competition-result-countdown" aria-label="Contest window countdown">
+                <strong id="competitionDecisionCountdown">15</strong>
+                <span>Seconds To Contest</span>
+              </div>
             </div>
-            <span class="status-pill ${control.status === "review_hold" ? "warning" : "active"}">${escapeHtml(control.entry.title || "Current Battle")}</span>
-          </div>
-          <p class="competition-decision-copy">${escapeHtml(copy)}</p>
-          <div class="competition-vote-tally">
-            <span class="competition-vote-pill">${isTeamTandemMode(activeEventMeta) ? buildCompetitionScoreSummaryLabel(leftDriver, resolution.leftBase, resolution.leftTotal, resolution.leftBonus) : `Lead ${resolution.leftVotes}`}</span>
-            <span class="competition-vote-pill">${isTeamTandemMode(activeEventMeta) ? buildCompetitionScoreSummaryLabel(rightDriver, resolution.rightBase, resolution.rightTotal, resolution.rightBonus) : `Chase ${resolution.rightVotes}`}</span>
-            <span class="competition-vote-pill">${escapeHtml(leftDriver?.name || "Lead")} vs ${escapeHtml(rightDriver?.name || "Chase")}</span>
-          </div>
-          <div class="button-row competition-decision-actions">
-            ${control.status === "admin_decision"
-              ? `<button class="button button-secondary" type="button" data-action="review-competition-decision">Review Decision/Contest</button>`
-              : ""}
-            <button class="button button-accent" type="button" data-action="continue-competition-flow">Continue</button>
-          </div>
-        </article>
-      `;
+            <p class="competition-result-context">${escapeHtml(control.entry.title || "Current Battle")} · ${escapeHtml(control.entry.meta || "Competition")}</p>
+            <p class="competition-decision-copy">${escapeHtml(copy)}</p>
+            <div class="competition-vote-tally">
+              <span class="competition-vote-pill">${isTeamTandemMode(activeEventMeta) ? buildCompetitionScoreSummaryLabel(leftDriver, resolution.leftBase, resolution.leftTotal, resolution.leftBonus) : `Lead ${resolution.leftVotes}`}</span>
+              <span class="competition-vote-pill">${isTeamTandemMode(activeEventMeta) ? buildCompetitionScoreSummaryLabel(rightDriver, resolution.rightBase, resolution.rightTotal, resolution.rightBonus) : `Chase ${resolution.rightVotes}`}</span>
+              ${isOmt ? `<span class="competition-vote-pill is-omt">OMT ${resolution.omtVotes || 0}</span>` : ""}
+              <span class="competition-vote-pill">${escapeHtml(leftDriver?.name || "Lead")} vs ${escapeHtml(rightDriver?.name || "Chase")}</span>
+            </div>
+            <div class="button-row competition-decision-actions">
+              <button class="button button-secondary" type="button" data-action="review-competition-decision" ${competitionDecisionActionInFlight ? "disabled" : ""}>Contest / Review Result</button>
+              <button class="button button-accent" type="button" data-action="continue-competition-flow" ${competitionDecisionActionInFlight ? "disabled" : ""}>Continue Now</button>
+            </div>
+          </article>
+        `;
+      } else {
+        const copy = control.reason === "tie"
+          ? `The judges returned a ${isTeamTandemMode(activeEventMeta) ? "scoring tie" : "split decision"}. Continue to reopen ${isTeamTandemMode(activeEventMeta) ? "scoring" : "voting"} on this same battle.`
+          : `Automatic progression is paused. Continue when the review is resolved and judges are ready to ${isTeamTandemMode(activeEventMeta) ? "score" : "vote on"} this same battle again.`;
+        competitionDecisionPanel.innerHTML = `
+          <article class="competition-decision-card is-review-hold">
+            <div class="competition-decision-head">
+              <div><p class="section-kicker">Event Admin</p><h3>Review In Progress</h3></div>
+              <span class="status-pill warning">${escapeHtml(control.entry.title || "Current Battle")}</span>
+            </div>
+            <p class="competition-decision-copy">${escapeHtml(copy)}</p>
+            <div class="button-row competition-decision-actions">
+              <button class="button button-accent" type="button" data-action="continue-competition-flow" ${competitionDecisionActionInFlight ? "disabled" : ""}>Resolve Review &amp; Reopen Judging</button>
+            </div>
+          </article>
+        `;
+      }
       competitionDecisionPanel.classList.remove("hidden");
+      syncCompetitionDecisionCountdown(control);
     }
 
     function renderCompetitionJudgePanel() {

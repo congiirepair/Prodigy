@@ -2,6 +2,7 @@
 
 const JUDGE_ROLES = ["j1", "j2", "j3"];
 const TEAM_TANDEM_MODE = "team-tandem";
+const COMPETITION_REVIEW_WINDOW_MS = 15_000;
 
 function clone(value) {
   return value == null ? value : JSON.parse(JSON.stringify(value));
@@ -259,7 +260,8 @@ function emptyScorecards() {
 function emptyControl() {
   return {
     status: "idle", cycle: 1, entry: null, votes: emptyVotes(), scorecards: emptyScorecards(),
-    resolvedWinnerSide: null, resolvedAt: null, reason: null, updatedAt: null,
+    resolvedWinnerSide: null, resolvedAt: null, reason: null, decisionType: null,
+    reviewDeadlineAt: null, attemptId: null, reviewSourceReason: null, updatedAt: null,
   };
 }
 
@@ -289,6 +291,10 @@ function normalizeControl(control) {
     resolvedWinnerSide: ["left", "right"].includes(control.resolvedWinnerSide) ? control.resolvedWinnerSide : null,
     resolvedAt: control.resolvedAt || null,
     reason: typeof control.reason === "string" ? control.reason : null,
+    decisionType: ["winner", "omt"].includes(control.decisionType) ? control.decisionType : null,
+    reviewDeadlineAt: control.reviewDeadlineAt || null,
+    attemptId: typeof control.attemptId === "string" ? control.attemptId : null,
+    reviewSourceReason: ["winner", "omt", "tie"].includes(control.reviewSourceReason) ? control.reviewSourceReason : null,
     updatedAt: control.updatedAt || null,
   };
 }
@@ -363,35 +369,116 @@ function applyDecision(state, entry, side) {
   return cloneDriver(selected);
 }
 
+function decisionDeadline(resolvedAt) {
+  return new Date(Date.parse(resolvedAt) + COMPETITION_REVIEW_WINDOW_MS).toISOString();
+}
+
+function recordAttempt(state, control, result, resolvedAt, decisionType) {
+  const attemptId = `${entryKey(control.entry)}:${control.cycle}:${resolvedAt}`;
+  const existing = Array.isArray(state.competitionAttemptHistory) ? state.competitionAttemptHistory : [];
+  if (!existing.some((attempt) => attempt?.id === attemptId)) {
+    state.competitionAttemptHistory = [...existing, {
+      id: attemptId,
+      entryKey: entryKey(control.entry),
+      cycle: control.cycle,
+      decisionType,
+      winnerSide: result.winnerSide || null,
+      resolvedAt,
+      votes: clone(control.votes),
+      scorecards: clone(control.scorecards),
+      resolution: clone(result),
+    }].slice(-100);
+  }
+  return attemptId;
+}
+
 function resolveControl(state, eventData, control, result) {
   if (!control?.entry || !result?.allVoted) return;
+  const resolvedAt = new Date().toISOString();
   if (result.omtMajority) {
     clearDecision(state, control.entry);
-    state.competitionJudgeControl = { ...controlForEntry(control.entry, Math.max(control.cycle + 1, 2)), reason: "omt" };
+    control.status = "admin_decision";
+    control.reason = "omt";
+    control.decisionType = "omt";
+    control.resolvedWinnerSide = null;
+    control.resolvedAt = resolvedAt;
+    control.reviewDeadlineAt = decisionDeadline(resolvedAt);
+    control.attemptId = recordAttempt(state, control, result, resolvedAt, "omt");
+    control.reviewSourceReason = null;
+    control.updatedAt = resolvedAt;
+    state.competitionJudgeControl = control;
     return;
   }
   if (result.winnerSide) {
     applyDecision(state, control.entry, result.winnerSide);
     control.resolvedWinnerSide = result.winnerSide;
-    control.resolvedAt = new Date().toISOString();
-    const rerunResolvedFromOmt = control.reason === "omt";
+    control.resolvedAt = resolvedAt;
     control.reason = null;
-    if (eventData.competitionMode === TEAM_TANDEM_MODE || (control.cycle >= 2 && !rerunResolvedFromOmt)) {
-      state.competitionJudgeControl = emptyControl();
-    } else {
-      control.status = "admin_decision";
-      control.updatedAt = control.resolvedAt;
-      state.competitionJudgeControl = control;
-    }
+    control.decisionType = "winner";
+    control.reviewDeadlineAt = decisionDeadline(resolvedAt);
+    control.attemptId = recordAttempt(state, control, result, resolvedAt, "winner");
+    control.reviewSourceReason = null;
+    control.status = "admin_decision";
+    control.updatedAt = resolvedAt;
+    state.competitionJudgeControl = control;
     return;
   }
   clearDecision(state, control.entry);
+  control.attemptId = recordAttempt(state, control, result, resolvedAt, "tie");
   control.status = "review_hold";
   control.reason = "tie";
+  control.decisionType = null;
+  control.reviewDeadlineAt = null;
+  control.reviewSourceReason = "tie";
   control.resolvedWinnerSide = null;
   control.resolvedAt = null;
+  control.updatedAt = resolvedAt;
+  state.competitionJudgeControl = control;
+}
+
+function matchesExpectedDecision(control, expectedEntryKey = "", expectedAttemptId = "") {
+  if (expectedEntryKey && entryKey(control.entry) !== expectedEntryKey) return false;
+  if (expectedAttemptId && control.attemptId !== expectedAttemptId) return false;
+  return true;
+}
+
+function reviewDecision(stateInput, expectedEntryKey = "", expectedAttemptId = "") {
+  const state = clone(stateInput);
+  const control = normalizeControl(state.competitionJudgeControl);
+  if (control.status !== "admin_decision" || !control.entry || !matchesExpectedDecision(control, expectedEntryKey, expectedAttemptId)) {
+    return { changed: false, state };
+  }
+  if (control.decisionType === "winner") clearDecision(state, control.entry);
+  control.status = "review_hold";
+  control.reason = "contest";
+  control.reviewSourceReason = control.decisionType || null;
+  control.decisionType = null;
+  control.reviewDeadlineAt = null;
+  control.resolvedWinnerSide = null;
   control.updatedAt = new Date().toISOString();
   state.competitionJudgeControl = control;
+  return { changed: true, state, control };
+}
+
+function continueDecision(stateInput, expectedEntryKey = "", expectedAttemptId = "") {
+  const state = clone(stateInput);
+  const control = normalizeControl(state.competitionJudgeControl);
+  if (!["admin_decision", "review_hold"].includes(control.status) || !control.entry
+    || !matchesExpectedDecision(control, expectedEntryKey, expectedAttemptId)) {
+    return { changed: false, state };
+  }
+  const rerunReason = control.status === "admin_decision"
+    ? control.decisionType
+    : control.reviewSourceReason;
+  if (rerunReason === "omt" || control.status === "review_hold") {
+    state.competitionJudgeControl = {
+      ...controlForEntry(control.entry, Math.max(control.cycle + 1, 2)),
+      reason: rerunReason === "omt" ? "omt" : null,
+    };
+  } else {
+    state.competitionJudgeControl = emptyControl();
+  }
+  return { changed: true, state, control: state.competitionJudgeControl };
 }
 
 function prepareControl(state) {
@@ -454,11 +541,14 @@ function recordScorecard(stateInput, eventData, role, submission, expectedEntryK
 }
 
 module.exports = {
+  COMPETITION_REVIEW_WINDOW_MS,
   activeJudgeRoles,
   clampJudgeScore,
   clone,
+  continueDecision,
   entryKey,
   normalizeBracketState,
   recordScorecard,
   recordVote,
+  reviewDecision,
 };

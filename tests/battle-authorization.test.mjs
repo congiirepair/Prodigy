@@ -150,7 +150,15 @@ try {
     await authorizeAndClaim(judges[role], teamEventId, role, `team-${role}-device`, ownerPassword);
   }
   const outsider = await client(`battle-outsider-${crypto.randomUUID()}`);
-  clients.push(outsider);
+  const eventAdmin = await client(`battle-admin-${crypto.randomUUID()}`);
+  clients.push(outsider, eventAdmin);
+  await eventAdmin.call("authorizeAccess", {
+    kind: "eventRole", eventId: soloEventId, role: "admin", password: ownerPassword,
+  });
+  await eventAdmin.call("authorizeAccess", {
+    kind: "eventRole", eventId: teamEventId, role: "admin", password: ownerPassword,
+  });
+  await eventAdmin.auth.currentUser.getIdTokenResult(true);
 
   await expectCallableError(outsider.call("submitJudgeVote", {
     eventId: soloEventId,
@@ -212,6 +220,8 @@ try {
   const soloControl = persisted.bracket.competitionJudgeControl;
   assert.equal(soloControl.status, "admin_decision");
   assert.ok(["left", "right"].includes(soloControl.resolvedWinnerSide));
+  assert.equal(soloControl.decisionType, "winner");
+  assert.ok(Date.parse(soloControl.reviewDeadlineAt) > Date.now());
   assert.equal(persisted.bracket.mainBracket.rounds[0].matches[0].winner.id, `solo-${soloControl.resolvedWinnerSide}`);
   await expectCallableError(judges.j1.call("submitJudgeVote", {
     eventId: soloEventId,
@@ -220,6 +230,30 @@ try {
     side: "left",
     expectedEntryKey: "main:0:0",
   }), "aborted");
+  await expectCallableError(outsider.call("adminCompetitionDecision", {
+    eventId: soloEventId,
+    decision: "continue",
+    expectedEntryKey: "main:0:0",
+    expectedAttemptId: soloControl.attemptId,
+  }), "permission-denied");
+  const reviewedSolo = await eventAdmin.call("adminCompetitionDecision", {
+    eventId: soloEventId,
+    decision: "review",
+    expectedEntryKey: "main:0:0",
+    expectedAttemptId: soloControl.attemptId,
+  });
+  assert.equal(reviewedSolo.changed, true);
+  assert.equal(reviewedSolo.eventPayload.bracket.competitionJudgeControl.status, "review_hold");
+  assert.equal(reviewedSolo.eventPayload.bracket.mainBracket.rounds[0].matches[0].winner, null);
+  const reopenedSolo = await eventAdmin.call("adminCompetitionDecision", {
+    eventId: soloEventId,
+    decision: "continue",
+    expectedEntryKey: "main:0:0",
+    expectedAttemptId: soloControl.attemptId,
+  });
+  assert.equal(reopenedSolo.changed, true);
+  assert.equal(reopenedSolo.eventPayload.bracket.competitionJudgeControl.status, "voting");
+  assert.deepEqual(reopenedSolo.eventPayload.bracket.competitionJudgeControl.votes, { j1: null, j2: null, j3: null });
 
   await expectCallableError(judges.j1.call("submitJudgeScorecard", {
     eventId: teamEventId,
@@ -262,7 +296,26 @@ try {
   assert.equal(teamFinalRapidResults.filter((result) => result.status === "rejected").length, 1);
   persisted = (await adminDb.doc(teamPath).get()).data();
   assert.equal(persisted.bracket.mainBracket.rounds[0].matches[0].winner.id, "team-left");
-  assert.equal(persisted.bracket.competitionJudgeControl.status, "idle");
+  assert.equal(persisted.bracket.competitionJudgeControl.status, "admin_decision");
+  const teamControl = persisted.bracket.competitionJudgeControl;
+  const continuedTeam = await eventAdmin.call("adminCompetitionDecision", {
+    eventId: teamEventId,
+    decision: "continue",
+    expectedEntryKey: "main:0:0",
+    expectedAttemptId: teamControl.attemptId,
+  });
+  assert.equal(continuedTeam.changed, true);
+  assert.equal(continuedTeam.eventPayload.bracket.competitionJudgeControl.status, "idle");
+  const firstContinueSyncStamp = continuedTeam.syncStamp;
+  const duplicateTeamContinue = await eventAdmin.call("adminCompetitionDecision", {
+    eventId: teamEventId,
+    decision: "continue",
+    expectedEntryKey: "main:0:0",
+    expectedAttemptId: teamControl.attemptId,
+  });
+  assert.equal(duplicateTeamContinue.changed, false);
+  assert.equal(duplicateTeamContinue.syncStamp, firstContinueSyncStamp);
+  assert.equal(duplicateTeamContinue.eventPayload.bracket.mainBracket.rounds[0].matches[0].winner.id, "team-left");
 
   const locked = event(`battle-locked-${crypto.randomUUID()}`, "solo", driver("locked-left", 1), driver("locked-right", 2));
   locked.status = "completed";

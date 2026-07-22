@@ -8,6 +8,7 @@
     "serve:hosting": "firebase emulators:start --only hosting",
     "test:security:rules": "node tests/firestore-authorization.test.mjs",
     "test:security:competition": "node tests/competition-security.test.cjs",
+    "test:competition:decisions": "node tests/post-battle-decision.test.cjs",
     "test:security:callable": "node tests/callable-authorization.test.mjs",
     "test:security:battles": "node tests/battle-authorization.test.mjs",
     "test:legacy": "node tests/legacy-features.test.mjs",

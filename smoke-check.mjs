@@ -40,6 +40,8 @@ const qualifyingJudgeSubmitSource = sourceBetween("async function syncJudgeSubmi
 const qualifyingJudgeFailureSource = sourceBetween('console.error("Judge submission sync failed:", error)', "async function submitCompetitionJudgeVote");
 const competitionVoteSubmitSource = sourceBetween("async function submitCompetitionJudgeVote", "async function submitCompetitionJudgeScorecard");
 const competitionScorecardSubmitSource = sourceBetween("async function submitCompetitionJudgeScorecard", "async function requestCompetitionDecisionReview");
+const competitionDecisionSource = sourceBetween("function cancelCompetitionDecisionCountdown", "function getJudgeSubmitButtonLabel");
+const competitionDecisionRenderSource = sourceBetween("function syncCompetitionDecisionCountdown", "function renderCompetitionJudgePanel");
 const judgeRoleClaimSource = sourceBetween("async function syncJudgeRoleClaimSelection", "async function releaseJudgeRoleClaim");
 const competitionVoteRenderSource = sourceBetween("function renderCompetitionJudgePanel()", "function getBracketParticipantSecondaryLine");
 const competitionVoteClickSource = sourceBetween('competitionJudgePanel?.addEventListener("click"', 'competitionJudgePanel?.addEventListener("change"');
@@ -94,6 +96,7 @@ const checks = [
       && qualifyingJudgeSubmitSource.includes('callProdigyAction("submitJudgeQualifying"')
       && competitionVoteSubmitSource.includes('callProdigyAction("submitJudgeVote"')
       && competitionScorecardSubmitSource.includes('callProdigyAction("submitJudgeScorecard"')
+      && competitionDecisionSource.includes('callProdigyAction("adminCompetitionDecision"')
       && directRegistrationCommitSource.includes('callProdigyAction("adminRegistration"')
       && selfRegistrationCommitSource.includes('callProdigyAction("submitSelfRegistration"')
       && pendingGroupMutationSource.includes('callProdigyAction("adminRegistration"'),
@@ -125,7 +128,30 @@ const checks = [
       && backendSource.includes('algorithm: "scrypt-v1"')
       && backendSource.includes('if (action === "commitEventSnapshot")')
       && backendSource.includes('if (action === "submitJudgeVote")')
+      && backendSource.includes('if (action === "adminCompetitionDecision")')
       && backendSource.includes('if (action === "submitSelfRegistration")'),
+  },
+  {
+    name: "post-battle decisions use a guarded server transition and one countdown owner",
+    test: () => backendSource.includes("async function adminCompetitionDecision(request)")
+      && backendSource.includes("requireEventAdmin(request, eventId)")
+      && backendSource.includes("expectedAttemptId")
+      && backendSource.includes("continueDecision(eventData.bracket")
+      && backendSource.includes("reviewDecision(eventData.bracket")
+      && competitionDecisionSource.includes("competitionDecisionActionInFlight")
+      && competitionDecisionSource.includes("cancelCompetitionDecisionCountdown();")
+      && competitionDecisionSource.includes('decision === "continue" && result.changed')
+      && competitionDecisionRenderSource.includes("competitionDecisionCountdownKey")
+      && competitionDecisionRenderSource.includes("continueCompetitionFlow(expectedControl)"),
+  },
+  {
+    name: "winner and OMT reveals expose the 15-second contest window and explicit actions",
+    test: () => html.includes("const COMPETITION_RESULT_REVIEW_MS = 15_000;")
+      && competitionDecisionRenderSource.includes('decisionType === "omt"')
+      && competitionDecisionRenderSource.includes('class="competition-result-reveal')
+      && competitionDecisionRenderSource.includes("Contest / Review Result")
+      && competitionDecisionRenderSource.includes("Continue Now")
+      && competitionDecisionRenderSource.includes('isOmt ? "is-omt" : "is-winner"'),
   },
   {
     name: "Firestore denies direct production-state writes and private reads",
