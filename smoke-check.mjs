@@ -90,6 +90,8 @@ const checks = [
       && html.includes('id="historicalBracketState"')
       && html.includes("Historical battle bracket unavailable")
       && backendSource.includes('if (action === "repairHistoricalBracketUnavailable")')
+      && backendSource.includes("const verifyOnly = data.verifyOnly === true;")
+      && backendSource.includes("verify: verification")
       && backendSource.includes("transaction.create(auditDocument")
       && backendSource.includes("bracket: FieldValue.delete()"),
   },

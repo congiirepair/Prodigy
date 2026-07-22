@@ -16,9 +16,12 @@ const {
   ROUND3_SYNTHETIC_BRACKET_CREATED_AT,
   ROUND3_SYNTHETIC_BRACKET_HASH,
   bracketHash,
+  buildRound3RepairVerification,
   collectRound3BracketDiagnostics,
   inspectRound3SyntheticBracket,
+  normalizeCanonicalValue,
   normalizeTimestamp,
+  rawBracketHash,
   repairFingerprintMatches,
 } = require("../functions/historical-bracket.js");
 const publicRestBracket = JSON.parse(fs.readFileSync(`${repoRoot}tests/fixtures/round3-public-rest-bracket.json`, "utf8"));
@@ -134,8 +137,19 @@ assert.equal(repairFingerprintMatches(rawProductionFingerprint, {
   ...rawProductionFingerprint,
   createdAt: "2026-07-22T12:53:24.500Z",
 }), false);
+assert.equal(rawBracketHash(publicRestBracket), "988b8bd232911ee6fbb5a42d26ffbc314054cc6e0b11b22ba4aea97f5c1d7f6a");
 assert.equal(bracketHash(publicRestBracket), "a9480b1b25f59bb995232dd73eb7234122cb12b1024dbddd98b24f1587ffb66d");
+assert.notEqual(rawBracketHash(publicRestBracket), bracketHash(publicRestBracket));
 assert.notEqual(bracketHash(publicRestBracket), ROUND3_SYNTHETIC_BRACKET_HASH);
+const publicRestNormalizedBracket = normalizeCanonicalValue(publicRestBracket);
+const representationDifference = firstDifference(publicRestBracket, publicRestNormalizedBracket);
+assert.deepEqual(representationDifference, {
+  path: "bracket.lowerBracket.rounds[0].matches[3].left.chassis",
+  left: "MST RMX 4",
+  right: "2001-04-01T08:00:00.000Z",
+});
+assert.deepEqual(summarizeValueTypes(publicRestBracket).sample.createdAt, { type: "string", value: "2026-07-22T12:53:23.500Z" });
+assert.deepEqual(summarizeValueTypes(publicRestNormalizedBracket).sample.createdAt, { type: "string", value: "2026-07-22T12:53:23.500Z" });
 assert.equal(inspectRound3SyntheticBracket(ROUND3_EVENT_ID, {
   ...syntheticEvent,
   bracket: publicRestBracket,
@@ -186,6 +200,42 @@ assert.deepEqual(publicRestDiagnostics.topLevelBracketKeys, [
   "version",
 ]);
 assert.deepEqual(publicRestDiagnostics.canonicalizationAnomalies, []);
+const publicRestVerification = buildRound3RepairVerification(ROUND3_EVENT_ID, {
+  status: "completed",
+  bracket: publicRestBracket,
+  results: { totalBattles: 0, completedBattles: 0 },
+  syncStamp: 1784724804275,
+});
+assert.equal(publicRestVerification.serverComputedBracketHash, bracketHash(publicRestBracket));
+assert.equal(publicRestVerification.rawComputedBracketHash, rawBracketHash(publicRestBracket));
+assert.equal(publicRestVerification.normalizedBracketCreatedAt, ROUND3_SYNTHETIC_BRACKET_CREATED_AT);
+assert.equal(publicRestVerification.currentSyncStamp, 1784724804275);
+assert.equal(publicRestVerification.documentUpdateTime, null);
+assert.equal(publicRestVerification.winnerCount, 0);
+assert.equal(publicRestVerification.completedMatchCount, 0);
+assert.equal(publicRestVerification.totalBattles, 0);
+assert.equal(publicRestVerification.completedBattles, 0);
+assert.equal(publicRestVerification.historicalBracketStatus, null);
+assert.equal(publicRestVerification.canExecuteRepair, false);
+assert.equal(publicRestVerification.reason, "unexpected-bracket-hash");
+const syntheticVerification = buildRound3RepairVerification(ROUND3_EVENT_ID, {
+  status: "completed",
+  bracket: syntheticBracket,
+  results: { totalBattles: 0, completedBattles: 0 },
+  syncStamp: 1784724804275,
+}, {
+  expected: {
+    bracketHash: bracketHash(syntheticBracket),
+    createdAt: ROUND3_SYNTHETIC_BRACKET_CREATED_AT,
+  },
+  updateTime: new Date("2026-07-22T12:53:24.493Z"),
+});
+assert.equal(syntheticVerification.serverComputedBracketHash, bracketHash(syntheticBracket));
+assert.equal(syntheticVerification.rawComputedBracketHash, rawBracketHash(syntheticBracket));
+assert.equal(syntheticVerification.canExecuteRepair, true);
+assert.equal(syntheticVerification.alreadyRepaired, false);
+assert.equal(syntheticVerification.reason, null);
+assert.equal(syntheticVerification.documentUpdateTime, "2026-07-22T12:53:24.493Z");
 
 const structurallySimilarBracket = {
   ...syntheticBracket,
@@ -246,3 +296,38 @@ assert.match(historicalBackend, /serverComputedBracketHash/);
 assert.match(historicalBackend, /canonicalByteLength/);
 
 console.log("historical bracket recovery regression tests passed");
+function summarizeValueTypes(value) {
+  if (Array.isArray(value)) return { type: "array", length: value.length, first: value.length ? summarizeValueTypes(value[0]) : null };
+  if (value && typeof value === "object") {
+    return {
+      type: "object",
+      keys: Object.keys(value).sort(),
+      sample: Object.fromEntries(Object.keys(value).sort().slice(0, 5).map((key) => [key, summarizeValueTypes(value[key])])),
+    };
+  }
+  return { type: value === null ? "null" : typeof value, value };
+}
+
+function firstDifference(left, right, path = "bracket") {
+  if (Object.is(left, right)) return null;
+  if (Array.isArray(left) || Array.isArray(right)) {
+    if (!Array.isArray(left) || !Array.isArray(right)) return { path, left, right };
+    const length = Math.max(left.length, right.length);
+    for (let index = 0; index < length; index += 1) {
+      if (index >= left.length || index >= right.length) return { path: `${path}[${index}]`, left: left[index], right: right[index] };
+      const diff = firstDifference(left[index], right[index], `${path}[${index}]`);
+      if (diff) return diff;
+    }
+    return null;
+  }
+  if (left && right && typeof left === "object" && typeof right === "object") {
+    const keys = [...new Set([...Object.keys(left), ...Object.keys(right)])].sort();
+    for (const key of keys) {
+      if (!(key in left) || !(key in right)) return { path: `${path}.${key}`, left: left[key], right: right[key] };
+      const diff = firstDifference(left[key], right[key], `${path}.${key}`);
+      if (diff) return diff;
+    }
+    return null;
+  }
+  return { path, left, right };
+}

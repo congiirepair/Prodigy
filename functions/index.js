@@ -20,6 +20,7 @@ const {
   parseVoiceDeductions,
 } = require("./legacy-http");
 const {
+  buildRound3RepairVerification,
   HISTORICAL_BRACKET_UNAVAILABLE,
   ROUND3_EVENT_ID,
   bracketHash,
@@ -685,6 +686,7 @@ async function repairHistoricalBracketUnavailable(request) {
   if (eventId !== ROUND3_EVENT_ID) fail("invalid-argument", "This guarded repair is only valid for the verified Round 3 recovery event.");
 
   const execute = data.execute === true;
+  const verifyOnly = data.verifyOnly === true;
   let response;
   await db.runTransaction(async (transaction) => {
     const document = eventRef(appId, eventId);
@@ -696,6 +698,15 @@ async function repairHistoricalBracketUnavailable(request) {
     if (!eventSnap.exists) fail("not-found", "The Round 3 event does not exist.");
 
     const eventData = eventSnap.data() || {};
+    const verification = buildRound3RepairVerification(eventId, eventData, { updateTime: eventSnap.updateTime });
+    if (verifyOnly) {
+      response = {
+        ok: true,
+        changed: false,
+        verify: verification,
+      };
+      return;
+    }
     const inspection = inspectRound3SyntheticBracket(eventId, eventData);
     if (!inspection.valid) {
       const details = (!execute && inspection.reason === "unexpected-bracket-hash")

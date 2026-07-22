@@ -39,6 +39,10 @@ function bracketHash(bracket) {
   return crypto.createHash("sha256").update(canonicalJson(normalizeCanonicalValue(bracket))).digest("hex");
 }
 
+function rawBracketHash(bracket) {
+  return crypto.createHash("sha256").update(canonicalJson(bracket)).digest("hex");
+}
+
 function objectTag(value) {
   return Object.prototype.toString.call(value).slice(8, -1);
 }
@@ -119,6 +123,27 @@ function collectRound3BracketDiagnostics(eventData = {}, expected = {}) {
   };
 }
 
+function buildRound3RepairVerification(eventId, eventData = {}, options = {}) {
+  const inspection = inspectRound3SyntheticBracket(eventId, eventData, options.expected || {});
+  const diagnostic = collectRound3BracketDiagnostics(eventData, options.expected || {});
+  return {
+    eventId,
+    serverComputedBracketHash: diagnostic.serverComputedBracketHash,
+    rawComputedBracketHash: eventData?.bracket ? rawBracketHash(eventData.bracket) : null,
+    normalizedBracketCreatedAt: diagnostic.normalizedBracketCreatedAt,
+    currentSyncStamp: diagnostic.syncStamp,
+    documentUpdateTime: normalizeTimestamp(options.updateTime),
+    winnerCount: diagnostic.winnerCount,
+    completedMatchCount: diagnostic.completedMatchCount,
+    totalBattles: diagnostic.totalBattles,
+    completedBattles: diagnostic.completedBattles,
+    historicalBracketStatus: eventData?.historicalBracketStatus || null,
+    canExecuteRepair: inspection.valid && !inspection.alreadyRepaired,
+    alreadyRepaired: inspection.alreadyRepaired === true,
+    reason: inspection.valid ? null : inspection.reason,
+  };
+}
+
 function inspectRound3SyntheticBracket(eventId, eventData = {}, expected = {}) {
   const expectedBracketHash = expected.bracketHash || ROUND3_SYNTHETIC_BRACKET_HASH;
   const expectedCreatedAt = normalizeTimestamp(expected.createdAt || ROUND3_SYNTHETIC_BRACKET_CREATED_AT);
@@ -148,10 +173,13 @@ module.exports = {
   ROUND3_SYNTHETIC_BRACKET_CREATED_AT,
   ROUND3_SYNTHETIC_BRACKET_HASH,
   bracketHash,
+  buildRound3RepairVerification,
   canonicalJson,
   collectRound3BracketDiagnostics,
   countBracketWinners,
   inspectRound3SyntheticBracket,
   normalizeTimestamp,
+  normalizeCanonicalValue,
+  rawBracketHash,
   repairFingerprintMatches,
 };
