@@ -1,96 +1,42 @@
-# Prodigy Staging And Test Mode
+# Prodigy Staging And Local QA
 
-This app now has two safe QA layers:
+Use a separate Firebase project for staging and Firebase emulators for local
+automated and manual QA. The browser application has no Test Mode and always
+uses its configured `public/data/events` collection.
 
-- **Staging Firebase project**: use a separate Firebase project alias named `staging` when you have one available.
-- **Test Mode sandbox**: use `?testMode=1` to route all app data to `artifacts/{appId}/public/testData` instead of production `public/data`.
+## Local development
 
-## Local Staging
-
-1. Install Firebase CLI if needed.
-2. Run the local emulator stack:
+Run the local emulator stack:
 
 ```bash
 npm run serve
 ```
 
-3. Open:
+Open the local application normally. Localhost deliberately connects to the
+Firebase emulators; `?emulators=1` is also supported for an explicit opt-in.
 
-```text
-http://localhost:5000?testMode=1&seedTest=qualifying#/event-admin/registration
-```
+## Staging Firebase project
 
-Localhost automatically uses the Firebase Auth and Firestore emulators.
-
-## Seed Or Reset Test Data
-
-These commands print ready-to-open URLs that reseed the isolated test data namespace:
-
-```bash
-npm run test:url:qualifying
-npm run test:url:bracket
-npm run test:url:twin
-```
-
-Opening one of those URLs resets the sandbox to that seeded scenario.
-
-Available scenarios:
-
-- `qualifying`: fake drivers, judges, QR venue check-in, and live mobile judging.
-- `bracket`: fake drivers with completed qualifying and an active battle bracket.
-- `twin`: fake teams with a Twin Comp triple-elimination round live.
-
-Inside Event Admin, use **Start Demo Event** or **Reset Demo Data** for the same reset/reseed flow.
-
-## Mobile Judging
-
-1. Open the seeded admin URL in Test Mode.
-2. Copy a judge role link from Role Access, or use the judge host link while Test Mode is active.
-3. The copied link keeps `testMode=1`, so judge submissions write only to `public/testData`.
-4. For QR check-in, open the QR display from the test event. Self-registration links also preserve `testMode=1`.
-
-## Staging Firebase Project
-
-`.firebaserc` includes:
-
-```json
-"staging": "prodigy-rc-competitions-staging"
-```
-
-Replace that project id with your real staging Firebase project if it differs, then deploy with:
+`.firebaserc` includes a `staging` alias for the staging project. Replace its
+project ID if needed, then deploy explicitly with:
 
 ```bash
 firebase deploy --project staging
 ```
 
-Production deploys still use:
+Production deployments must be explicitly scoped to the intended services.
 
-```bash
-firebase deploy --project default
-```
+## Automated fixtures
 
-## Data Isolation
+Test fixtures belong only in the repository test suites and emulator-backed
+tests. They are not exposed through browser routes or production Firestore
+paths.
 
-Production data:
-
-```text
-artifacts/{appId}/public/data
-```
-
-Test Mode data:
-
-```text
-artifacts/{appId}/public/testData
-```
-
-Firestore rules allow authenticated app users to read/write both `data` and `testData`; all other scopes remain denied.
-
-## Twin Comp Simulation
-
-Run:
+## Twin Comp simulation
 
 ```bash
 npm run simulate:twin
 ```
 
-The simulator verifies that the lowest three scored active teams receive one elimination point per round, teams are removed at three points, and the event completes when one active team remains.
+The simulator verifies the triple-elimination lifecycle without changing
+Firebase data.
