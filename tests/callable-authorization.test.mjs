@@ -667,6 +667,36 @@ try {
   assert.ok(approvedDriver.selfRegisteredAt);
   assert.ok(approvedDriver.paidAt);
 
+  // Two staff sessions can approve the same checked-in registration at once;
+  // only one transaction may move it to the live roster.
+  const concurrentApprovalToken = `approval-race-${crypto.randomUUID()}`;
+  await spectator.call("submitSelfRegistration", {
+    eventId: "security-event",
+    deviceToken: concurrentApprovalToken,
+    entries: [{ id: "pending-approval-race", name: "Concurrent Approval Driver", chassis: "RDX" }],
+  });
+  await spectator.call("spectatorArrival", {
+    eventId: "security-event",
+    deviceToken: concurrentApprovalToken,
+    arrivalProof: { source: "qr", qrToken: "security-venue-qr-token" },
+  });
+  const secondStaff = await client(`registration-staff-${crypto.randomUUID()}`);
+  clients.push(secondStaff);
+  await secondStaff.call("authorizeAccess", { kind: "websiteAdmin", password: readLocalSecret("WEBSITE_ADMIN_PASSWORD") });
+  await secondStaff.auth.currentUser.getIdTokenResult(true);
+  const concurrentApprovals = await Promise.allSettled([
+    owner.call("adminRegistration", {
+      eventId: "security-event", operation: "approve", entryId: "pending-approval-race", markPaid: true,
+    }),
+    secondStaff.call("adminRegistration", {
+      eventId: "security-event", operation: "approve", entryId: "pending-approval-race", markPaid: true,
+    }),
+  ]);
+  assert.equal(concurrentApprovals.filter((result) => result.status === "fulfilled").length, 1);
+  const postConcurrentApproval = (await adminDb.doc(eventPath).get()).data();
+  assert.equal(postConcurrentApproval.drivers.filter((entry) => entry.id === "pending-approval-race").length, 1);
+  assert.equal(postConcurrentApproval.pendingRegistrations.some((entry) => entry.id === "pending-approval-race"), false);
+
   const preverifiedToken = `preverified-${crypto.randomUUID()}`;
   const preverified = await spectator.call("submitSelfRegistration", {
     eventId: "security-event",
