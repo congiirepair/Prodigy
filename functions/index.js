@@ -1000,14 +1000,18 @@ async function adminCompetitionDecision(request) {
     if (!eventData.bracket?.mainBracket?.rounds?.length) fail("failed-precondition", "The current battle is no longer available.");
     if (decision === "timeout") {
       const control = eventData.bracket?.competitionJudgeControl || {};
+      // Timeout is only the automatic acknowledgement of an unchallenged
+      // resolved decision. It must never reopen a staff-created review hold.
+      if (control.status !== "admin_decision") {
+        response = { ok: true, changed: false, eventPayload: eventData, syncStamp: Number(eventData.syncStamp || 0) };
+        return;
+      }
       const deadlineAt = Date.parse(control.reviewDeadlineAt || "");
-      if (control.status === "admin_decision") {
-        if (!expectedEntryKey || !expectedAttemptId) {
-          fail("invalid-argument", "The current decision fingerprint is required for an automatic timeout.");
-        }
-        if (!Number.isFinite(deadlineAt) || deadlineAt > Date.now()) {
-          fail("failed-precondition", "The competition decision contest window has not expired.");
-        }
+      if (!expectedEntryKey || !expectedAttemptId) {
+        fail("invalid-argument", "The current decision fingerprint is required for an automatic timeout.");
+      }
+      if (!Number.isFinite(deadlineAt) || deadlineAt > Date.now()) {
+        fail("failed-precondition", "The competition decision contest window has not expired.");
       }
     }
     const result = decision === "review"

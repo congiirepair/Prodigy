@@ -165,6 +165,7 @@ const checks = [
       && backendSource.includes("requireAuth(request)")
       && backendSource.includes("expectedAttemptId")
       && backendSource.includes("The competition decision contest window has not expired.")
+      && backendSource.includes('if (control.status !== "admin_decision")')
       && backendSource.includes("continueDecision(eventData.bracket")
       && backendSource.includes("reviewDecision(eventData.bracket")
       && competitionDecisionSource.includes("competitionDecisionActionInFlight")
