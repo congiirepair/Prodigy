@@ -128,6 +128,8 @@ const teamEventId = `battle-team-${crypto.randomUUID()}`;
 const soloPath = `artifacts/${appId}/public/data/events/${soloEventId}`;
 const teamPath = `artifacts/${appId}/public/data/events/${teamEventId}`;
 let timeoutPath = "";
+let contestTimeoutPath = "";
+let dualAdminPath = "";
 const soloEvent = event(soloEventId, "solo", driver("solo-left", 1), driver("solo-right", 2));
 const teamEvent = event(teamEventId, "team-tandem", driver("team-left", 1, 3), driver("team-right", 2, 2));
 const adminApp = initializeAdminApp({ projectId }, `battle-security-admin-${crypto.randomUUID()}`);
@@ -152,7 +154,8 @@ try {
   }
   const outsider = await client(`battle-outsider-${crypto.randomUUID()}`);
   const eventAdmin = await client(`battle-admin-${crypto.randomUUID()}`);
-  clients.push(outsider, eventAdmin);
+  const secondEventAdmin = await client(`battle-second-admin-${crypto.randomUUID()}`);
+  clients.push(outsider, eventAdmin, secondEventAdmin);
   await eventAdmin.call("authorizeAccess", {
     kind: "eventRole", eventId: soloEventId, role: "admin", password: ownerPassword,
   });
@@ -301,6 +304,65 @@ try {
   });
   assert.equal(duplicateTimeout.changed, false);
 
+  // Contest/review and the public deadline recovery may arrive together. The
+  // transaction must preserve one authoritative outcome, never both.
+  const contestTimeoutEventId = `battle-contest-timeout-${crypto.randomUUID()}`;
+  contestTimeoutPath = `artifacts/${appId}/public/data/events/${contestTimeoutEventId}`;
+  const contestTimeoutEvent = event(contestTimeoutEventId, "solo", driver("contest-left", 1), driver("contest-right", 2));
+  contestTimeoutEvent.bracket = structuredClone(persisted.bracket);
+  contestTimeoutEvent.bracket.competitionJudgeControl.reviewDeadlineAt = new Date(Date.now() - 1_000).toISOString();
+  await adminDb.doc(contestTimeoutPath).set(contestTimeoutEvent);
+  await eventAdmin.call("authorizeAccess", {
+    kind: "eventRole", eventId: contestTimeoutEventId, role: "admin", password: ownerPassword,
+  });
+  await eventAdmin.auth.currentUser.getIdTokenResult(true);
+  const contestTimeoutCollision = await Promise.all([
+    eventAdmin.call("adminCompetitionDecision", {
+      eventId: contestTimeoutEventId,
+      decision: "review",
+      expectedEntryKey: "main:0:0",
+      expectedAttemptId: soloControl.attemptId,
+    }),
+    outsider.call("adminCompetitionDecision", {
+      eventId: contestTimeoutEventId,
+      decision: "timeout",
+      expectedEntryKey: "main:0:0",
+      expectedAttemptId: soloControl.attemptId,
+    }),
+  ]);
+  assert.equal(contestTimeoutCollision.filter((result) => result.changed).length, 1);
+  const contestTimeoutState = (await adminDb.doc(contestTimeoutPath).get()).data().bracket.competitionJudgeControl;
+  assert.ok(["idle", "review_hold"].includes(contestTimeoutState.status));
+
+  // Two independent event-admin sessions must also converge to one advance.
+  const dualAdminEventId = `battle-dual-admin-${crypto.randomUUID()}`;
+  dualAdminPath = `artifacts/${appId}/public/data/events/${dualAdminEventId}`;
+  const dualAdminEvent = event(dualAdminEventId, "solo", driver("dual-left", 1), driver("dual-right", 2));
+  dualAdminEvent.bracket = structuredClone(persisted.bracket);
+  await adminDb.doc(dualAdminPath).set(dualAdminEvent);
+  for (const adminClient of [eventAdmin, secondEventAdmin]) {
+    await adminClient.call("authorizeAccess", {
+      kind: "eventRole", eventId: dualAdminEventId, role: "admin", password: ownerPassword,
+    });
+    await adminClient.auth.currentUser.getIdTokenResult(true);
+  }
+  const dualAdminAdvance = await Promise.all([
+    eventAdmin.call("adminCompetitionDecision", {
+      eventId: dualAdminEventId,
+      decision: "continue",
+      expectedEntryKey: "main:0:0",
+      expectedAttemptId: soloControl.attemptId,
+    }),
+    secondEventAdmin.call("adminCompetitionDecision", {
+      eventId: dualAdminEventId,
+      decision: "continue",
+      expectedEntryKey: "main:0:0",
+      expectedAttemptId: soloControl.attemptId,
+    }),
+  ]);
+  assert.equal(dualAdminAdvance.filter((result) => result.changed).length, 1);
+  assert.equal((await adminDb.doc(dualAdminPath).get()).data().bracket.competitionJudgeControl.status, "idle");
+
   await expectCallableError(judges.j1.call("submitJudgeScorecard", {
     eventId: teamEventId,
     role: "j1",
@@ -382,6 +444,8 @@ try {
     adminDb.doc(soloPath).delete().catch(() => {}),
     adminDb.doc(teamPath).delete().catch(() => {}),
     ...(timeoutPath ? [adminDb.doc(timeoutPath).delete().catch(() => {})] : []),
+    ...(contestTimeoutPath ? [adminDb.doc(contestTimeoutPath).delete().catch(() => {})] : []),
+    ...(dualAdminPath ? [adminDb.doc(dualAdminPath).delete().catch(() => {})] : []),
   ]);
   await deleteAdminApp(adminApp);
 }

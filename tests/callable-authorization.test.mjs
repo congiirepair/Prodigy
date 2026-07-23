@@ -534,6 +534,22 @@ try {
   assert.equal(registration.eventPayload.pendingRegistrations[0].deviceToken, registrationToken);
   assert.ok(registration.eventPayload.pendingRegistrations[0].selfRegisteredAt);
   assert.equal(registration.eventPayload.pendingRegistrations[0].checkedInAt, null);
+  const concurrentRegistrationToken = `concurrent-registration-${crypto.randomUUID()}`;
+  const concurrentRegistrationPayload = {
+    eventId: "security-event",
+    deviceToken: concurrentRegistrationToken,
+    entries: [{ id: "concurrent-pending-1", name: "Concurrent Driver", teamName: "", chassis: "RDX" }],
+  };
+  await Promise.all([
+    spectator.call("submitSelfRegistration", concurrentRegistrationPayload),
+    spectator.call("submitSelfRegistration", concurrentRegistrationPayload),
+  ]);
+  const postConcurrentRegistration = (await adminDb.doc(eventPath).get()).data();
+  assert.equal(
+    postConcurrentRegistration.pendingRegistrations.filter((entry) => entry.deviceToken === concurrentRegistrationToken).length,
+    1,
+    "simultaneous submissions from one device must converge to one pending registration",
+  );
   await assert.rejects(owner.call("adminRegistration", {
     eventId: "security-event",
     operation: "direct",
