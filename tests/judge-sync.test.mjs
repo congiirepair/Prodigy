@@ -38,18 +38,18 @@ function readLocalSecret(name) {
   return line.slice(name.length + 1);
 }
 
-function driver(id, seed) {
+function driver(id, seed, name = "") {
   return {
     id,
     seed,
-    name: id.replaceAll("-", " ").replace(/\b\w/g, (letter) => letter.toUpperCase()),
+    name: name || id.replaceAll("-", " ").replace(/\b\w/g, (letter) => letter.toUpperCase()),
     registrationNumber: seed,
     signUpPosition: seed,
   };
 }
 
-function event(eventId, prefix) {
-  const drivers = [1, 2, 3, 4].map((seed) => driver(`${prefix}-${seed}`, seed));
+function event(eventId, prefix, names = []) {
+  const drivers = [1, 2, 3, 4].map((seed) => driver(`${prefix}-${seed}`, seed, names[seed - 1]));
   return {
     id: eventId,
     name: `Judge Sync ${prefix}`,
@@ -229,12 +229,12 @@ const adminDb = getAdminFirestore(adminApp);
 const surfaces = {};
 
 try {
-  const eventA = event(eventAId, "a");
-  const eventB = event(eventBId, "b");
+  const eventA = event(eventAId, "a", ["Takumi Sato", "Blake Griffin", "Aiden Brooks", "Owen Pierce"]);
+  const eventB = event(eventBId, "b", ["Chris Vega", "Devon Park", "Mason Hill", "Jaxon Reed"]);
   await adminDb.doc(eventAPath).set(eventA);
   await adminDb.doc(eventBPath).set(eventB);
   await adminDb.doc(directoryPath).set({ events: { [eventAId]: eventMeta(eventA), [eventBId]: eventMeta(eventB) }, syncStamp: 1 }, { merge: true });
-  await adminDb.doc(selectionPath).set({ activeEventId: eventAId, eventMeta: eventMeta(eventA), syncStamp: 1 });
+  await adminDb.doc(selectionPath).set({ activeEventId: eventBId, eventMeta: eventMeta(eventB), syncStamp: 1 });
 
   for (const name of ["admin", "j1", "j2", "j3", "spectator"]) surfaces[name] = await createSurface(`judge-sync-${name}`);
   const password = readLocalSecret("WEBSITE_ADMIN_PASSWORD");
@@ -262,6 +262,23 @@ try {
     }));
   };
 
+  // Reproduces the reported divergence setup: the shared pointer is Event B
+  // (Chris/Devon) while Event Admin chooses Event A (Takumi/Blake). Before
+  // this fix, the UI retained Event A locally after setActiveSelection was
+  // owner-only and rejected the Event Admin request.
+  await assertConverged(eventBId, "main:0:0", "main:0:0:attempt:1");
+  assert.deepEqual(currentBattle(eventA), {
+    eventId: eventAId,
+    matchId: "main:0:0",
+    attemptId: "main:0:0:attempt:1",
+    round: 0,
+    driverA: "Takumi Sato",
+    driverB: "Blake Griffin",
+    status: "idle",
+    syncStamp: 1,
+  });
+  const eventAdminSelection = await surfaces.admin.call("setActiveSelection", { eventId: eventAId });
+  assert.equal(eventAdminSelection.activeEventId, eventAId);
   await assertConverged(eventAId, "main:0:0", "main:0:0:attempt:1");
   const initialAttemptId = "main:0:0:attempt:1";
   for (const [role, side] of [["j1", "left"], ["j2", "left"], ["j3", "right"]]) {

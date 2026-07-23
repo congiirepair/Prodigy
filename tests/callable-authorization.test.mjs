@@ -363,6 +363,12 @@ try {
   assert.equal(upgradedLegacySecret.roles.admin.algorithm, "scrypt-v1");
   assert.notEqual(upgradedLegacySecret.roles.admin.passwordHash, sha256("legacy-admin-test"));
 
+  // Event Admin selection is the shared live pointer: a scoped operator can
+  // select the event they administer, while the earlier legacy/global claims
+  // test above remains denied.
+  const eventAdminSelectedLive = await legacyAdmin.call("setActiveSelection", { eventId: "security-event" });
+  assert.equal(eventAdminSelectedLive.activeEventId, "security-event");
+
   await owner.call("authorizeAccess", {
     kind: "eventRole",
     eventId: "security-event",

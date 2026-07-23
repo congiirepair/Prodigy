@@ -26,6 +26,25 @@ export function shouldReplaceCachedSelection(existingSelection, incomingSelectio
   return Number(existingSelection.syncStamp || 0) <= Number(incomingSelection.syncStamp || 0);
 }
 
+// A valid explicit event URL is an intentional diagnostic/presentation pin.
+// Every ordinary judge route must instead converge to the latest live
+// active-event selection before it can submit a battle decision.
+export function getLiveJudgeSelectionMismatch({
+  activeEventId,
+  liveSelection = null,
+  isExplicitEventPin = false,
+} = {}) {
+  if (isExplicitEventPin) return null;
+  const selectedEventId = String(liveSelection?.activeEventId || "").trim();
+  const displayedEventId = String(activeEventId || "").trim();
+  if (!selectedEventId || !displayedEventId || selectedEventId === displayedEventId) return null;
+  return {
+    activeEventId: displayedEventId,
+    selectedEventId,
+    syncStamp: Number(liveSelection?.syncStamp || 0),
+  };
+}
+
 export function createSelectedEventSubscriptionController({ subscribe, onSnapshot, onError = () => {} }) {
   if (typeof subscribe !== "function" || typeof onSnapshot !== "function") {
     throw new TypeError("A subscription factory and snapshot handler are required.");

@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   createSelectedEventSubscriptionController,
+  getLiveJudgeSelectionMismatch,
   resolveSelectionEventMeta,
   shouldReplaceCachedSelection,
 } from "../assets/js/event-selection-sync.js";
@@ -47,6 +48,23 @@ assert.equal(shouldReplaceCachedSelection(
   { activeEventId: "event-a", syncStamp: 500 },
   { activeEventId: "event-b", syncStamp: 100 },
 ), false);
+
+// An ordinary judge cannot vote while a received live selection points to a
+// different event. Intentional ?eventId= diagnostic/presentation pins remain
+// independent by design.
+assert.deepEqual(getLiveJudgeSelectionMismatch({
+  activeEventId: "event-b",
+  liveSelection: { activeEventId: "event-a", syncStamp: 42 },
+}), {
+  activeEventId: "event-b",
+  selectedEventId: "event-a",
+  syncStamp: 42,
+});
+assert.equal(getLiveJudgeSelectionMismatch({
+  activeEventId: "event-b",
+  liveSelection: { activeEventId: "event-a", syncStamp: 42 },
+  isExplicitEventPin: true,
+}), null);
 
 // Switching A -> B -> SDC Round 3 -> A tears down each old listener and ignores late callbacks.
 const listeners = new Map();
@@ -121,5 +139,12 @@ assert.doesNotMatch(
 assert.match(html, /callProdigyAction\("restoreMissingEvent"/);
 assert.match(backend, /if \(action === "restoreMissingEvent"\) return restoreMissingEvent\(request\)/);
 assert.match(backend, /transaction\.set\(selectionRef\(appId\), activeSelectionPayload\(eventId, eventData, syncStamp\)\)/);
+assert.match(backend, /requireEventAdmin\(request, eventId\);/);
+assert.match(html, /getLiveJudgeSelectionMismatch\(/);
+assert.match(html, /Battle changed\. Syncing your judge screen/);
+const openEventByIdSource = html.slice(html.indexOf("function openEventById"), html.indexOf("eventSelect.addEventListener"));
+assert.match(openEventByIdSource, /failed shared-selection publish/);
+assert.match(openEventByIdSource, /adoptActiveEvent\(liveSelection\.activeEventId, currentRole\)/);
+assert.doesNotMatch(openEventByIdSource, /setLocalEventPreviewModeState\(true\)/);
 
 console.log("event-selection synchronization tests passed");

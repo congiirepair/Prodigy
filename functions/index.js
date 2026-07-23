@@ -594,10 +594,13 @@ async function createEvent(request) {
 }
 
 async function setActiveSelection(request) {
-  requireOwner(request);
   const data = request.data || {};
   const appId = requireAppId(data.appId);
   const eventId = requireEventId(data.eventId);
+  // Selecting an event from Event Admin must update the same live pointer
+  // followed by judges. An event-scoped admin may select only that event;
+  // website admins retain access to every event through hasEventRole.
+  requireEventAdmin(request, eventId);
   let response;
   await db.runTransaction(async (transaction) => {
     const [eventSnap, directorySnap] = await Promise.all([
