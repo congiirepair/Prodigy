@@ -158,17 +158,23 @@ const checks = [
       && backendSource.includes('if (action === "submitSelfRegistration")'),
   },
   {
-    name: "post-battle decisions use a guarded server transition and one countdown owner",
+    name: "post-battle decisions use guarded manual and server-deadline timeout transitions",
     test: () => backendSource.includes("async function adminCompetitionDecision(request)")
       && backendSource.includes("requireEventAdmin(request, eventId)")
+      && backendSource.includes('data.decision === "timeout"')
+      && backendSource.includes("requireAuth(request)")
       && backendSource.includes("expectedAttemptId")
+      && backendSource.includes("The competition decision contest window has not expired.")
       && backendSource.includes("continueDecision(eventData.bracket")
       && backendSource.includes("reviewDecision(eventData.bracket")
       && competitionDecisionSource.includes("competitionDecisionActionInFlight")
       && competitionDecisionSource.includes("cancelCompetitionDecisionCountdown();")
-      && competitionDecisionSource.includes('decision === "continue" && result.changed')
+      && competitionDecisionSource.includes('decision === "timeout"')
+      && competitionDecisionSource.includes('decision === "continue" || decision === "timeout"')
       && competitionDecisionRenderSource.includes("competitionDecisionCountdownKey")
-      && competitionDecisionRenderSource.includes("continueCompetitionFlow(expectedControl)"),
+      && competitionDecisionRenderSource.includes('performCompetitionDecision("timeout", expectedControl)')
+      && competitionVoteSubmitSource.includes("Your first vote is still saving")
+      && competitionVoteRenderSource.includes('votingLocked || Boolean(myVote)'),
   },
   {
     name: "winner and OMT reveals expose the 15-second contest window and explicit actions",
@@ -678,11 +684,39 @@ const checks = [
       && html.includes('top: max(6px, env(safe-area-inset-top));'),
   },
   {
+    name: "isolated test fixtures unlock judge lanes without weakening production claims",
+    test: () => html.includes('if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE) {\n        return cloudClaimsIncludeRole(role, eventId);\n      }')
+      && html.includes('if (TEST_MODE_ENABLED) return true;')
+      && html.includes("return TEST_MODE_ENABLED ? 'testData' : 'data';"),
+  },
+  {
+    name: "test mode covers Solo, every supported SDC size, Team Tandem, and Twin Comp",
+    test: () => html.includes('<option value="sdc8">SDC Top 8 battle test</option>')
+      && html.includes('<option value="sdc16">SDC Top 16 battle test</option>')
+      && html.includes('<option value="sdc32">SDC Top 32 battle test</option>')
+      && html.includes('<option value="team">Team Tandem battle test</option>')
+      && html.includes('sdc8: { format: FORMAT_SDC_TOP_8, count: 8')
+      && html.includes('sdc16: { format: FORMAT_SDC_TOP_16, count: 16')
+      && html.includes('sdc32: { format: FORMAT_SDC_TOP_32, count: 32')
+      && html.includes('function buildDemoTeamTandemDrivers(teamCount = 8)'),
+  },
+  {
     name: "Twin Comp standings keep status and roster text on separate rows",
     test: () => html.includes('class="qualifying-results-simple twin-comp-standings"')
       && html.includes('.twin-comp-standings li {\n      display: block;')
       && html.includes('grid-template-columns: 36px minmax(0, 1fr) auto;')
       && html.includes('.twin-comp-standings .helper-text {'),
+  },
+  {
+    name: "mobile bracket slots can shrink without clipping participant text",
+    test: () => html.includes('.slot-button {\n      width: 100%;\n      min-width: 0;')
+      && html.includes('.slot-name {\n      display: block;\n      width: 100%;')
+      && html.includes('fitTextToAvailableWidth(element, minimumPx);'),
+  },
+  {
+    name: "incomplete historical result summaries render missing scores safely",
+    test: () => html.includes('function formatScore(score) {\n      const numericScore = Number(score);\n      return Number.isFinite(numericScore) ? numericScore.toFixed(1) : "-";\n    }')
+      && html.includes('Avg field ${formatScore(results.averageBestScore)}'),
   },
   {
     name: "legacy production HTTPS functions remain managed under their existing IDs",

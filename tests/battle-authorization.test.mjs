@@ -127,6 +127,7 @@ const soloEventId = `battle-solo-${crypto.randomUUID()}`;
 const teamEventId = `battle-team-${crypto.randomUUID()}`;
 const soloPath = `artifacts/${appId}/public/data/events/${soloEventId}`;
 const teamPath = `artifacts/${appId}/public/data/events/${teamEventId}`;
+let timeoutPath = "";
 const soloEvent = event(soloEventId, "solo", driver("solo-left", 1), driver("solo-right", 2));
 const teamEvent = event(teamEventId, "team-tandem", driver("team-left", 1, 3), driver("team-right", 2, 2));
 const adminApp = initializeAdminApp({ projectId }, `battle-security-admin-${crypto.randomUUID()}`);
@@ -189,7 +190,7 @@ try {
     expectedEntryKey: "main:0:1",
   }), "aborted");
 
-  const rapidVotes = await Promise.all([
+  const rapidVotes = await Promise.allSettled([
     judges.j1.call("submitJudgeVote", {
       eventId: soloEventId, role: "j1", deviceId: "solo-j1-device", side: "left", expectedEntryKey: "main:0:0",
     }),
@@ -197,7 +198,9 @@ try {
       eventId: soloEventId, role: "j1", deviceId: "solo-j1-device", side: "right", expectedEntryKey: "main:0:0",
     }),
   ]);
-  assert.equal(rapidVotes.every((result) => result.ok), true);
+  assert.equal(rapidVotes.filter((result) => result.status === "fulfilled").length, 1);
+  assert.equal(rapidVotes.filter((result) => result.status === "rejected").length, 1);
+  assert.equal(rapidVotes.find((result) => result.status === "rejected").reason.code, "functions/aborted");
   let persisted = (await adminDb.doc(soloPath).get()).data();
   assert.ok(["left", "right"].includes(persisted.bracket.competitionJudgeControl.votes.j1));
   assert.equal(persisted.bracket.mainBracket.rounds[0].matches[0].winner, null);
@@ -254,6 +257,49 @@ try {
   assert.equal(reopenedSolo.changed, true);
   assert.equal(reopenedSolo.eventPayload.bracket.competitionJudgeControl.status, "voting");
   assert.deepEqual(reopenedSolo.eventPayload.bracket.competitionJudgeControl.votes, { j1: null, j2: null, j3: null });
+
+  // A connected spectator can only advance the persisted decision after its
+  // deadline; the same request before expiry is rejected and replay is a no-op.
+  const timeoutEventId = `battle-timeout-${crypto.randomUUID()}`;
+  timeoutPath = `artifacts/${appId}/public/data/events/${timeoutEventId}`;
+  const timeoutEvent = event(timeoutEventId, "solo", driver("timeout-left", 1), driver("timeout-right", 2));
+  timeoutEvent.bracket = structuredClone(persisted.bracket);
+  timeoutEvent.bracket.competitionJudgeControl.reviewDeadlineAt = new Date(Date.now() + 60_000).toISOString();
+  await adminDb.doc(timeoutPath).set(timeoutEvent);
+  await eventAdmin.call("authorizeAccess", {
+    kind: "eventRole", eventId: timeoutEventId, role: "admin", password: ownerPassword,
+  });
+  await eventAdmin.auth.currentUser.getIdTokenResult(true);
+  await expectCallableError(outsider.call("adminCompetitionDecision", {
+    eventId: timeoutEventId,
+    decision: "timeout",
+    expectedEntryKey: "main:0:0",
+    expectedAttemptId: soloControl.attemptId,
+  }), "failed-precondition");
+  await adminDb.doc(timeoutPath).update({ "bracket.competitionJudgeControl.reviewDeadlineAt": new Date(Date.now() - 1_000).toISOString() });
+  const deadlineCollision = await Promise.all([
+    eventAdmin.call("adminCompetitionDecision", {
+      eventId: timeoutEventId,
+      decision: "continue",
+      expectedEntryKey: "main:0:0",
+      expectedAttemptId: soloControl.attemptId,
+    }),
+    outsider.call("adminCompetitionDecision", {
+      eventId: timeoutEventId,
+      decision: "timeout",
+      expectedEntryKey: "main:0:0",
+      expectedAttemptId: soloControl.attemptId,
+    }),
+  ]);
+  assert.equal(deadlineCollision.filter((result) => result.changed).length, 1);
+  assert.equal(deadlineCollision.find((result) => result.changed).eventPayload.bracket.competitionJudgeControl.status, "idle");
+  const duplicateTimeout = await outsider.call("adminCompetitionDecision", {
+    eventId: timeoutEventId,
+    decision: "timeout",
+    expectedEntryKey: "main:0:0",
+    expectedAttemptId: soloControl.attemptId,
+  });
+  assert.equal(duplicateTimeout.changed, false);
 
   await expectCallableError(judges.j1.call("submitJudgeScorecard", {
     eventId: teamEventId,
@@ -335,6 +381,7 @@ try {
   await Promise.all([
     adminDb.doc(soloPath).delete().catch(() => {}),
     adminDb.doc(teamPath).delete().catch(() => {}),
+    ...(timeoutPath ? [adminDb.doc(timeoutPath).delete().catch(() => {})] : []),
   ]);
   await deleteAdminApp(adminApp);
 }

@@ -66,6 +66,12 @@ assert.equal(winner.state.mainBracket.rounds[0].matches[0].winner.id, "left");
 assert.equal(Date.parse(control.reviewDeadlineAt) - Date.parse(control.resolvedAt), COMPETITION_REVIEW_WINDOW_MS);
 assert.equal(winner.state.competitionAttemptHistory.length, 1);
 
+// A judge cannot replace a submitted vote before the rest of the panel votes.
+const pendingVote = recordVote(bracketState(), soloMeta, "j1", "left", firstEntryKey);
+const voteLocked = recordVote(pendingVote.state, soloMeta, "j1", "right", firstEntryKey);
+assert.equal(voteLocked.changed, false);
+assert.equal(voteLocked.blocked, true);
+
 // Continue and timer expiry share this transition. Repeating it is a no-op.
 let continued = continueDecision(winner.state, firstEntryKey, control.attemptId);
 assert.equal(continued.changed, true);

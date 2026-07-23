@@ -504,6 +504,10 @@ function recordVote(stateInput, eventData, role, side, expectedEntryKey = "") {
   const { control, fallback } = prepared;
   const currentKey = entryKey(control.entry || fallback);
   if (expectedEntryKey && currentKey !== expectedEntryKey) return { changed: false, blocked: true, stale: true };
+  // A judge's first submitted vote is authoritative for this attempt.  The
+  // client disables the remaining choices immediately, and this guard keeps a
+  // second tab, reconnect, or rapid mobile tap from silently replacing it.
+  if (["left", "right", "omt"].includes(control.votes?.[role])) return { changed: false, blocked: true };
   control.status = "voting";
   control.votes = { ...emptyVotes(), ...(control.votes || {}), [role]: side };
   control.updatedAt = new Date().toISOString();

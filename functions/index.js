@@ -975,9 +975,16 @@ async function adminCompetitionDecision(request) {
   const data = request.data || {};
   const appId = requireAppId(data.appId);
   const eventId = requireEventId(data.eventId);
-  const auth = requireEventAdmin(request, eventId);
-  const decision = data.decision === "review" ? "review" : data.decision === "continue" ? "continue" : null;
+  const decision = data.decision === "review" ? "review"
+    : data.decision === "continue" ? "continue"
+      : data.decision === "timeout" ? "timeout"
+        : null;
   if (!decision) fail("invalid-argument", "Choose a valid competition decision action.");
+  // A timeout does not select a result or reopen a review. It only applies the
+  // already persisted winner/OMT outcome after its server-recorded deadline,
+  // so any signed-in connected client may safely make the idempotent call.
+  // Manual Continue and Contest remain Event Admin-only.
+  const auth = decision === "timeout" ? requireAuth(request) : requireEventAdmin(request, eventId);
   const expectedEntryKey = String(data.expectedEntryKey || "");
   const expectedAttemptId = String(data.expectedAttemptId || "");
   let response;
@@ -986,8 +993,20 @@ async function adminCompetitionDecision(request) {
     const snap = await transaction.get(document);
     if (!snap.exists) fail("not-found", "This event no longer exists.");
     const eventData = snap.data() || {};
-    assertRoleGrantCurrent(auth, eventData, eventId, "admin");
+    if (decision !== "timeout") assertRoleGrantCurrent(auth, eventData, eventId, "admin");
     if (!eventData.bracket?.mainBracket?.rounds?.length) fail("failed-precondition", "The current battle is no longer available.");
+    if (decision === "timeout") {
+      const control = eventData.bracket?.competitionJudgeControl || {};
+      const deadlineAt = Date.parse(control.reviewDeadlineAt || "");
+      if (control.status === "admin_decision") {
+        if (!expectedEntryKey || !expectedAttemptId) {
+          fail("invalid-argument", "The current decision fingerprint is required for an automatic timeout.");
+        }
+        if (!Number.isFinite(deadlineAt) || deadlineAt > Date.now()) {
+          fail("failed-precondition", "The competition decision contest window has not expired.");
+        }
+      }
+    }
     const result = decision === "review"
       ? reviewDecision(eventData.bracket, expectedEntryKey, expectedAttemptId)
       : continueDecision(eventData.bracket, expectedEntryKey, expectedAttemptId);

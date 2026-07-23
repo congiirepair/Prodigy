@@ -6751,6 +6751,7 @@
 
     .slot-button {
       width: 100%;
+      min-width: 0;
       min-height: var(--slot-height, 40px);
       height: 100%;
       display: flex;
@@ -14303,6 +14304,10 @@
               <select id="testScenarioSelect">
                 <option value="qualifying">Qualifying test</option>
                 <option value="bracket">Bracket battle test</option>
+                <option value="sdc8">SDC Top 8 battle test</option>
+                <option value="sdc16">SDC Top 16 battle test</option>
+                <option value="sdc32">SDC Top 32 battle test</option>
+                <option value="team">Team Tandem battle test</option>
                 <option value="twin">Twin comp triple elimination</option>
               </select>
             </label>
@@ -17629,6 +17634,7 @@
       if (!role?.startsWith("j") || !tournamentState?.mainBracket?.rounds?.length) {
         return failedVote("Competition voting is not available for this judge right now.");
       }
+      if (judgeSubmissionInFlight) return failedVote("Your first vote is still saving. Wait for the latest battle state.");
       if (isJudgeAccessLocked()) {
         applyRoleChange("spectator");
         switchView("qualifying");
@@ -18043,10 +18049,12 @@
     }
 
     async function performCompetitionDecision(decision, expectedControl = getCompetitionJudgeControl()) {
-      if (!adminCanEdit() || !tournamentState?.mainBracket?.rounds?.length || competitionDecisionActionInFlight) return false;
+      const automaticTimeout = decision === "timeout";
+      if ((!automaticTimeout && !adminCanEdit()) || !tournamentState?.mainBracket?.rounds?.length || competitionDecisionActionInFlight) return false;
       const expectedEntryKey = buildCompetitionJudgeEntryKey(expectedControl?.entry);
       const expectedAttemptId = expectedControl?.attemptId || "";
-      if (!expectedEntryKey || !["continue", "review"].includes(decision)) return false;
+      if (!expectedEntryKey || !["continue", "review", "timeout"].includes(decision)) return false;
+      if (automaticTimeout && (expectedControl?.status !== "admin_decision" || Date.parse(expectedControl?.reviewDeadlineAt || "") > Date.now())) return false;
       competitionDecisionActionInFlight = true;
       competitionDecisionPanel?.classList.add("is-exiting");
       cancelCompetitionDecisionCountdown();
@@ -18061,7 +18069,7 @@
           if (!result?.eventPayload) throw new Error("The server did not return the latest battle decision state.");
           applyRemoteEventState(result.eventPayload);
           if (decision === "review") clearWinnerAnimationState();
-          if (decision === "continue" && result.changed) {
+          if ((decision === "continue" || decision === "timeout") && result.changed) {
             // The guarded server transition owns battle progression. Publish once more only
             // to reconcile client-derived event completion/results metadata after it succeeds.
             const lifecycleReconciled = await publishStateImmediately({});
@@ -18071,7 +18079,8 @@
           return Boolean(result.ok);
         }
 
-        if (!applyLocalCompetitionDecision(tournamentState, decision, expectedEntryKey, expectedAttemptId)) {
+        const localDecision = automaticTimeout ? "continue" : decision;
+        if (!applyLocalCompetitionDecision(tournamentState, localDecision, expectedEntryKey, expectedAttemptId)) {
           renderBracket();
           return false;
         }
@@ -18711,7 +18720,10 @@
       return scores.length >= 2 ? scores[1] : null;
     }
 
-    function formatScore(score) { return score === null ? "-" : score.toFixed(1); }
+    function formatScore(score) {
+      const numericScore = Number(score);
+      return Number.isFinite(numericScore) ? numericScore.toFixed(1) : "-";
+    }
 
     function createEmptyTwinCompState() {
       return {
@@ -21595,6 +21607,10 @@
       if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE) {
         return cloudClaimsIncludeRole(role, eventId);
       }
+      // Test Mode is constrained to the separately writable testData scope.
+      // Its fixtures must be immediately usable from a second judge phone; no
+      // production role claim or production event data can be reached here.
+      if (TEST_MODE_ENABLED) return true;
       const unlockMap = readRoleUnlockMap();
       return Boolean(unlockMap?.[eventId]?.[role]);
     }
@@ -27451,7 +27467,7 @@
     }
 
     function normalizeTestScenario(value) {
-      return ["qualifying", "bracket", "twin"].includes(value) ? value : "qualifying";
+      return ["qualifying", "bracket", "sdc8", "sdc16", "sdc32", "team", "twin"].includes(value) ? value : "qualifying";
     }
 
     function getTestModeUrl(scenario = "qualifying") {
@@ -27485,6 +27501,27 @@
         driver.tandemBonusPoints = memberCount >= TEAM_TANDEM_MAX_DRIVERS ? TEAM_TANDEM_THREE_DRIVER_BONUS : 0;
         return driver;
       });
+    }
+
+    function buildDemoTeamTandemDrivers(teamCount = 8) {
+      return Array.from({ length: teamCount }, (_, teamIndex) => {
+        const memberCount = teamIndex % 3 === 0 ? 3 : 2;
+        const teamName = `Demo Tandem ${teamIndex + 1}`;
+        return Array.from({ length: memberCount }, (_, memberIndex) => {
+          const source = TEST_SAMPLE_DRIVER_ENTRIES[(teamIndex * 3 + memberIndex) % TEST_SAMPLE_DRIVER_ENTRIES.length];
+          const driver = createEmptyDriver(teamIndex * TEAM_TANDEM_MAX_DRIVERS + memberIndex + 1);
+          driver.name = source?.[0] || `Tandem Driver ${teamIndex + 1}-${memberIndex + 1}`;
+          driver.teamName = teamName;
+          driver.chassis = source?.[2] || "Demo tandem chassis";
+          driver.memberCount = memberCount;
+          driver.teamMemberCount = memberCount;
+          driver.teamMemberOrder = memberIndex + 1;
+          driver.tandemMembers = [];
+          driver.tandemType = "team";
+          driver.tandemBonusPoints = memberCount >= TEAM_TANDEM_MAX_DRIVERS ? TEAM_TANDEM_THREE_DRIVER_BONUS : 0;
+          return driver;
+        });
+      }).flat();
     }
 
     async function buildDemoEventMeta({ id, name, competitionMode = COMPETITION_MODE_SOLO, judgingMode = JUDGING_MODE_AVERAGE, judgeCount = 3, status = EVENT_STATUS_ACTIVE, results = null }) {
@@ -27643,6 +27680,70 @@
             qualifyingFlow: { currentDriverId: null, readyRoles: {}, started: true, completed: true },
             formatMode: FORMAT_CLASSIC,
             lowerCount: "0",
+          },
+          view: "bracket",
+        };
+      }
+
+      const sdcFormats = {
+        sdc8: { format: FORMAT_SDC_TOP_8, count: 8, label: "SDC Top 8" },
+        sdc16: { format: FORMAT_SDC_TOP_16, count: 16, label: "SDC Top 16" },
+        sdc32: { format: FORMAT_SDC_TOP_32, count: 32, label: "SDC Top 32" },
+      };
+      if (sdcFormats[normalizedScenario]) {
+        const scenario = sdcFormats[normalizedScenario];
+        const drivers = buildTestSampleDrivers(true).slice(0, scenario.count);
+        const bracket = createTournamentState(rankDrivers(drivers), scenario.format, 0);
+        resetCompetitionJudgeControlToCurrentEntry(bracket);
+        const meta = await buildDemoEventMeta({
+          id: `demo-${normalizedScenario}-current`,
+          name: `DEMO ${scenario.label} Battle Test`,
+          results: {
+            ...buildEmptyEventResults(),
+            qualifiedCount: drivers.length,
+            totalDrivers: drivers.length,
+            planDescription: `${scenario.label} fixture with its lower-bracket play-in and the next authoritative battle ready for judge QA.`,
+          },
+        });
+        return {
+          activeEventId: meta.id,
+          directory: { [meta.id]: meta, [completedMeta.id]: completedMeta },
+          archived: { [completedMeta.id]: buildArchivedResultsRecord(completedMeta, completedMeta.results) },
+          state: {
+            id: meta.id, meta, drivers, bracket, twinComp: null,
+            qualifyingFlow: { currentDriverId: null, readyRoles: {}, started: true, completed: true },
+            formatMode: scenario.format, lowerCount: "0",
+          },
+          view: "bracket",
+        };
+      }
+
+      if (normalizedScenario === "team") {
+        const drivers = buildDemoTeamTandemDrivers(8);
+        const participants = buildTeamTandemBracketParticipants(drivers);
+        const bracket = createTournamentState(participants, FORMAT_CLASSIC, 0);
+        resetCompetitionJudgeControlToCurrentEntry(bracket);
+        const meta = await buildDemoEventMeta({
+          id: "demo-team-tandem-current",
+          name: "DEMO Team Tandem Battle Test",
+          competitionMode: COMPETITION_MODE_TEAM_TANDEM,
+          judgingMode: JUDGING_MODE_LINE_ANGLE_STYLE,
+          judgeCount: 3,
+          results: {
+            ...buildEmptyEventResults(),
+            qualifiedCount: participants.length,
+            totalDrivers: drivers.length,
+            planDescription: "Eight realistic 2-3 driver teams with a live category-scoring battle ready for judge QA.",
+          },
+        });
+        return {
+          activeEventId: meta.id,
+          directory: { [meta.id]: meta, [completedMeta.id]: completedMeta },
+          archived: { [completedMeta.id]: buildArchivedResultsRecord(completedMeta, completedMeta.results) },
+          state: {
+            id: meta.id, meta, drivers, bracket, twinComp: null,
+            qualifyingFlow: { currentDriverId: null, readyRoles: {}, started: true, completed: true },
+            formatMode: FORMAT_CLASSIC, lowerCount: "0",
           },
           view: "bracket",
         };
@@ -36334,7 +36435,7 @@
     }
 
     function syncCompetitionDecisionCountdown(control) {
-      if (!adminCanEdit() || control?.status !== "admin_decision" || !control.entry || !control.reviewDeadlineAt) {
+      if (control?.status !== "admin_decision" || !control.entry || !control.reviewDeadlineAt) {
         cancelCompetitionDecisionCountdown();
         return;
       }
@@ -36358,7 +36459,7 @@
         }
         if (remainingMs > 0) return;
         cancelCompetitionDecisionCountdown();
-        void continueCompetitionFlow(expectedControl);
+        void performCompetitionDecision("timeout", expectedControl);
       };
       if (competitionDecisionCountdownTimer && competitionDecisionCountdownKey === countdownKey) {
         tick();
@@ -36373,8 +36474,11 @@
     function renderCompetitionDecisionPanel() {
       if (!competitionDecisionPanel) return;
       const control = getCompetitionJudgeControl();
+      // Every connected signed-in role observes the persisted deadline and can
+      // request the narrow server-validated timeout transition.  The panel and
+      // manual actions remain Event Admin-only.
+      syncCompetitionDecisionCountdown(control);
       if (!adminCanEdit() || !control.entry || (control.status !== "admin_decision" && control.status !== "review_hold")) {
-        cancelCompetitionDecisionCountdown();
         competitionDecisionPanel.classList.add("hidden");
         competitionDecisionPanel.classList.remove("is-winner", "is-omt", "is-review", "is-exiting");
         competitionDecisionPanel.innerHTML = "";
@@ -36451,7 +36555,6 @@
         `;
       }
       competitionDecisionPanel.classList.remove("hidden");
-      syncCompetitionDecisionCountdown(control);
     }
 
     function renderCompetitionJudgePanel() {
@@ -36585,15 +36688,15 @@
             </div>
             <article class="mobile-driver-card competition-judge-battle-card">
               <div class="competition-vote-grid">
-                <button class="button ${displayedVote === "left" ? "button-accent competition-vote-option selected" : "button-secondary competition-vote-option"}" type="button" data-action="judge-competition-vote" data-side="left" ${votingLocked ? "disabled" : ""}>
+                <button class="button ${displayedVote === "left" ? "button-accent competition-vote-option selected" : "button-secondary competition-vote-option"}" type="button" data-action="judge-competition-vote" data-side="left" ${votingLocked || Boolean(myVote) ? "disabled" : ""}>
                   <span>Lead | #${entry.match.left.seed || "-"}</span>
                   <strong>${escapeHtml(entry.match.left.name || "Waiting")}</strong>
                 </button>
-                <button class="button ${displayedVote === "right" ? "button-accent competition-vote-option selected" : "button-secondary competition-vote-option"}" type="button" data-action="judge-competition-vote" data-side="right" ${votingLocked ? "disabled" : ""}>
+                <button class="button ${displayedVote === "right" ? "button-accent competition-vote-option selected" : "button-secondary competition-vote-option"}" type="button" data-action="judge-competition-vote" data-side="right" ${votingLocked || Boolean(myVote) ? "disabled" : ""}>
                   <span>Chase | #${entry.match.right.seed || "-"}</span>
                   <strong>${escapeHtml(entry.match.right.name || "Waiting")}</strong>
                 </button>
-                <button class="button ${displayedVote === "omt" ? "button-accent competition-vote-option selected" : "button-secondary competition-vote-option"}" type="button" data-action="judge-competition-vote" data-side="omt" ${votingLocked ? "disabled" : ""}>
+                <button class="button ${displayedVote === "omt" ? "button-accent competition-vote-option selected" : "button-secondary competition-vote-option"}" type="button" data-action="judge-competition-vote" data-side="omt" ${votingLocked || Boolean(myVote) ? "disabled" : ""}>
                   <span>Re-run</span>
                   <strong>OMT</strong>
                 </button>
