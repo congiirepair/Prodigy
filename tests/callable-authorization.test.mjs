@@ -9,7 +9,7 @@ const requireFromRepo = createRequire(`${repoRoot}package.json`);
 const requireFromFunctions = createRequire(`${repoRoot}functions/package.json`);
 const { initializeApp, deleteApp } = requireFromRepo("firebase/app");
 const { getAuth, connectAuthEmulator, signInAnonymously } = requireFromRepo("firebase/auth");
-const { getFirestore, connectFirestoreEmulator, doc, getDoc, setDoc } = requireFromRepo("firebase/firestore");
+const { getFirestore, connectFirestoreEmulator, doc, getDoc, onSnapshot, setDoc } = requireFromRepo("firebase/firestore");
 const { getFunctions, connectFunctionsEmulator, httpsCallable } = requireFromRepo("firebase/functions");
 const { initializeApp: initializeAdminApp, deleteApp: deleteAdminApp } = requireFromFunctions("firebase-admin/app");
 const { getAuth: getAdminAuth } = requireFromFunctions("firebase-admin/auth");
@@ -53,6 +53,27 @@ async function client(name) {
     firestore,
     call: async (actionName, payload = {}) => (await action({ action: actionName, appId, ...payload })).data,
   };
+}
+
+function waitForPublicEventSnapshot(firestore, path, predicate, label) {
+  return new Promise((resolve, reject) => {
+    let unsubscribe = () => {};
+    const timeout = setTimeout(() => {
+      unsubscribe();
+      reject(new Error(`Timed out waiting for ${label}`));
+    }, 10_000);
+    unsubscribe = onSnapshot(doc(firestore, path), (snapshot) => {
+      const data = snapshot.data();
+      if (!predicate(data)) return;
+      clearTimeout(timeout);
+      unsubscribe();
+      resolve(data);
+    }, (error) => {
+      clearTimeout(timeout);
+      unsubscribe();
+      reject(error);
+    });
+  });
 }
 
 const adminApp = initializeAdminApp({ projectId }, "security-test-admin");
@@ -441,6 +462,12 @@ try {
     release: true,
   }));
 
+  const run1LiveUpdate = waitForPublicEventSnapshot(
+    spectator.firestore,
+    eventPath,
+    (event) => event?.drivers?.[0]?.scores?.j1?.submitted?.run1 === 35,
+    "the live qualifying run-one score",
+  );
   const scoreResult = await judge.call("submitJudgeQualifying", {
     eventId: "security-event",
     role: "j1",
@@ -451,6 +478,33 @@ try {
   });
   assert.equal(scoreResult.eventPayload.drivers[0].scores.j1.submitted.run1, 35);
   assert.equal(scoreResult.eventPayload.drivers[0].scores.j2.submitted.run1, null);
+  const liveRun1 = await run1LiveUpdate;
+  assert.equal(liveRun1.drivers[0].scores.j1.submitted.run1, 35);
+  const reconnectingObserver = await client(`qualifying-reconnect-${crypto.randomUUID()}`);
+  clients.push(reconnectingObserver);
+  const reconnectedRun1 = await waitForPublicEventSnapshot(
+    reconnectingObserver.firestore,
+    eventPath,
+    (event) => event?.drivers?.[0]?.scores?.j1?.submitted?.run1 === 35,
+    "the persisted qualifying score after reconnect",
+  );
+  assert.equal(reconnectedRun1.drivers[0].scores.j1.submitted.run1, 35);
+  const run2LiveUpdate = waitForPublicEventSnapshot(
+    spectator.firestore,
+    eventPath,
+    (event) => event?.drivers?.[0]?.scores?.j1?.submitted?.run2 === 36,
+    "the live qualifying run-two score",
+  );
+  await judge.call("submitJudgeQualifying", {
+    eventId: "security-event",
+    role: "j1",
+    deviceId: "judge-device-1",
+    driverId: "driver-1",
+    runKey: "run2",
+    scores: { run2: 36, submitted: { run2: 36 }, deductionHistory: { run2: ["-4"] } },
+  });
+  const liveRun2 = await run2LiveUpdate;
+  assert.equal(liveRun2.drivers[0].scores.j1.submitted.run2, 36);
   await assert.rejects(judge.call("submitJudgeQualifying", {
     eventId: "security-event",
     role: "j1",
