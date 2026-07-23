@@ -426,23 +426,46 @@ try {
   assert.equal(saved.eventPayload.name, "Secure Event");
   assert.ok(saved.syncStamp > 1 && saved.syncStamp < 9_000_000_000_000_000);
 
+  // Bracket generation and other event-admin writes use snapshot commits. Two
+  // staff sessions with the same source stamp must yield one winner and one
+  // explicit stale response, never two merged/stale overwrites.
+  const concurrentSnapshots = await Promise.all([
+    owner.call("commitEventSnapshot", {
+      eventId: "security-event",
+      eventPayload: { ...saved.eventPayload, name: "Concurrent Snapshot A" },
+      eventMeta: { ...saved.eventMeta, name: "Concurrent Snapshot A" },
+      expectedSyncStamp: saved.syncStamp,
+    }),
+    legacyAdmin.call("commitEventSnapshot", {
+      eventId: "security-event",
+      eventPayload: { ...saved.eventPayload, name: "Concurrent Snapshot B" },
+      eventMeta: { ...saved.eventMeta, name: "Concurrent Snapshot B" },
+      expectedSyncStamp: saved.syncStamp,
+    }),
+  ]);
+  assert.equal(concurrentSnapshots.filter((result) => !result.stale).length, 1);
+  assert.equal(concurrentSnapshots.filter((result) => result.stale).length, 1);
+  const concurrentSnapshotWinner = concurrentSnapshots.find((result) => !result.stale);
+  assert.ok(["Concurrent Snapshot A", "Concurrent Snapshot B"].includes(concurrentSnapshotWinner.eventPayload.name));
+  assert.equal((await adminDb.doc(eventPath).get()).data().syncStamp, concurrentSnapshotWinner.syncStamp);
+
   const forgedAuthorizationMetadata = await legacyAdmin.call("commitEventSnapshot", {
     eventId: "security-event",
     eventPayload: {
-      ...saved.eventPayload,
+      ...concurrentSnapshotWinner.eventPayload,
       roleAccess: {
-        ...saved.eventPayload.roleAccess,
+        ...concurrentSnapshotWinner.eventPayload.roleAccess,
         admin: { passwordConfigured: false, accessVersion: "forged-admin-version" },
         j1: { passwordConfigured: false, accessVersion: "forged-judge-version" },
       },
       judgeRoleClaims: { j1: { uid: legacyAdmin.auth.currentUser.uid, deviceId: "forged-device" } },
     },
-    eventMeta: saved.eventMeta,
-    expectedSyncStamp: saved.syncStamp,
+    eventMeta: concurrentSnapshotWinner.eventMeta,
+    expectedSyncStamp: concurrentSnapshotWinner.syncStamp,
   });
   assert.equal(forgedAuthorizationMetadata.ok, true);
-  assert.deepEqual(forgedAuthorizationMetadata.eventPayload.roleAccess, saved.eventPayload.roleAccess);
-  assert.deepEqual(forgedAuthorizationMetadata.eventPayload.judgeRoleClaims, saved.eventPayload.judgeRoleClaims);
+  assert.deepEqual(forgedAuthorizationMetadata.eventPayload.roleAccess, concurrentSnapshotWinner.eventPayload.roleAccess);
+  assert.deepEqual(forgedAuthorizationMetadata.eventPayload.judgeRoleClaims, concurrentSnapshotWinner.eventPayload.judgeRoleClaims);
 
   await owner.call("manageRoleSecret", { eventId: "security-event", role: "j1", password: judgePassword });
   const storedSecret = (await adminDb.doc(`artifacts/${appId}/private/eventAccess/events/security-event`).get()).data();
