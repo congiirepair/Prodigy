@@ -127,9 +127,26 @@ assert.equal(omtRerun.changed, true);
 assert.equal(omtRerun.state.competitionJudgeControl.status, "voting");
 assert.equal(omtRerun.state.competitionJudgeControl.reason, "omt");
 assert.equal(omtRerun.state.competitionJudgeControl.cycle, 2);
+assert.notEqual(omtRerun.state.competitionJudgeControl.attemptId, omtAttemptId);
 assert.equal(entryKey(omtRerun.state.competitionJudgeControl.entry), firstEntryKey);
 assert.deepEqual(omtRerun.state.competitionJudgeControl.votes, { j1: null, j2: null, j3: null });
-assert.equal(omtRerun.state.competitionAttemptHistory[0].id, omtAttemptId);
+assert.equal(omtRerun.state.competitionAttemptHistory[0].attemptId, omtAttemptId);
+
+// An OMT retry has the same match key but a new attempt. A delayed vote from
+// the prior attempt must not become the first vote of the rerun.
+const staleOmtVote = recordVote(omtRerun.state, soloMeta, "j1", "left", firstEntryKey, omtAttemptId);
+assert.equal(staleOmtVote.changed, false);
+assert.equal(staleOmtVote.stale, true);
+const currentOmtVote = recordVote(
+  omtRerun.state,
+  soloMeta,
+  "j1",
+  "left",
+  firstEntryKey,
+  omtRerun.state.competitionJudgeControl.attemptId,
+);
+assert.equal(currentOmtVote.changed, true);
+assert.equal(currentOmtVote.state.competitionJudgeControl.votes.j1, "left");
 
 omt = resolveVotes(["omt", "omt", "right"]);
 control = omt.state.competitionJudgeControl;

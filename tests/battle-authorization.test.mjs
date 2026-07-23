@@ -18,6 +18,7 @@ const appId = "1:292850527697:web:6b9cb5249f2716e42e44f0";
 const firebaseConfig = { projectId, appId, apiKey: "demo-api-key", authDomain: `${projectId}.firebaseapp.com` };
 const directoryPath = `artifacts/${appId}/public/data/meta/eventDirectory`;
 const now = new Date().toISOString();
+const INITIAL_ATTEMPT_ID = "main:0:0:attempt:1";
 process.env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:8080";
 process.env.GCLOUD_PROJECT = projectId;
 
@@ -191,14 +192,22 @@ try {
     deviceId: "solo-j1-device",
     side: "left",
     expectedEntryKey: "main:0:1",
+    expectedAttemptId: INITIAL_ATTEMPT_ID,
   }), "aborted");
+  await expectCallableError(judges.j1.call("submitJudgeVote", {
+    eventId: soloEventId,
+    role: "j1",
+    deviceId: "solo-j1-device",
+    side: "left",
+    expectedEntryKey: "main:0:0",
+  }), "failed-precondition");
 
   const rapidVotes = await Promise.allSettled([
     judges.j1.call("submitJudgeVote", {
-      eventId: soloEventId, role: "j1", deviceId: "solo-j1-device", side: "left", expectedEntryKey: "main:0:0",
+      eventId: soloEventId, role: "j1", deviceId: "solo-j1-device", side: "left", expectedEntryKey: "main:0:0", expectedAttemptId: INITIAL_ATTEMPT_ID,
     }),
     judges.j1.call("submitJudgeVote", {
-      eventId: soloEventId, role: "j1", deviceId: "solo-j1-device", side: "right", expectedEntryKey: "main:0:0",
+      eventId: soloEventId, role: "j1", deviceId: "solo-j1-device", side: "right", expectedEntryKey: "main:0:0", expectedAttemptId: INITIAL_ATTEMPT_ID,
     }),
   ]);
   assert.equal(rapidVotes.filter((result) => result.status === "fulfilled").length, 1);
@@ -209,14 +218,14 @@ try {
   assert.equal(persisted.bracket.mainBracket.rounds[0].matches[0].winner, null);
 
   await judges.j2.call("submitJudgeVote", {
-    eventId: soloEventId, role: "j2", deviceId: "solo-j2-device", side: "left", expectedEntryKey: "main:0:0",
+    eventId: soloEventId, role: "j2", deviceId: "solo-j2-device", side: "left", expectedEntryKey: "main:0:0", expectedAttemptId: INITIAL_ATTEMPT_ID,
   });
   const finalRapidResults = await Promise.allSettled([
     judges.j3.call("submitJudgeVote", {
-      eventId: soloEventId, role: "j3", deviceId: "solo-j3-device", side: "left", expectedEntryKey: "main:0:0",
+      eventId: soloEventId, role: "j3", deviceId: "solo-j3-device", side: "left", expectedEntryKey: "main:0:0", expectedAttemptId: INITIAL_ATTEMPT_ID,
     }),
     judges.j3.call("submitJudgeVote", {
-      eventId: soloEventId, role: "j3", deviceId: "solo-j3-device", side: "right", expectedEntryKey: "main:0:0",
+      eventId: soloEventId, role: "j3", deviceId: "solo-j3-device", side: "right", expectedEntryKey: "main:0:0", expectedAttemptId: INITIAL_ATTEMPT_ID,
     }),
   ]);
   assert.equal(finalRapidResults.filter((result) => result.status === "fulfilled").length, 1);
@@ -235,6 +244,7 @@ try {
     deviceId: "solo-j1-device",
     side: "left",
     expectedEntryKey: "main:0:0",
+    expectedAttemptId: soloControl.attemptId,
   }), "aborted");
   await expectCallableError(outsider.call("adminCompetitionDecision", {
     eventId: soloEventId,
@@ -260,6 +270,41 @@ try {
   assert.equal(reopenedSolo.changed, true);
   assert.equal(reopenedSolo.eventPayload.bracket.competitionJudgeControl.status, "voting");
   assert.deepEqual(reopenedSolo.eventPayload.bracket.competitionJudgeControl.votes, { j1: null, j2: null, j3: null });
+
+  // OMT reuses the same match key, so the attempt fingerprint must change.
+  // A delayed vote from the prior attempt must be rejected rather than counted
+  // as the first vote of the rerun.
+  const reopenedAttemptId = reopenedSolo.eventPayload.bracket.competitionJudgeControl.attemptId;
+  for (const [role, side] of [["j1", "omt"], ["j2", "omt"], ["j3", "left"]]) {
+    await judges[role].call("submitJudgeVote", {
+      eventId: soloEventId,
+      role,
+      deviceId: `solo-${role}-device`,
+      side,
+      expectedEntryKey: "main:0:0",
+      expectedAttemptId: reopenedAttemptId,
+    });
+  }
+  const omtControl = (await adminDb.doc(soloPath).get()).data().bracket.competitionJudgeControl;
+  assert.equal(omtControl.status, "admin_decision");
+  assert.equal(omtControl.decisionType, "omt");
+  const omtRerun = await eventAdmin.call("adminCompetitionDecision", {
+    eventId: soloEventId,
+    decision: "continue",
+    expectedEntryKey: "main:0:0",
+    expectedAttemptId: omtControl.attemptId,
+  });
+  const rerunAttemptId = omtRerun.eventPayload.bracket.competitionJudgeControl.attemptId;
+  assert.equal(omtRerun.eventPayload.bracket.competitionJudgeControl.status, "voting");
+  assert.notEqual(rerunAttemptId, reopenedAttemptId);
+  await expectCallableError(judges.j1.call("submitJudgeVote", {
+    eventId: soloEventId,
+    role: "j1",
+    deviceId: "solo-j1-device",
+    side: "left",
+    expectedEntryKey: "main:0:0",
+    expectedAttemptId: reopenedAttemptId,
+  }), "aborted");
 
   // A connected spectator can only advance the persisted decision after its
   // deadline; the same request before expiry is rejected and replay is a no-op.
@@ -369,6 +414,7 @@ try {
     deviceId: "team-j1-device",
     submission: { side: "right", score: 8 },
     expectedEntryKey: "main:0:0",
+    expectedAttemptId: INITIAL_ATTEMPT_ID,
   }), "aborted");
   for (const role of ["j1", "j2", "j3"]) {
     await judges[role].call("submitJudgeScorecard", {
@@ -377,6 +423,7 @@ try {
       deviceId: `team-${role}-device`,
       submission: { side: "left", score: 8 },
       expectedEntryKey: "main:0:0",
+      expectedAttemptId: INITIAL_ATTEMPT_ID,
     });
   }
   await expectCallableError(judges.j1.call("submitJudgeScorecard", {
@@ -385,19 +432,20 @@ try {
     deviceId: "team-j1-device",
     submission: { side: "left", score: 9 },
     expectedEntryKey: "main:0:0",
+    expectedAttemptId: INITIAL_ATTEMPT_ID,
   }), "aborted");
   await judges.j1.call("submitJudgeScorecard", {
-    eventId: teamEventId, role: "j1", deviceId: "team-j1-device", submission: { side: "right", score: 7 }, expectedEntryKey: "main:0:0",
+    eventId: teamEventId, role: "j1", deviceId: "team-j1-device", submission: { side: "right", score: 7 }, expectedEntryKey: "main:0:0", expectedAttemptId: INITIAL_ATTEMPT_ID,
   });
   await judges.j2.call("submitJudgeScorecard", {
-    eventId: teamEventId, role: "j2", deviceId: "team-j2-device", submission: { side: "right", score: 7 }, expectedEntryKey: "main:0:0",
+    eventId: teamEventId, role: "j2", deviceId: "team-j2-device", submission: { side: "right", score: 7 }, expectedEntryKey: "main:0:0", expectedAttemptId: INITIAL_ATTEMPT_ID,
   });
   const teamFinalRapidResults = await Promise.allSettled([
     judges.j3.call("submitJudgeScorecard", {
-      eventId: teamEventId, role: "j3", deviceId: "team-j3-device", submission: { side: "right", score: 7 }, expectedEntryKey: "main:0:0",
+      eventId: teamEventId, role: "j3", deviceId: "team-j3-device", submission: { side: "right", score: 7 }, expectedEntryKey: "main:0:0", expectedAttemptId: INITIAL_ATTEMPT_ID,
     }),
     judges.j3.call("submitJudgeScorecard", {
-      eventId: teamEventId, role: "j3", deviceId: "team-j3-device", submission: { side: "right", score: 9 }, expectedEntryKey: "main:0:0",
+      eventId: teamEventId, role: "j3", deviceId: "team-j3-device", submission: { side: "right", score: 9 }, expectedEntryKey: "main:0:0", expectedAttemptId: INITIAL_ATTEMPT_ID,
     }),
   ]);
   assert.equal(teamFinalRapidResults.filter((result) => result.status === "fulfilled").length, 1);

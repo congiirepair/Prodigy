@@ -69,5 +69,6 @@ export function createSelectedEventSubscriptionController({ subscribe, onSnapsho
     select,
     stop,
     getSelectedEventId: () => selectedEventId,
+    getRevision: () => revision,
   };
 }

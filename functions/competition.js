@@ -237,6 +237,12 @@ function entryKey(entry) {
   return entry ? `${entry.bracketKey}:${Number(entry.roundIndex || 0)}:${Number(entry.matchIndex || 0)}` : "";
 }
 
+function attemptIdForEntry(entry, cycle = 1) {
+  const key = entryKey(entry);
+  if (!key) return "";
+  return `${key}:attempt:${Math.max(1, Number(cycle) || 1)}`;
+}
+
 function cloneEntry(entry) {
   if (!entry) return null;
   return {
@@ -274,7 +280,8 @@ function normalizeControl(control) {
   if (!control || typeof control !== "object") return base;
   const status = ["idle", "voting", "admin_decision", "review_hold"].includes(control.status) ? control.status : "idle";
   const entry = cloneEntry(control.entry);
-  if (!entry || status === "idle") return { ...base, cycle: Number.isInteger(control.cycle) && control.cycle > 0 ? control.cycle : 1 };
+  const cycle = Number.isInteger(control.cycle) && control.cycle > 0 ? control.cycle : 1;
+  if (!entry || status === "idle") return { ...base, cycle };
   const scorecards = emptyScorecards();
   JUDGE_ROLES.forEach((role) => {
     scorecards[role] = {
@@ -284,7 +291,7 @@ function normalizeControl(control) {
   });
   return {
     status,
-    cycle: Number.isInteger(control.cycle) && control.cycle > 0 ? control.cycle : 1,
+    cycle,
     entry,
     votes: { ...base.votes, ...(control.votes || {}) },
     scorecards,
@@ -293,14 +300,24 @@ function normalizeControl(control) {
     reason: typeof control.reason === "string" ? control.reason : null,
     decisionType: ["winner", "omt"].includes(control.decisionType) ? control.decisionType : null,
     reviewDeadlineAt: control.reviewDeadlineAt || null,
-    attemptId: typeof control.attemptId === "string" ? control.attemptId : null,
+    attemptId: typeof control.attemptId === "string" && control.attemptId
+      ? control.attemptId
+      : attemptIdForEntry(entry, cycle),
     reviewSourceReason: ["winner", "omt", "tie"].includes(control.reviewSourceReason) ? control.reviewSourceReason : null,
     updatedAt: control.updatedAt || null,
   };
 }
 
 function controlForEntry(entry, cycle = 1) {
-  return { ...emptyControl(), status: entry ? "voting" : "idle", cycle: Math.max(1, Number(cycle) || 1), entry: cloneEntry(entry), updatedAt: new Date().toISOString() };
+  const normalizedCycle = Math.max(1, Number(cycle) || 1);
+  return {
+    ...emptyControl(),
+    status: entry ? "voting" : "idle",
+    cycle: normalizedCycle,
+    entry: cloneEntry(entry),
+    attemptId: attemptIdForEntry(entry, normalizedCycle) || null,
+    updatedAt: new Date().toISOString(),
+  };
 }
 
 function matchRef(state, entry) {
@@ -374,11 +391,13 @@ function decisionDeadline(resolvedAt) {
 }
 
 function recordAttempt(state, control, result, resolvedAt, decisionType) {
-  const attemptId = `${entryKey(control.entry)}:${control.cycle}:${resolvedAt}`;
+  const attemptId = control.attemptId || attemptIdForEntry(control.entry, control.cycle);
+  const historyId = `${attemptId}:${resolvedAt}`;
   const existing = Array.isArray(state.competitionAttemptHistory) ? state.competitionAttemptHistory : [];
-  if (!existing.some((attempt) => attempt?.id === attemptId)) {
+  if (!existing.some((attempt) => attempt?.id === historyId)) {
     state.competitionAttemptHistory = [...existing, {
-      id: attemptId,
+      id: historyId,
+      attemptId,
       entryKey: entryKey(control.entry),
       cycle: control.cycle,
       decisionType,
@@ -496,7 +515,7 @@ function prepareControl(state) {
   return { blocked: false, control, fallback };
 }
 
-function recordVote(stateInput, eventData, role, side, expectedEntryKey = "") {
+function recordVote(stateInput, eventData, role, side, expectedEntryKey = "", expectedAttemptId = "") {
   const state = clone(stateInput);
   if (!activeJudgeRoles(eventData).includes(role) || !["left", "right", "omt"].includes(side)) return { changed: false, blocked: true };
   const prepared = prepareControl(state);
@@ -504,6 +523,7 @@ function recordVote(stateInput, eventData, role, side, expectedEntryKey = "") {
   const { control, fallback } = prepared;
   const currentKey = entryKey(control.entry || fallback);
   if (expectedEntryKey && currentKey !== expectedEntryKey) return { changed: false, blocked: true, stale: true };
+  if (expectedAttemptId && control.attemptId !== expectedAttemptId) return { changed: false, blocked: true, stale: true };
   // A judge's first submitted vote is authoritative for this attempt.  The
   // client disables the remaining choices immediately, and this guard keeps a
   // second tab, reconnect, or rapid mobile tap from silently replacing it.
@@ -518,7 +538,7 @@ function recordVote(stateInput, eventData, role, side, expectedEntryKey = "") {
   return { changed: true, state, resolution: result, entry: sessionEntry };
 }
 
-function recordScorecard(stateInput, eventData, role, submission, expectedEntryKey = "") {
+function recordScorecard(stateInput, eventData, role, submission, expectedEntryKey = "", expectedAttemptId = "") {
   const state = clone(stateInput);
   if (!activeJudgeRoles(eventData).includes(role) || eventData.competitionMode !== TEAM_TANDEM_MODE) return { changed: false, blocked: true };
   const side = ["left", "right"].includes(submission?.side) ? submission.side : null;
@@ -529,6 +549,7 @@ function recordScorecard(stateInput, eventData, role, submission, expectedEntryK
   const { control, fallback } = prepared;
   const currentKey = entryKey(control.entry || fallback);
   if (expectedEntryKey && currentKey !== expectedEntryKey) return { changed: false, blocked: true, stale: true };
+  if (expectedAttemptId && control.attemptId !== expectedAttemptId) return { changed: false, blocked: true, stale: true };
   const before = resolution(control, eventData);
   if (!before.currentSide || side !== before.currentSide || hasScore(control.scorecards?.[role]?.[side])) return { changed: false, blocked: true };
   control.status = "voting";
@@ -547,6 +568,7 @@ function recordScorecard(stateInput, eventData, role, submission, expectedEntryK
 module.exports = {
   COMPETITION_REVIEW_WINDOW_MS,
   activeJudgeRoles,
+  attemptIdForEntry,
   clampJudgeScore,
   clone,
   continueDecision,

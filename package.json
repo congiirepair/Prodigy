@@ -20,6 +20,7 @@
     "test:historical-bracket": "node tests/historical-bracket-recovery.test.mjs",
     "test:security:callable": "node tests/callable-authorization.test.mjs",
     "test:security:battles": "node tests/battle-authorization.test.mjs",
+    "test:sync:emulator": "firebase emulators:exec --only auth,firestore,functions --project prodigy-rc-competitions \"node tests/judge-sync.test.mjs\"",
     "test:legacy": "node tests/legacy-features.test.mjs",
     "test:legacy:emulator": "node tests/legacy-functions-emulator.test.mjs",
     "test:security:emulator": "node tests/firestore-authorization.test.mjs && node tests/callable-authorization.test.mjs && node tests/battle-authorization.test.mjs",

@@ -961,10 +961,15 @@ async function submitJudgeCompetition(request, scorecard = false) {
     if (eventLocked(eventData)) fail("failed-precondition", "Judging is locked for this event.");
     validateJudgeDevice(eventData, role, data.deviceId, auth.uid);
     if (!eventData.bracket?.mainBracket?.rounds?.length) fail("failed-precondition", "The current battle is no longer available.");
+    const expectedEntryKey = String(data.expectedEntryKey || "");
+    const expectedAttemptId = String(data.expectedAttemptId || "");
+    if (!expectedEntryKey || !expectedAttemptId) {
+      fail("failed-precondition", "This judge screen is out of date. Wait for the latest battle before submitting.");
+    }
     const result = scorecard
-      ? recordScorecard(eventData.bracket, eventData, role, data.submission, String(data.expectedEntryKey || ""))
-      : recordVote(eventData.bracket, eventData, role, String(data.side || ""), String(data.expectedEntryKey || ""));
-    if (!result.changed) fail("aborted", result.stale ? "The battle advanced before this submission arrived." : "Voting is closed or the battle changed.");
+      ? recordScorecard(eventData.bracket, eventData, role, data.submission, expectedEntryKey, expectedAttemptId)
+      : recordVote(eventData.bracket, eventData, role, String(data.side || ""), expectedEntryKey, expectedAttemptId);
+    if (!result.changed) fail("aborted", result.stale ? "The battle or judging attempt changed before this submission arrived. Wait for the latest battle." : "Voting is closed or the battle changed.");
     const syncStamp = nextServerSyncStamp(eventData.syncStamp);
     const next = { ...eventData, bracket: result.state, updatedAt: new Date().toISOString(), syncStamp };
     transaction.set(document, next);
