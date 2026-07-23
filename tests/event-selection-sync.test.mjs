@@ -95,6 +95,22 @@ assert.equal(controller.select("event-a", { force: true }), true);
 assert.equal(subscribeCount.get("event-a"), 3);
 assert.equal(unsubscribeCount.get("event-a"), 2);
 
+// Long-running presentation/admin sessions may switch events repeatedly. Each
+// replacement must detach its predecessor and discard its late callback.
+const stressStart = applied.length;
+const rotation = ["event-b", "sdc-round-3-las-vegas", "event-a"];
+let previousEventId = "event-a";
+for (let index = 0; index < 60; index += 1) {
+  const nextEventId = rotation[index % rotation.length];
+  assert.equal(controller.select(nextEventId), true);
+  listeners.get(previousEventId).at(-1).next({ version: `late-${index}` });
+  listeners.get(nextEventId).at(-1).next({ version: `fresh-${index}` });
+  previousEventId = nextEventId;
+}
+const stressSnapshots = applied.slice(stressStart);
+assert.equal(stressSnapshots.length, 60);
+assert.ok(stressSnapshots.every(([, version]) => version.startsWith("fresh-")));
+
 // Source-level wiring preserves explicit routes and gives live selection snapshots authoritative cache status.
 assert.match(html, /getRequestedRouteEventSelection\(searchParams\)\.valid/);
 assert.match(html, /saveCachedActiveEventSelection\(normalizedSelection, \{ authoritative: true \}\)/);
