@@ -46,5 +46,25 @@ assert.match(
   /pointer-events: none;[\s\S]*?z-index: 0;/,
   "connectors must remain decorative and behind match cards"
 );
+assert.match(
+  html,
+  /id="bracketFullscreenExitBtn"[\s\S]*?Exit Fullscreen/,
+  "bracket fullscreen must provide a dedicated exit control outside hidden toolbar chrome"
+);
+assert.match(
+  html,
+  /body\.bracket-fullscreen \.bracket-fullscreen-exit-control \{[\s\S]*?display: inline-flex;/,
+  "the dedicated fullscreen exit control must stay visible while toolbar controls are hidden"
+);
+assert.match(
+  html,
+  /\.bracket-fullscreen-exit-control \{[\s\S]*?position: fixed;[\s\S]*?z-index: 2400;[\s\S]*?min-height: 44px;[\s\S]*?pointer-events: auto;[\s\S]*?touch-action: manipulation;/,
+  "the fullscreen exit control must be a touch-sized fixed layer above bracket overlays"
+);
+assert.match(
+  html,
+  /bracketFullscreenFallbackActive[\s\S]*?exitBracketFullscreen\(\)/,
+  "native and fallback fullscreen states must share a safe exit path"
+);
 
 console.log("bracket presentation regression tests passed");

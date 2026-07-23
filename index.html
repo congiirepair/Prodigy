@@ -10,7 +10,7 @@
   <style>
     @font-face {
       font-family: 'Ethnocentric';
-      src: url('./assets/fonts/Ethnocentric-Regular.otf?v=0406b04bd3d7') format('opentype');
+      src: url('./assets/fonts/Ethnocentric-Regular.otf?v=f988f8c19823') format('opentype');
       font-weight: 400;
       font-style: normal;
       font-display: swap;
@@ -58,11 +58,11 @@
       --radius-panel: 24px;
       --radius-card: 18px;
       --radius-button: 14px;
-      --brand-track-background-image: url("./assets/track-background.png?v=0406b04bd3d7");
-      --brand-watermark-image: url("./assets/prodigy-rc-logo-white-transparent.png?v=0406b04bd3d7");
+      --brand-track-background-image: url("./assets/track-background.png?v=f988f8c19823");
+      --brand-watermark-image: url("./assets/prodigy-rc-logo-white-transparent.png?v=f988f8c19823");
       --font-graffiti: 'Ethnocentric', 'Orbitron', 'Inter', sans-serif;
       --font-sans: 'Inter', sans-serif;
-      --brand-home-hero-image: url("./assets/track-background.png?v=0406b04bd3d7");
+      --brand-home-hero-image: url("./assets/track-background.png?v=f988f8c19823");
       --accent-rgb: 44, 36, 29;
       --button-accent-rgb: 43, 36, 29;
       --button-accent-dark-rgb: 122, 99, 75;
@@ -989,6 +989,38 @@
       background: transparent;
     }
     body.bracket-fullscreen .bracket-header-bar { display: none; }
+    .bracket-fullscreen-exit-control {
+      position: fixed;
+      top: max(14px, env(safe-area-inset-top));
+      right: max(14px, env(safe-area-inset-right));
+      z-index: 2400;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 10px 16px;
+      border: 2px solid rgba(255, 255, 255, 0.84);
+      border-radius: 999px;
+      background: rgba(12, 14, 18, 0.94);
+      color: #fff;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+      font-size: 0.8rem;
+      font-weight: 900;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      pointer-events: auto;
+      touch-action: manipulation;
+    }
+    body.bracket-fullscreen .bracket-fullscreen-exit-control {
+      display: inline-flex;
+    }
+    .bracket-fullscreen-exit-control:hover,
+    .bracket-fullscreen-exit-control:focus-visible {
+      border-color: var(--gold-bright);
+      background: rgba(31, 25, 18, 0.98);
+      box-shadow: 0 0 0 3px rgba(208, 160, 107, 0.28), 0 14px 32px rgba(0, 0, 0, 0.48);
+      outline: none;
+    }
     body.bracket-fullscreen #view-bracket.is-active {
       display: flex;
       flex-direction: column;
@@ -14148,7 +14180,7 @@
       <div class="topbar-left">
         <div class="topbar-brand">
           <div class="topbar-brand-mark">
-            <img src="./assets/prodigy-rc-logo-transparent.png?v=0406b04bd3d7" alt="Prodigy RC logo" />
+            <img src="./assets/prodigy-rc-logo-transparent.png?v=f988f8c19823" alt="Prodigy RC logo" />
           </div>
           <div class="topbar-brand-copy">
             <span class="topbar-brand-kicker">Prodigy RC Comp</span>
@@ -14205,7 +14237,7 @@
       <div class="streamer-topbar-main">
         <div class="streamer-topbar-brandline">
           <div class="streamer-topbar-mark">
-            <img src="./assets/prodigy-rc-logo-transparent.png?v=0406b04bd3d7" alt="Prodigy RC logo" />
+            <img src="./assets/prodigy-rc-logo-transparent.png?v=f988f8c19823" alt="Prodigy RC logo" />
           </div>
           <div class="streamer-topbar-copy">
             <span class="streamer-topbar-kicker">Prodigy Stream Studio</span>
@@ -14404,7 +14436,7 @@
     <div id="view-registration" class="view-section is-active">
       <header class="hero">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=0406b04bd3d7" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=f988f8c19823" alt="Prodigy RC logo" /></div>
           <p class="eyebrow">Registration</p>
           <h1>Driver Sign-Up</h1>
           <div class="hero-actions">
@@ -14543,7 +14575,7 @@
     <div id="view-home" class="view-section">
       <header class="hero hero-simple spectator-only">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=0406b04bd3d7" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=f988f8c19823" alt="Prodigy RC logo" /></div>
           <p class="eyebrow" id="landingHeroEyebrow">Prodigy RC Drift Arena</p>
           <h1 id="landingHeroTitle"><span class="landing-brand-wordmark" aria-label="Live Drift Event Hub">Live Drift Event Hub</span></h1>
           <p id="landingHeroCopy" class="hero-copy">Check in, follow standings, and keep Prodigy RC Drift Arena event days moving from one live event home.</p>
@@ -14620,7 +14652,7 @@
     <div id="view-live" class="view-section">
       <header class="hero hero-simple spectator-only">
         <div class="hero-copy-block">
-          <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=0406b04bd3d7" alt="Prodigy RC logo" /></div>
+          <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=f988f8c19823" alt="Prodigy RC logo" /></div>
           <p class="eyebrow">Live Broadcast</p>
           <h1><span class="landing-brand-wordmark">LIVE</span></h1>
           <p class="hero-copy">Watch the active event stream with a layout that follows qualifying, battles, brackets, standings, and results automatically.</p>
@@ -14656,7 +14688,7 @@
     <div id="view-self-register" class="view-section">
       <header class="hero">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=0406b04bd3d7" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=f988f8c19823" alt="Prodigy RC logo" /></div>
           <p class="eyebrow">Driver Check-In</p>
           <h1>Self Registration</h1>
           <p class="hero-copy">Pre-register from home, then verify your location at the venue to complete check-in before event admin moves you into the live roster.</p>
@@ -14795,7 +14827,7 @@
     <div id="view-qualifying" class="view-section">
       <header class="hero hero-simple">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=0406b04bd3d7" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=f988f8c19823" alt="Prodigy RC logo" /></div>
           <div class="spectator-qualifying-title spectator-only">
             <p class="eyebrow">Live Event</p>
             <h1>Qualifying Standings</h1>
@@ -14893,7 +14925,7 @@
     <div id="view-results" class="view-section">
       <header class="hero hero-simple">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=0406b04bd3d7" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=f988f8c19823" alt="Prodigy RC logo" /></div>
           <p class="eyebrow">Results</p>
           <h1>Past Events</h1>
           <p class="hero-copy">
@@ -14927,7 +14959,7 @@
     <div id="view-website-admin" class="view-section">
       <header class="hero">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=0406b04bd3d7" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=f988f8c19823" alt="Prodigy RC logo" /></div>
           <p class="eyebrow">Website Admin</p>
           <h1>Website Admin</h1>
           <p class="hero-copy">
@@ -15064,7 +15096,7 @@
       <!-- Fixed Fullscreen Toolbar -->
       <div class="bracket-header-bar">
         <div id="bracketHeaderLogoSlot">
-              <img class="bracket-header-logo" src="./assets/prodigy-rc-logo-transparent.png?v=0406b04bd3d7" alt="Prodigy RC logo" />
+              <img class="bracket-header-logo" src="./assets/prodigy-rc-logo-transparent.png?v=f988f8c19823" alt="Prodigy RC logo" />
         </div>
         <div class="button-row bracket-header-actions">
           <button id="fullscreenBracketBtn" class="button button-secondary bracket-header-icon-button" type="button" aria-label="Toggle fullscreen bracket" title="Toggle fullscreen">⛶<span class="icon-label">Fullscreen</span></button>
@@ -15073,6 +15105,7 @@
           <button id="backToQualifyingBtn" class="button button-secondary bracket-header-icon-button" type="button" aria-label="Back to qualifying" title="Back to qualifying">←<span class="icon-label">Back to Qualifying</span></button>
         </div>
       </div>
+      <button id="bracketFullscreenExitBtn" class="bracket-fullscreen-exit-control" type="button" aria-label="Exit fullscreen bracket">Exit Fullscreen</button>
 
       <!-- Scrolling Bracket Area -->
       <div class="bracket-workspace">
@@ -15119,7 +15152,7 @@
               <div class="bracket-header-center">
                 <p class="section-kicker">Play-In</p>
                 <h2 class="main-board-title">Lower Bracket</h2>
-                <img class="bracket-stage-logo" src="./assets/prodigy-rc-logo-transparent.png?v=0406b04bd3d7" alt="Prodigy RC logo" />
+                <img class="bracket-stage-logo" src="./assets/prodigy-rc-logo-transparent.png?v=f988f8c19823" alt="Prodigy RC logo" />
               </div>
               <div id="lowerBracketNextBattle" class="bracket-flow-slot right"></div>
             </div>
@@ -15138,7 +15171,7 @@
               <div class="bracket-header-center">
                 <p class="section-kicker">Main Event</p>
                 <h2 id="mainBracketTitle" class="main-board-title">Main Competition</h2>
-                <img class="bracket-stage-logo" src="./assets/prodigy-rc-logo-transparent.png?v=0406b04bd3d7" alt="Prodigy RC logo" />
+                <img class="bracket-stage-logo" src="./assets/prodigy-rc-logo-transparent.png?v=f988f8c19823" alt="Prodigy RC logo" />
               </div>
               <div id="mainBracketNextBattle" class="bracket-flow-slot right"></div>
             </div>
@@ -15433,17 +15466,17 @@
   </div>
 
   <!-- APP LOGIC -->
-  <script src="./client-config.js?v=0406b04bd3d7"></script>
+  <script src="./client-config.js?v=f988f8c19823"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script type="module">
-    import { parseVoiceCommandsWithFallback, sendResultsSummaryEmail } from "./assets/js/legacy-client-features.js?v=0406b04bd3d7";
-    import { isHistoricalBracketUnavailable, resolveRecoveredBracket, shouldPreserveUnavailableHistoricalBracket } from "./assets/js/historical-bracket.js?v=0406b04bd3d7";
+    import { parseVoiceCommandsWithFallback, sendResultsSummaryEmail } from "./assets/js/legacy-client-features.js?v=f988f8c19823";
+    import { isHistoricalBracketUnavailable, resolveRecoveredBracket, shouldPreserveUnavailableHistoricalBracket } from "./assets/js/historical-bracket.js?v=f988f8c19823";
     import {
       createSelectedEventSubscriptionController,
       resolveSelectionEventMeta,
       shouldReplaceCachedSelection,
       getLiveJudgeSelectionMismatch,
-    } from "./assets/js/event-selection-sync.js?v=0406b04bd3d7";
+    } from "./assets/js/event-selection-sync.js?v=f988f8c19823";
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, connectAuthEmulator } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, collection, doc, setDoc, onSnapshot, deleteDoc, deleteField, getDoc, runTransaction, connectFirestoreEmulator } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -15459,15 +15492,15 @@
         venueName: "Prodigy RC Drift Arena",
         venueLabelPlaceholder: "Prodigy RC Drift Arena",
         eventNamePlaceholder: "Prodigy RC Drift Arena",
-        logoPrimary: "./assets/prodigy-rc-logo-transparent.png?v=0406b04bd3d7",
-        logoInverted: "./assets/prodigy-rc-logo-white-transparent.png?v=0406b04bd3d7",
+        logoPrimary: "./assets/prodigy-rc-logo-transparent.png?v=f988f8c19823",
+        logoInverted: "./assets/prodigy-rc-logo-white-transparent.png?v=f988f8c19823",
         logoTreatment: {
           invertLight: false,
           invertDark: false,
         },
         logoAlt: "Prodigy RC logo",
-        backgroundImage: "./assets/track-background.png?v=0406b04bd3d7",
-        homeHeroImage: "./assets/track-background.png?v=0406b04bd3d7",
+        backgroundImage: "./assets/track-background.png?v=f988f8c19823",
+        homeHeroImage: "./assets/track-background.png?v=f988f8c19823",
         shopUrl: "https://www.prodigydrift.com/",
         shopLabel: "Shop Prodigy RC Here",
         pdfHeaderTitle: "PRODIGY RC",
@@ -22344,7 +22377,7 @@
       };
     }
 
-    function getThemeAwareLogoSource(primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=0406b04bd3d7", invertedLogo = CLIENT_BRANDING.logoInverted || primaryLogo) {
+    function getThemeAwareLogoSource(primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=f988f8c19823", invertedLogo = CLIENT_BRANDING.logoInverted || primaryLogo) {
       return document.body?.dataset.theme === "dark" ? invertedLogo : primaryLogo;
     }
 
@@ -23597,11 +23630,11 @@
 
     function applyClientBranding() {
       const root = document.documentElement;
-      const primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=0406b04bd3d7";
+      const primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=f988f8c19823";
       const invertedLogo = CLIENT_BRANDING.logoInverted || primaryLogo;
       const logoTreatment = isPlainObject(CLIENT_BRANDING.logoTreatment) ? CLIENT_BRANDING.logoTreatment : {};
       const logoAlt = CLIENT_BRANDING.logoAlt || CLIENT_BRANDING.venueName || "Track logo";
-      const backgroundImage = CLIENT_BRANDING.backgroundImage || "./assets/track-background.png?v=0406b04bd3d7";
+      const backgroundImage = CLIENT_BRANDING.backgroundImage || "./assets/track-background.png?v=f988f8c19823";
       const homeHeroImage = CLIENT_BRANDING.homeHeroImage || backgroundImage;
       const browserTitle = CLIENT_PLATFORM.browserTitle || CLIENT_PLATFORM.productName || "Prodigy Event Control";
 
@@ -23879,7 +23912,7 @@
       syncWebsiteAdminUpcomingBannerUi();
     }
 
-    function syncBrandLogoAssetsForTheme(primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=0406b04bd3d7", invertedLogo = CLIENT_BRANDING.logoInverted || primaryLogo, logoAlt = CLIENT_BRANDING.logoAlt || "Prodigy RC logo") {
+    function syncBrandLogoAssetsForTheme(primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=f988f8c19823", invertedLogo = CLIENT_BRANDING.logoInverted || primaryLogo, logoAlt = CLIENT_BRANDING.logoAlt || "Prodigy RC logo") {
       const themedLogo = getThemeAwareLogoSource(primaryLogo, invertedLogo);
       document.querySelectorAll(".hero-logo, .bracket-stage-logo, .bracket-header-logo, .topbar-brand-mark img, .streamer-topbar-mark img, .native-broadcast-brand img").forEach((logoEl) => {
         logoEl.setAttribute("src", themedLogo);
@@ -27158,7 +27191,7 @@
           ? `#${rankedDrivers[0].seed} ${rankedDrivers[0].name}`
           : "Waiting";
       const queueLabel = nextDriver?.name || queuedBattleTitle || "Queue loading";
-      const cameraSource = escapeAttributeValue(CLIENT_BRANDING.backgroundImage || "./assets/track-background.png?v=0406b04bd3d7");
+      const cameraSource = escapeAttributeValue(CLIENT_BRANDING.backgroundImage || "./assets/track-background.png?v=f988f8c19823");
       const venueLabel = activeEventMeta?.name || CLIENT_BRANDING.venueName || "Prodigy RC Drift Arena";
 
       return `
@@ -29010,7 +29043,7 @@
       const sceneHeader = `
         <header class="streamer-scene-header">
           <div class="streamer-scene-brand">
-            <img src="./assets/prodigy-rc-logo-transparent.png?v=0406b04bd3d7" alt="Prodigy RC logo" />
+            <img src="./assets/prodigy-rc-logo-transparent.png?v=f988f8c19823" alt="Prodigy RC logo" />
             <div class="streamer-scene-title">
               <span class="streamer-scene-kicker">${escapeHtml(meta.label)} • ${route.demo ? "Demo Data" : "Live Event"}</span>
               <h1>${escapeHtml(context.eventName)}</h1>
@@ -33163,25 +33196,46 @@
     inlineBackToQualifyingBtn?.addEventListener("click", () => switchView(getBracketReturnView()));
     document.getElementById("mobileBackToQualifyingBtn")?.addEventListener("click", () => switchView(getBracketReturnView()));
 
+    let bracketFullscreenFallbackActive = false;
+
+    function isBracketNativeFullscreen() {
+      return document.fullscreenElement === document.getElementById("view-bracket");
+    }
+
+    async function exitBracketFullscreen() {
+      if (isBracketNativeFullscreen()) {
+        await document.exitFullscreen();
+        return;
+      }
+      if (bracketFullscreenFallbackActive) {
+        bracketFullscreenFallbackActive = false;
+        syncBracketFullscreenState();
+      }
+    }
+
     async function toggleBracketFullscreen() {
       if (window.innerWidth <= 720) return;
       const bracketView = document.getElementById("view-bracket");
       if (!bracketView) return;
 
       try {
-        if (document.fullscreenElement === bracketView) {
-          await document.exitFullscreen();
+        if (isBracketNativeFullscreen() || bracketFullscreenFallbackActive) {
+          await exitBracketFullscreen();
         } else {
           await bracketView.requestFullscreen();
         }
       } catch (error) {
         console.warn("Fullscreen toggle failed", error);
+        bracketFullscreenFallbackActive = !bracketFullscreenFallbackActive;
+        syncBracketFullscreenState();
       }
     }
 
     function syncBracketFullscreenState() {
       const bracketView = document.getElementById("view-bracket");
-      const isFullscreen = document.fullscreenElement === bracketView;
+      const isNativeFullscreen = document.fullscreenElement === bracketView;
+      if (isNativeFullscreen) bracketFullscreenFallbackActive = false;
+      const isFullscreen = isNativeFullscreen || bracketFullscreenFallbackActive;
       document.body.classList.toggle("bracket-fullscreen", isFullscreen);
       syncBracketFullscreenSizing();
     if (fullscreenBracketBtn) {
@@ -33201,6 +33255,15 @@
 
     fullscreenBracketBtn?.addEventListener("click", toggleBracketFullscreen);
     inlineFullscreenBracketBtn?.addEventListener("click", toggleBracketFullscreen);
+    document.getElementById("bracketFullscreenExitBtn")?.addEventListener("click", () => {
+      exitBracketFullscreen().catch((error) => console.warn("Fullscreen exit failed", error));
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && bracketFullscreenFallbackActive && !isBracketNativeFullscreen()) {
+        event.preventDefault();
+        exitBracketFullscreen().catch((error) => console.warn("Fullscreen fallback exit failed", error));
+      }
+    });
     reorderBracketBtn?.addEventListener("click", toggleBracketReorderMode);
     inlineReorderBracketBtn?.addEventListener("click", toggleBracketReorderMode);
     document.addEventListener("fullscreenchange", syncBracketFullscreenState);
