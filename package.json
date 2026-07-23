@@ -16,6 +16,7 @@
     "test:security:competition": "node tests/competition-security.test.cjs",
     "test:competition:decisions": "node tests/post-battle-decision.test.cjs",
     "test:competition:lifecycle": "node tests/bracket-lifecycle.test.cjs",
+    "test:bracket:presentation": "node tests/bracket-presentation.test.mjs",
     "test:event-selection": "node tests/event-selection-sync.test.mjs",
     "test:historical-bracket": "node tests/historical-bracket-recovery.test.mjs",
     "test:security:callable": "node tests/callable-authorization.test.mjs",

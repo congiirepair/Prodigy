@@ -10,7 +10,7 @@
   <style>
     @font-face {
       font-family: 'Ethnocentric';
-      src: url('./assets/fonts/Ethnocentric-Regular.otf?v=1a0f333a0528') format('opentype');
+      src: url('./assets/fonts/Ethnocentric-Regular.otf?v=8ec75b5410d6') format('opentype');
       font-weight: 400;
       font-style: normal;
       font-display: swap;
@@ -58,11 +58,11 @@
       --radius-panel: 24px;
       --radius-card: 18px;
       --radius-button: 14px;
-      --brand-track-background-image: url("./assets/track-background.png?v=1a0f333a0528");
-      --brand-watermark-image: url("./assets/prodigy-rc-logo-white-transparent.png?v=1a0f333a0528");
+      --brand-track-background-image: url("./assets/track-background.png?v=8ec75b5410d6");
+      --brand-watermark-image: url("./assets/prodigy-rc-logo-white-transparent.png?v=8ec75b5410d6");
       --font-graffiti: 'Ethnocentric', 'Orbitron', 'Inter', sans-serif;
       --font-sans: 'Inter', sans-serif;
-      --brand-home-hero-image: url("./assets/track-background.png?v=1a0f333a0528");
+      --brand-home-hero-image: url("./assets/track-background.png?v=8ec75b5410d6");
       --accent-rgb: 44, 36, 29;
       --button-accent-rgb: 43, 36, 29;
       --button-accent-dark-rgb: 122, 99, 75;
@@ -6730,12 +6730,40 @@
     }
 
     .main-board-scale-shell {
-      position: static;
+      position: relative;
       inset: auto;
       width: max-content;
       transform: none;
       transform-origin: top left;
       will-change: auto;
+    }
+
+    /* The connector layer is drawn from the rendered match positions rather than
+       assuming a fixed grid geometry. It stays behind interactive match cards. */
+    .bracket-connector-layer {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .bracket-connector-path {
+      fill: none;
+      stroke: color-mix(in srgb, var(--line-strong) 72%, transparent);
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-width: 2;
+      opacity: 0.72;
+    }
+
+    .bracket-connector-path.is-decided {
+      stroke: color-mix(in srgb, var(--gold-bright) 76%, var(--line-strong));
+      stroke-width: 2.5;
+      opacity: 0.96;
+      filter: drop-shadow(0 0 3px color-mix(in srgb, var(--gold-bright) 48%, transparent));
     }
 
     .main-bracket-board.is-fitted {
@@ -6775,6 +6803,12 @@
       color: #000;
       padding-bottom: 8px;
       border-bottom: 1px solid var(--line-strong);
+    }
+
+    .main-board-round-labels,
+    .main-board-grid {
+      position: relative;
+      z-index: 1;
     }
 
     .main-board-grid { display: grid; align-items: start; gap: var(--main-board-gap, 18px); }
@@ -14114,7 +14148,7 @@
       <div class="topbar-left">
         <div class="topbar-brand">
           <div class="topbar-brand-mark">
-            <img src="./assets/prodigy-rc-logo-transparent.png?v=1a0f333a0528" alt="Prodigy RC logo" />
+            <img src="./assets/prodigy-rc-logo-transparent.png?v=8ec75b5410d6" alt="Prodigy RC logo" />
           </div>
           <div class="topbar-brand-copy">
             <span class="topbar-brand-kicker">Prodigy RC Comp</span>
@@ -14171,7 +14205,7 @@
       <div class="streamer-topbar-main">
         <div class="streamer-topbar-brandline">
           <div class="streamer-topbar-mark">
-            <img src="./assets/prodigy-rc-logo-transparent.png?v=1a0f333a0528" alt="Prodigy RC logo" />
+            <img src="./assets/prodigy-rc-logo-transparent.png?v=8ec75b5410d6" alt="Prodigy RC logo" />
           </div>
           <div class="streamer-topbar-copy">
             <span class="streamer-topbar-kicker">Prodigy Stream Studio</span>
@@ -14370,7 +14404,7 @@
     <div id="view-registration" class="view-section is-active">
       <header class="hero">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=1a0f333a0528" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=8ec75b5410d6" alt="Prodigy RC logo" /></div>
           <p class="eyebrow">Registration</p>
           <h1>Driver Sign-Up</h1>
           <div class="hero-actions">
@@ -14509,7 +14543,7 @@
     <div id="view-home" class="view-section">
       <header class="hero hero-simple spectator-only">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=1a0f333a0528" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=8ec75b5410d6" alt="Prodigy RC logo" /></div>
           <p class="eyebrow" id="landingHeroEyebrow">Prodigy RC Drift Arena</p>
           <h1 id="landingHeroTitle"><span class="landing-brand-wordmark" aria-label="Live Drift Event Hub">Live Drift Event Hub</span></h1>
           <p id="landingHeroCopy" class="hero-copy">Check in, follow standings, and keep Prodigy RC Drift Arena event days moving from one live event home.</p>
@@ -14586,7 +14620,7 @@
     <div id="view-live" class="view-section">
       <header class="hero hero-simple spectator-only">
         <div class="hero-copy-block">
-          <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=1a0f333a0528" alt="Prodigy RC logo" /></div>
+          <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=8ec75b5410d6" alt="Prodigy RC logo" /></div>
           <p class="eyebrow">Live Broadcast</p>
           <h1><span class="landing-brand-wordmark">LIVE</span></h1>
           <p class="hero-copy">Watch the active event stream with a layout that follows qualifying, battles, brackets, standings, and results automatically.</p>
@@ -14622,7 +14656,7 @@
     <div id="view-self-register" class="view-section">
       <header class="hero">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=1a0f333a0528" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=8ec75b5410d6" alt="Prodigy RC logo" /></div>
           <p class="eyebrow">Driver Check-In</p>
           <h1>Self Registration</h1>
           <p class="hero-copy">Pre-register from home, then verify your location at the venue to complete check-in before event admin moves you into the live roster.</p>
@@ -14761,7 +14795,7 @@
     <div id="view-qualifying" class="view-section">
       <header class="hero hero-simple">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=1a0f333a0528" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=8ec75b5410d6" alt="Prodigy RC logo" /></div>
           <div class="spectator-qualifying-title spectator-only">
             <p class="eyebrow">Live Event</p>
             <h1>Qualifying Standings</h1>
@@ -14859,7 +14893,7 @@
     <div id="view-results" class="view-section">
       <header class="hero hero-simple">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=1a0f333a0528" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=8ec75b5410d6" alt="Prodigy RC logo" /></div>
           <p class="eyebrow">Results</p>
           <h1>Past Events</h1>
           <p class="hero-copy">
@@ -14893,7 +14927,7 @@
     <div id="view-website-admin" class="view-section">
       <header class="hero">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=1a0f333a0528" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=8ec75b5410d6" alt="Prodigy RC logo" /></div>
           <p class="eyebrow">Website Admin</p>
           <h1>Website Admin</h1>
           <p class="hero-copy">
@@ -15030,7 +15064,7 @@
       <!-- Fixed Fullscreen Toolbar -->
       <div class="bracket-header-bar">
         <div id="bracketHeaderLogoSlot">
-              <img class="bracket-header-logo" src="./assets/prodigy-rc-logo-transparent.png?v=1a0f333a0528" alt="Prodigy RC logo" />
+              <img class="bracket-header-logo" src="./assets/prodigy-rc-logo-transparent.png?v=8ec75b5410d6" alt="Prodigy RC logo" />
         </div>
         <div class="button-row bracket-header-actions">
           <button id="fullscreenBracketBtn" class="button button-secondary bracket-header-icon-button" type="button" aria-label="Toggle fullscreen bracket" title="Toggle fullscreen">⛶<span class="icon-label">Fullscreen</span></button>
@@ -15085,7 +15119,7 @@
               <div class="bracket-header-center">
                 <p class="section-kicker">Play-In</p>
                 <h2 class="main-board-title">Lower Bracket</h2>
-                <img class="bracket-stage-logo" src="./assets/prodigy-rc-logo-transparent.png?v=1a0f333a0528" alt="Prodigy RC logo" />
+                <img class="bracket-stage-logo" src="./assets/prodigy-rc-logo-transparent.png?v=8ec75b5410d6" alt="Prodigy RC logo" />
               </div>
               <div id="lowerBracketNextBattle" class="bracket-flow-slot right"></div>
             </div>
@@ -15104,7 +15138,7 @@
               <div class="bracket-header-center">
                 <p class="section-kicker">Main Event</p>
                 <h2 id="mainBracketTitle" class="main-board-title">Main Competition</h2>
-                <img class="bracket-stage-logo" src="./assets/prodigy-rc-logo-transparent.png?v=1a0f333a0528" alt="Prodigy RC logo" />
+                <img class="bracket-stage-logo" src="./assets/prodigy-rc-logo-transparent.png?v=8ec75b5410d6" alt="Prodigy RC logo" />
               </div>
               <div id="mainBracketNextBattle" class="bracket-flow-slot right"></div>
             </div>
@@ -15399,17 +15433,17 @@
   </div>
 
   <!-- APP LOGIC -->
-  <script src="./client-config.js?v=1a0f333a0528"></script>
+  <script src="./client-config.js?v=8ec75b5410d6"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script type="module">
-    import { parseVoiceCommandsWithFallback, sendResultsSummaryEmail } from "./assets/js/legacy-client-features.js?v=1a0f333a0528";
-    import { isHistoricalBracketUnavailable, resolveRecoveredBracket, shouldPreserveUnavailableHistoricalBracket } from "./assets/js/historical-bracket.js?v=1a0f333a0528";
+    import { parseVoiceCommandsWithFallback, sendResultsSummaryEmail } from "./assets/js/legacy-client-features.js?v=8ec75b5410d6";
+    import { isHistoricalBracketUnavailable, resolveRecoveredBracket, shouldPreserveUnavailableHistoricalBracket } from "./assets/js/historical-bracket.js?v=8ec75b5410d6";
     import {
       createSelectedEventSubscriptionController,
       resolveSelectionEventMeta,
       shouldReplaceCachedSelection,
       getLiveJudgeSelectionMismatch,
-    } from "./assets/js/event-selection-sync.js?v=1a0f333a0528";
+    } from "./assets/js/event-selection-sync.js?v=8ec75b5410d6";
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, connectAuthEmulator } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, collection, doc, setDoc, onSnapshot, deleteDoc, deleteField, getDoc, runTransaction, connectFirestoreEmulator } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -15425,15 +15459,15 @@
         venueName: "Prodigy RC Drift Arena",
         venueLabelPlaceholder: "Prodigy RC Drift Arena",
         eventNamePlaceholder: "Prodigy RC Drift Arena",
-        logoPrimary: "./assets/prodigy-rc-logo-transparent.png?v=1a0f333a0528",
-        logoInverted: "./assets/prodigy-rc-logo-white-transparent.png?v=1a0f333a0528",
+        logoPrimary: "./assets/prodigy-rc-logo-transparent.png?v=8ec75b5410d6",
+        logoInverted: "./assets/prodigy-rc-logo-white-transparent.png?v=8ec75b5410d6",
         logoTreatment: {
           invertLight: false,
           invertDark: false,
         },
         logoAlt: "Prodigy RC logo",
-        backgroundImage: "./assets/track-background.png?v=1a0f333a0528",
-        homeHeroImage: "./assets/track-background.png?v=1a0f333a0528",
+        backgroundImage: "./assets/track-background.png?v=8ec75b5410d6",
+        homeHeroImage: "./assets/track-background.png?v=8ec75b5410d6",
         shopUrl: "https://www.prodigydrift.com/",
         shopLabel: "Shop Prodigy RC Here",
         pdfHeaderTitle: "PRODIGY RC",
@@ -22310,7 +22344,7 @@
       };
     }
 
-    function getThemeAwareLogoSource(primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=1a0f333a0528", invertedLogo = CLIENT_BRANDING.logoInverted || primaryLogo) {
+    function getThemeAwareLogoSource(primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=8ec75b5410d6", invertedLogo = CLIENT_BRANDING.logoInverted || primaryLogo) {
       return document.body?.dataset.theme === "dark" ? invertedLogo : primaryLogo;
     }
 
@@ -23563,11 +23597,11 @@
 
     function applyClientBranding() {
       const root = document.documentElement;
-      const primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=1a0f333a0528";
+      const primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=8ec75b5410d6";
       const invertedLogo = CLIENT_BRANDING.logoInverted || primaryLogo;
       const logoTreatment = isPlainObject(CLIENT_BRANDING.logoTreatment) ? CLIENT_BRANDING.logoTreatment : {};
       const logoAlt = CLIENT_BRANDING.logoAlt || CLIENT_BRANDING.venueName || "Track logo";
-      const backgroundImage = CLIENT_BRANDING.backgroundImage || "./assets/track-background.png?v=1a0f333a0528";
+      const backgroundImage = CLIENT_BRANDING.backgroundImage || "./assets/track-background.png?v=8ec75b5410d6";
       const homeHeroImage = CLIENT_BRANDING.homeHeroImage || backgroundImage;
       const browserTitle = CLIENT_PLATFORM.browserTitle || CLIENT_PLATFORM.productName || "Prodigy Event Control";
 
@@ -23845,7 +23879,7 @@
       syncWebsiteAdminUpcomingBannerUi();
     }
 
-    function syncBrandLogoAssetsForTheme(primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=1a0f333a0528", invertedLogo = CLIENT_BRANDING.logoInverted || primaryLogo, logoAlt = CLIENT_BRANDING.logoAlt || "Prodigy RC logo") {
+    function syncBrandLogoAssetsForTheme(primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=8ec75b5410d6", invertedLogo = CLIENT_BRANDING.logoInverted || primaryLogo, logoAlt = CLIENT_BRANDING.logoAlt || "Prodigy RC logo") {
       const themedLogo = getThemeAwareLogoSource(primaryLogo, invertedLogo);
       document.querySelectorAll(".hero-logo, .bracket-stage-logo, .bracket-header-logo, .topbar-brand-mark img, .streamer-topbar-mark img, .native-broadcast-brand img").forEach((logoEl) => {
         logoEl.setAttribute("src", themedLogo);
@@ -27124,7 +27158,7 @@
           ? `#${rankedDrivers[0].seed} ${rankedDrivers[0].name}`
           : "Waiting";
       const queueLabel = nextDriver?.name || queuedBattleTitle || "Queue loading";
-      const cameraSource = escapeAttributeValue(CLIENT_BRANDING.backgroundImage || "./assets/track-background.png?v=1a0f333a0528");
+      const cameraSource = escapeAttributeValue(CLIENT_BRANDING.backgroundImage || "./assets/track-background.png?v=8ec75b5410d6");
       const venueLabel = activeEventMeta?.name || CLIENT_BRANDING.venueName || "Prodigy RC Drift Arena";
 
       return `
@@ -28976,7 +29010,7 @@
       const sceneHeader = `
         <header class="streamer-scene-header">
           <div class="streamer-scene-brand">
-            <img src="./assets/prodigy-rc-logo-transparent.png?v=1a0f333a0528" alt="Prodigy RC logo" />
+            <img src="./assets/prodigy-rc-logo-transparent.png?v=8ec75b5410d6" alt="Prodigy RC logo" />
             <div class="streamer-scene-title">
               <span class="streamer-scene-kicker">${escapeHtml(meta.label)} • ${route.demo ? "Demo Data" : "Live Event"}</span>
               <h1>${escapeHtml(context.eventName)}</h1>
@@ -36303,12 +36337,12 @@
 
     function renderMainBattle(bracketKey, roundIndex, matchIndex, match, align) {
       const canChoose = Boolean(match.left && match.right);
-      return `<article class="main-battle ${align}"><div class="main-battle-stack">${renderMainSlot(bracketKey, roundIndex, matchIndex, "left", match.left, match.winner, canChoose, align)}${renderMainSlot(bracketKey, roundIndex, matchIndex, "right", match.right, match.winner, canChoose, align)}</div></article>`;
+      return `<article class="main-battle ${align}" data-bracket-key="${bracketKey}" data-round-index="${roundIndex}" data-match-index="${matchIndex}" data-connector-side="${align}" data-match-decided="${match.winner ? "true" : "false"}"><div class="main-battle-stack">${renderMainSlot(bracketKey, roundIndex, matchIndex, "left", match.left, match.winner, canChoose, align)}${renderMainSlot(bracketKey, roundIndex, matchIndex, "right", match.right, match.winner, canChoose, align)}</div></article>`;
     }
 
     function renderFinalBattle(bracketKey, roundIndex, match, title = "Final Battle") {
       const canChoose = Boolean(match.left && match.right);
-      return `<article class="main-battle center final-center"><div class="final-battle-card"><div class="final-battle-head">${title}</div><div class="final-battle-body">${renderMainSlot(bracketKey, roundIndex, 0, "left", match.left, match.winner, canChoose, "center")}<div class="final-vs">VS</div>${renderMainSlot(bracketKey, roundIndex, 0, "right", match.right, match.winner, canChoose, "center")}</div></div></article>`;
+      return `<article class="main-battle center final-center" data-bracket-key="${bracketKey}" data-round-index="${roundIndex}" data-match-index="0" data-connector-side="center" data-match-decided="${match.winner ? "true" : "false"}"><div class="final-battle-card"><div class="final-battle-head">${title}</div><div class="final-battle-body">${renderMainSlot(bracketKey, roundIndex, 0, "left", match.left, match.winner, canChoose, "center")}<div class="final-vs">VS</div>${renderMainSlot(bracketKey, roundIndex, 0, "right", match.right, match.winner, canChoose, "center")}</div></div></article>`;
     }
 
     function renderPlacementBattle(bracketKey, match, title) {
@@ -36321,6 +36355,17 @@
       const rawValue = rootStyles.getPropertyValue(name).trim();
       const parsed = Number.parseFloat(rawValue);
       return Number.isFinite(parsed) ? parsed : fallback;
+    }
+
+    function supportsTruthfulMainBracketConnectors(bracketKey, rounds) {
+      if (bracketKey !== "main" || tournamentState?.lowerBracket || !Array.isArray(rounds) || rounds.length < 2) return false;
+      if (!rounds.every((round) => Array.isArray(round?.matches))) return false;
+      return rounds.every((round, index) => {
+        const nextRound = rounds[index + 1];
+        return index === rounds.length - 1
+          ? round.matches.length === 1
+          : round.matches.length > 0 && round.matches.length === nextRound.matches.length * 2;
+      });
     }
 
     function renderBracketBoard(bracketKey, rounds, options = {}) {
@@ -36336,6 +36381,7 @@
       const centerWidth = Math.max(finalCardWidth, thirdCardWidth);
       const boardGap = getBracketCssMetric("--main-board-gap", 18);
       const singleBoardHeight = Math.max(240, baseMatchHeight + 124);
+      const supportsConnectors = supportsTruthfulMainBracketConnectors(bracketKey, rounds);
       if (!rounds.length) return "";
       if (rounds.length === 1) {
         return `<div class="main-board-canvas" data-natural-width="320" data-natural-height="${singleBoardHeight}" style="width: 320px; min-width: 320px; height: ${singleBoardHeight}px;"><div class="main-board-scale-shell"><div class="main-board-grid" style="grid-template-columns: 1fr;"><div class="center-stage-stack">${renderFinalBattle(bracketKey, 0, rounds[0].matches[0], finalTitle)}</div></div></div></div>`;
@@ -36368,7 +36414,7 @@
       }).join("");
 
       return `
-        <div class="main-board-canvas" data-natural-width="${boardWidth}" data-natural-height="${boardHeight}" style="width: ${boardWidth}px; min-width: ${boardWidth}px; height: ${boardHeight}px;">
+        <div class="main-board-canvas" data-natural-width="${boardWidth}" data-natural-height="${boardHeight}" data-progression-connectors="${supportsConnectors ? "enabled" : "disabled"}" style="width: ${boardWidth}px; min-width: ${boardWidth}px; height: ${boardHeight}px;">
           <div class="main-board-scale-shell">
             <div class="main-board-round-labels" style="grid-template-columns: ${gridTemplate};">${labelColumns.map(label => `<div class="main-board-label">${label}</div>`).join("")}</div>
             <div class="main-board-grid" style="grid-template-columns: ${gridTemplate};">
@@ -36515,10 +36561,63 @@
       fitBracketBoard("bracketBoard");
     }
 
+    function getBracketConnectorPoint(rect, shellRect, scaleX, scaleY, edge) {
+      return {
+        x: ((edge === "right" ? rect.right : rect.left) - shellRect.left) * scaleX,
+        y: (rect.top + rect.height / 2 - shellRect.top) * scaleY,
+      };
+    }
+
+    function renderBracketProgressionConnectors() {
+      document.querySelectorAll('.main-board-canvas[data-progression-connectors="enabled"]').forEach((canvas) => {
+        canvas.querySelector(".bracket-connector-layer")?.remove();
+        const shell = canvas.querySelector(".main-board-scale-shell");
+        if (!shell) return;
+
+        const shellRect = shell.getBoundingClientRect();
+        if (!shellRect.width || !shellRect.height || !shell.offsetWidth || !shell.offsetHeight) return;
+        const scaleX = shell.offsetWidth / shellRect.width;
+        const scaleY = shell.offsetHeight / shellRect.height;
+        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svg.classList.add("bracket-connector-layer");
+        svg.setAttribute("aria-hidden", "true");
+        svg.setAttribute("viewBox", `0 0 ${shell.offsetWidth} ${shell.offsetHeight}`);
+        svg.setAttribute("preserveAspectRatio", "none");
+
+        shell.querySelectorAll('.main-battle[data-bracket-key="main"][data-connector-side]').forEach((source) => {
+          const roundIndex = Number(source.dataset.roundIndex);
+          const matchIndex = Number(source.dataset.matchIndex);
+          const side = source.dataset.connectorSide;
+          if (!Number.isInteger(roundIndex) || !Number.isInteger(matchIndex) || side === "center") return;
+
+          const target = shell.querySelector(`.main-battle[data-bracket-key="main"][data-round-index="${roundIndex + 1}"][data-match-index="${Math.floor(matchIndex / 2)}"]`);
+          if (!target) return;
+
+          const sourcePoint = getBracketConnectorPoint(source.getBoundingClientRect(), shellRect, scaleX, scaleY, side === "left" ? "right" : "left");
+          const targetPoint = getBracketConnectorPoint(target.getBoundingClientRect(), shellRect, scaleX, scaleY, side === "left" ? "left" : "right");
+          const travel = targetPoint.x - sourcePoint.x;
+          if ((side === "left" && travel <= 12) || (side === "right" && travel >= -12)) return;
+
+          const bendX = sourcePoint.x + travel / 2;
+          const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          path.classList.add("bracket-connector-path");
+          if (source.dataset.matchDecided === "true") path.classList.add("is-decided");
+          path.setAttribute("d", `M ${sourcePoint.x} ${sourcePoint.y} H ${bendX} V ${targetPoint.y} H ${targetPoint.x}`);
+          svg.append(path);
+        });
+
+        if (svg.childElementCount) shell.prepend(svg);
+      });
+    }
+
     function scheduleBracketRefit() {
       requestAnimationFrame(() => {
         fitAllBracketBoards();
-        requestAnimationFrame(fitAllBracketBoards);
+        renderBracketProgressionConnectors();
+        requestAnimationFrame(() => {
+          fitAllBracketBoards();
+          renderBracketProgressionConnectors();
+        });
       });
     }
 
