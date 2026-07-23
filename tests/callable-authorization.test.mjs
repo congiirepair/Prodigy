@@ -451,6 +451,14 @@ try {
   });
   assert.equal(scoreResult.eventPayload.drivers[0].scores.j1.submitted.run1, 35);
   assert.equal(scoreResult.eventPayload.drivers[0].scores.j2.submitted.run1, null);
+  await assert.rejects(judge.call("submitJudgeQualifying", {
+    eventId: "security-event",
+    role: "j1",
+    deviceId: "judge-device-1",
+    driverId: "driver-1",
+    runKey: "run1",
+    scores: { run1: 99, submitted: { run1: 99 } },
+  }));
 
   const rotatedJudgePassword = `${judgePassword}-Rotated`;
   await owner.call("manageRoleSecret", { eventId: "security-event", role: "j1", password: rotatedJudgePassword });

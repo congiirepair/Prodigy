@@ -908,6 +908,9 @@ async function submitJudgeQualifying(request) {
     const submitted = normalizeSubmittedScores(data.scores || {}, role, eventData);
     if (runKey) {
       driver.scores[role] = driver.scores[role] || normalizeSubmittedScores({}, role, eventData);
+      if (driver.scores[role]?.submitted?.[runKey] !== null && driver.scores[role]?.submitted?.[runKey] !== undefined) {
+        fail("aborted", "This qualifying score was already submitted for the current run.");
+      }
       driver.scores[role][runKey] = submitted[runKey];
       driver.scores[role].submitted = driver.scores[role].submitted || {};
       driver.scores[role].submitted[runKey] = submitted.submitted[runKey];
