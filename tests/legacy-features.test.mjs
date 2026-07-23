@@ -18,7 +18,7 @@ const clientContext = { window: {} };
 vm.runInNewContext(clientConfigSource, clientContext);
 const clientConfig = clientContext.window.RC_DRIFT_CLIENT_CONFIG;
 
-assert.match(html, /client-config\.js\?v=20260721a/);
+assert.match(html, /client-config\.js\?v=[0-9a-f]{12}/);
 
 assert.equal(clientConfig.voiceAi.enabled, true);
 assert.equal(clientConfig.voiceAi.endpoint, "/api/parse-voice-deductions");

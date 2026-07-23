@@ -7,10 +7,22 @@
     "runtime": "nodejs22"
   },
   "hosting": {
+    "predeploy": [
+      "npm run assets:check"
+    ],
     "public": ".",
     "ignore": [
       "firebase.json",
       ".firebaserc",
+      ".git/**",
+      ".claude/**",
+      ".agents/**",
+      ".codex/**",
+      ".tmp/**",
+      ".qa-streamer/**",
+      "qa-artifacts/**",
+      "*.log",
+      "**/*.log",
       "DEPLOY_SUBDOMAINS.md",
       "FIREBASE_SETUP.md",
       "LOCAL_TESTING.md",

@@ -35,12 +35,12 @@ const historicalBracketImport = html.match(
   /from\s+"(\.\/assets\/js\/historical-bracket\.js(?:\?[^"]+)?)";/,
 );
 assert.ok(historicalBracketImport, "index.html must import the historical bracket module");
-assert.equal(historicalBracketImport[1], "./assets/js/historical-bracket.js?v=66bb607");
+assert.match(historicalBracketImport[1], /^\.\/assets\/js\/historical-bracket\.js\?v=[0-9a-f]{12}$/);
 assert.match(historicalClient, /export function shouldPreserveUnavailableHistoricalBracket\(/);
 const productionOrigin = "https://www.prodigyrccomp.com/";
 const staleHistoricalBracketUrl = new URL("./assets/js/historical-bracket.js", productionOrigin);
 const versionedHistoricalBracketUrl = new URL(historicalBracketImport[1], productionOrigin);
-assert.equal(versionedHistoricalBracketUrl.searchParams.get("v"), "66bb607");
+assert.match(versionedHistoricalBracketUrl.searchParams.get("v") || "", /^[0-9a-f]{12}$/);
 assert.notEqual(versionedHistoricalBracketUrl.href, staleHistoricalBracketUrl.href);
 const simulatedReturningClientCache = new Map([[staleHistoricalBracketUrl.href, "old cached module"]]);
 assert.equal(simulatedReturningClientCache.has(versionedHistoricalBracketUrl.href), false);
