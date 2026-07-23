@@ -29,6 +29,21 @@ const publicRestBracket = JSON.parse(fs.readFileSync(`${repoRoot}tests/fixtures/
 const html = fs.readFileSync(`${repoRoot}index.html`, "utf8");
 const backend = fs.readFileSync(`${repoRoot}functions/index.js`, "utf8");
 const historicalBackend = fs.readFileSync(`${repoRoot}functions/historical-bracket.js`, "utf8");
+const historicalClient = fs.readFileSync(`${repoRoot}assets/js/historical-bracket.js`, "utf8");
+
+const historicalBracketImport = html.match(
+  /from\s+"(\.\/assets\/js\/historical-bracket\.js(?:\?[^"]+)?)";/,
+);
+assert.ok(historicalBracketImport, "index.html must import the historical bracket module");
+assert.equal(historicalBracketImport[1], "./assets/js/historical-bracket.js?v=66bb607");
+assert.match(historicalClient, /export function shouldPreserveUnavailableHistoricalBracket\(/);
+const productionOrigin = "https://www.prodigyrccomp.com/";
+const staleHistoricalBracketUrl = new URL("./assets/js/historical-bracket.js", productionOrigin);
+const versionedHistoricalBracketUrl = new URL(historicalBracketImport[1], productionOrigin);
+assert.equal(versionedHistoricalBracketUrl.searchParams.get("v"), "66bb607");
+assert.notEqual(versionedHistoricalBracketUrl.href, staleHistoricalBracketUrl.href);
+const simulatedReturningClientCache = new Map([[staleHistoricalBracketUrl.href, "old cached module"]]);
+assert.equal(simulatedReturningClientCache.has(versionedHistoricalBracketUrl.href), false);
 
 const unavailable = resolveRecoveredBracket({
   eventStatus: "completed",
