@@ -72,9 +72,6 @@ const removePendingSource = sourceBetween("async function removePendingRegistrat
 const openEventSource = sourceBetween("function openEventById", 'eventSelect.addEventListener("change"');
 const renderBracketSource = sourceBetween("function renderBracket()", "function updateCompetitionBracketPage()");
 const judgeLaneSource = sourceBetween("function renderJudgeLaneCard", "// Driver Table Rendering");
-const testScenarioCommitSource = sourceBetween("async function commitTestDemoScenario", "async function seedTestDemoScenario");
-const testScenarioSeedSource = sourceBetween("async function seedTestDemoScenario", "async function maybeRunPendingTestScenario");
-const pendingTestScenarioSource = sourceBetween("async function maybeRunPendingTestScenario", "function renderPublicEventCameraPreview");
 const appBootstrapSource = sourceBetween("async function bootstrapApp()", 'if (typeof window !== "undefined" && ["127.0.0.1", "localhost"].includes(window.location.hostname))');
 const activeEventStateApplySource = sourceBetween("function applyActiveEventState", "function setActiveEventIdState");
 const nativeStreamLayoutSource = sourceBetween("function resolveNativeStreamLayoutKey", "function getNativeStreamPhaseLabel");
@@ -632,77 +629,14 @@ const checks = [
       && !html.includes("renderResults();"),
   },
   {
-    name: "seeded test scenarios keep their intended route",
-    test: () => appBootstrapSource.includes("const seededTestScenario = await maybeRunPendingTestScenario()")
-      && appBootstrapSource.includes("Boolean(initialExplicitRoute) && !seededTestScenario")
-      && appBootstrapSource.includes("initialExplicitRoute && !seededTestScenario"),
-  },
-  {
-    name: "website admin event switching preserves the control-room route",
-    test: () => openEventSource.includes("const originatingRoute = parseRouteFromLocation()")
-      && openEventSource.includes('originatingRoute?.kind === "website-admin"')
-      && openEventSource.includes('switchView("website-admin")')
-      && openEventSource.indexOf("if (nextView)") < openEventSource.indexOf('originatingRoute?.kind === "website-admin"')
-      && openEventSource.includes("const selectionRequestRevision = activeEventSelectionRequestRevision")
-      && openEventSource.includes("selectionRequestRevision !== activeEventSelectionRequestRevision")
-      && openEventSource.includes("activeEventId !== nextId")
-      && openEventSource.includes("setLocalEventPreviewModeState(true)")
-      && openEventSource.includes("renderWebsiteAdminSyncDiagnostics()"),
-  },
-  {
-    name: "seeded test scenarios authenticate once and cannot reseed on reload",
-    test: () => testScenarioSeedSource.includes("await ensureCloudAuthReady()")
-      && testScenarioSeedSource.indexOf("await ensureCloudAuthReady()") < testScenarioSeedSource.indexOf("await commitTestDemoScenario(demo)")
-      && !testScenarioSeedSource.includes("publishStateImmediately()")
-      && !testScenarioSeedSource.includes("publishActiveEventSelection()")
-      && testScenarioSeedSource.includes('nextUrl.searchParams.delete("seedTest")')
-      && testScenarioSeedSource.includes("window.history.replaceState")
-      && pendingTestScenarioSource.includes("if (seeded) consumeSeedTestQueryParameter()")
-      && pendingTestScenarioSource.includes("return seeded;"),
-  },
-  {
-    name: "seeded test scenarios replace stale demo directories atomically",
-    test: () => testScenarioCommitSource.includes("await runTransaction(db")
-      && testScenarioCommitSource.includes("transaction.get(directoryRef)")
-      && testScenarioCommitSource.includes("Object.keys(getRecoveredDirectorySnapshot())")
-      && testScenarioCommitSource.includes("new Set([...remoteEventIds, ...locallyRecoveredEventIds])")
-      && testScenarioCommitSource.includes("staleEventIds.forEach((eventId) => transaction.delete(getEventDocRef(eventId)))")
-      && testScenarioCommitSource.includes("events: seededDirectory")
-      && testScenarioCommitSource.includes("transaction.set(getActiveEventSelectionDocRef()")
-      && testScenarioCommitSource.includes("transaction.set(getArchivedResultsDocRef()")
-      && html.includes('id: "demo-bracket-current"')
-      && html.includes('id: "demo-twin-current"')
-      && html.includes('id: "demo-qualifying-current"')
-      && testScenarioSeedSource.includes("testScenarioSeedInFlight = true")
-      && testScenarioSeedSource.includes("const seeded = await commitTestDemoScenario(demo)")
-      && testScenarioSeedSource.includes("lastRemoteDirectoryEvents = mergeDirectoryMaps(seeded.directory)")
-      && testScenarioSeedSource.includes("testScenarioSeedInFlight = false")
-      && testScenarioSeedSource.includes("setupCloudSync(auth.currentUser)")
-      && activeEventSubscriptionSource.includes("if (testScenarioSeedInFlight || !snap.exists()) return;")
-      && cloudSyncSetupSource.match(/if \(testScenarioSeedInFlight\) return;/g)?.length === 3,
-  },
-  {
-    name: "test mode badge cannot cover admin or spectator content",
-    test: () => html.includes('body[data-test-mode="true"][data-role^="j"]::after')
-      && !html.includes('body[data-test-mode="true"]::after')
-      && html.includes('top: max(6px, env(safe-area-inset-top));'),
-  },
-  {
-    name: "isolated test fixtures unlock judge lanes without weakening production claims",
-    test: () => html.includes('if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE) {\n        return cloudClaimsIncludeRole(role, eventId);\n      }')
-      && html.includes('if (TEST_MODE_ENABLED) return true;')
-      && html.includes("return TEST_MODE_ENABLED ? 'testData' : 'data';"),
-  },
-  {
-    name: "test mode covers Solo, every supported SDC size, Team Tandem, and Twin Comp",
-    test: () => html.includes('<option value="sdc8">SDC Top 8 battle test</option>')
-      && html.includes('<option value="sdc16">SDC Top 16 battle test</option>')
-      && html.includes('<option value="sdc32">SDC Top 32 battle test</option>')
-      && html.includes('<option value="team">Team Tandem battle test</option>')
-      && html.includes('sdc8: { format: FORMAT_SDC_TOP_8, count: 8')
-      && html.includes('sdc16: { format: FORMAT_SDC_TOP_16, count: 16')
-      && html.includes('sdc32: { format: FORMAT_SDC_TOP_32, count: 32')
-      && html.includes('function buildDemoTeamTandemDrivers(teamCount = 8)'),
+    name: "browser runtime remains production-only and rejects stale selected-event payloads",
+    test: () => html.includes("return 'data';")
+      && html.includes("return 'events';")
+      && !firestoreRulesSource.includes("public/testData")
+      && !html.includes("buildTestDemoScenario")
+      && !html.includes("maybeRunPendingTestScenario")
+      && remoteEventApplySource.includes("payloadEventId !== activeEventId")
+      && remoteEventApplySource.includes("Ignored a stale event payload for a different selection."),
   },
   {
     name: "Twin Comp standings keep status and roster text on separate rows",

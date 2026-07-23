@@ -3,23 +3,22 @@ window.RC_DRIFT_CLIENT_CONFIG = {
     productName: "Prodigy Event Control",
     buildLabel: "Prodigy Native Stream Studio Build 2026.04.23.3",
     browserTitle: "Prodigy Event Control",
-    demoWindowName: "prodigy-live-demo-window",
-    testModeFlag: "testMode=1",
-    testDataScope: "testData"
+    // Browser application state always targets the configured production
+    // collection; test fixtures live exclusively in automated tests.
   },
   branding: {
     venueName: "Prodigy RC Drift Arena",
     venueLabelPlaceholder: "Prodigy RC Drift Arena",
     eventNamePlaceholder: "Prodigy RC Drift Arena",
-    logoPrimary: "./assets/prodigy-rc-logo-transparent.png?v=063647f4ccb4",
-    logoInverted: "./assets/prodigy-rc-logo-white-transparent.png?v=063647f4ccb4",
+    logoPrimary: "./assets/prodigy-rc-logo-transparent.png?v=e3bfe365b801",
+    logoInverted: "./assets/prodigy-rc-logo-white-transparent.png?v=e3bfe365b801",
     logoTreatment: {
       invertLight: false,
       invertDark: false
     },
     logoAlt: "Prodigy RC logo",
-    backgroundImage: "./assets/track-background.png?v=063647f4ccb4",
-    homeHeroImage: "./assets/track-background.png?v=063647f4ccb4",
+    backgroundImage: "./assets/track-background.png?v=e3bfe365b801",
+    homeHeroImage: "./assets/track-background.png?v=e3bfe365b801",
     shopUrl: "https://www.prodigydrift.com/",
     shopLabel: "Shop Prodigy RC Here",
     pdfHeaderTitle: "PRODIGY RC",

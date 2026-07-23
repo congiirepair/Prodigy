@@ -63,9 +63,8 @@ try {
   await assertFails(otherSpectator.doc(`${streamA}/sessions/session-1/viewers/spectator`).get());
 
   await assertFails(spectator.doc(`artifacts/${appId}/private/eventAccess/events/event-a`).get());
-  await assertSucceeds(spectator.doc("artifacts/test-app/public/testData/events/qa-event").set({ ok: true }));
-  const qaSnap = await spectator.doc("artifacts/test-app/public/testData/events/qa-event").get();
-  assert.equal(qaSnap.data().ok, true);
+  await assertFails(spectator.doc("artifacts/test-app/public/testData/events/qa-event").set({ ok: true }));
+  await assertFails(spectator.doc("artifacts/test-app/public/testData/events/qa-event").get());
 
   console.log("firestore authorization rules tests passed");
 } finally {

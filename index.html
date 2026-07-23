@@ -10,7 +10,7 @@
   <style>
     @font-face {
       font-family: 'Ethnocentric';
-      src: url('./assets/fonts/Ethnocentric-Regular.otf?v=063647f4ccb4') format('opentype');
+      src: url('./assets/fonts/Ethnocentric-Regular.otf?v=e3bfe365b801') format('opentype');
       font-weight: 400;
       font-style: normal;
       font-display: swap;
@@ -58,11 +58,11 @@
       --radius-panel: 24px;
       --radius-card: 18px;
       --radius-button: 14px;
-      --brand-track-background-image: url("./assets/track-background.png?v=063647f4ccb4");
-      --brand-watermark-image: url("./assets/prodigy-rc-logo-white-transparent.png?v=063647f4ccb4");
+      --brand-track-background-image: url("./assets/track-background.png?v=e3bfe365b801");
+      --brand-watermark-image: url("./assets/prodigy-rc-logo-white-transparent.png?v=e3bfe365b801");
       --font-graffiti: 'Ethnocentric', 'Orbitron', 'Inter', sans-serif;
       --font-sans: 'Inter', sans-serif;
-      --brand-home-hero-image: url("./assets/track-background.png?v=063647f4ccb4");
+      --brand-home-hero-image: url("./assets/track-background.png?v=e3bfe365b801");
       --accent-rgb: 44, 36, 29;
       --button-accent-rgb: 43, 36, 29;
       --button-accent-dark-rgb: 122, 99, 75;
@@ -14114,7 +14114,7 @@
       <div class="topbar-left">
         <div class="topbar-brand">
           <div class="topbar-brand-mark">
-            <img src="./assets/prodigy-rc-logo-transparent.png?v=063647f4ccb4" alt="Prodigy RC logo" />
+            <img src="./assets/prodigy-rc-logo-transparent.png?v=e3bfe365b801" alt="Prodigy RC logo" />
           </div>
           <div class="topbar-brand-copy">
             <span class="topbar-brand-kicker">Prodigy RC Comp</span>
@@ -14171,7 +14171,7 @@
       <div class="streamer-topbar-main">
         <div class="streamer-topbar-brandline">
           <div class="streamer-topbar-mark">
-            <img src="./assets/prodigy-rc-logo-transparent.png?v=063647f4ccb4" alt="Prodigy RC logo" />
+            <img src="./assets/prodigy-rc-logo-transparent.png?v=e3bfe365b801" alt="Prodigy RC logo" />
           </div>
           <div class="streamer-topbar-copy">
             <span class="streamer-topbar-kicker">Prodigy Stream Studio</span>
@@ -14189,12 +14189,10 @@
           </label>
           <button id="streamerFollowActiveBtn" class="micro-button" type="button">Follow Active Event</button>
           <button id="streamerCopyAllLinksBtn" class="micro-button button-accent" type="button">Copy LIVE Link</button>
-          <button id="streamerToggleDemoBtn" class="micro-button" type="button">Demo Data</button>
         </div>
         <nav class="mode-tabs streamer-topbar-tabs" aria-label="Streamer">
           <a class="mode-tab" data-streamer-target="streamer-dashboard">Studio</a>
           <a class="mode-tab" data-streamer-target="streamer-library">Assets</a>
-          <a class="mode-tab" data-streamer-target="streamer-demo">Demo Mode</a>
         </nav>
       </div>
     </div>
@@ -14333,16 +14331,6 @@
           </section>
         </section>
 
-        <section class="panel">
-          <div class="streamer-section-head">
-            <div>
-              <p class="streamer-panel-kicker">Test / Demo Preview Mode</p>
-              <h2>Safe Sandbox For Stream Setup</h2>
-            </div>
-            <p class="streamer-section-copy">Use branded demo data to rehearse automatic layouts before an event goes live.</p>
-          </div>
-          <div id="streamerDemoGrid" class="streamer-demo-grid"></div>
-        </section>
       </main>
     </div>
 
@@ -14372,21 +14360,6 @@
       </main>
     </div>
 
-    <div id="view-streamer-demo" class="view-section">
-      <main class="streamer-demo-shell">
-        <section class="panel">
-          <div class="streamer-section-head">
-            <div>
-              <p class="streamer-panel-kicker">Demo Mode</p>
-              <h2>Preview Every Scene With Test Data</h2>
-            </div>
-            <p class="streamer-section-copy">Run a full rehearsal with branded sample data, then switch back to live event sync when the stream is ready to go live.</p>
-          </div>
-          <div id="streamerDemoModeGrid" class="streamer-demo-grid"></div>
-        </section>
-      </main>
-    </div>
-
     <div id="view-streamer-scene" class="view-section">
       <div id="streamerSceneShell" class="streamer-scene-shell"></div>
     </div>
@@ -14397,7 +14370,7 @@
     <div id="view-registration" class="view-section is-active">
       <header class="hero">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=063647f4ccb4" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=e3bfe365b801" alt="Prodigy RC logo" /></div>
           <p class="eyebrow">Registration</p>
           <h1>Driver Sign-Up</h1>
           <div class="hero-actions">
@@ -14429,29 +14402,6 @@
         </div>
         <div id="commandCenterGrid" class="command-center-grid"></div>
         <div id="commandCenterValidation" class="command-center-validation"></div>
-        <div id="testModePanel" class="demo-sandbox-bar hidden">
-          <div class="demo-sandbox-copy">
-            <strong id="testModePanelTitle">TEST MODE</strong>
-            <span id="testModePanelStatus">Start a safe seeded event without touching production data.</span>
-          </div>
-          <div class="demo-sandbox-actions">
-            <label class="demo-judge-picker" for="testScenarioSelect">
-              <span>Scenario</span>
-              <select id="testScenarioSelect">
-                <option value="qualifying">Qualifying test</option>
-                <option value="bracket">Bracket battle test</option>
-                <option value="sdc8">SDC Top 8 battle test</option>
-                <option value="sdc16">SDC Top 16 battle test</option>
-                <option value="sdc32">SDC Top 32 battle test</option>
-                <option value="team">Team Tandem battle test</option>
-                <option value="twin">Twin comp triple elimination</option>
-              </select>
-            </label>
-            <button id="startDemoEventBtn" class="micro-button button-accent" type="button">Start Demo Event</button>
-            <button id="resetDemoDataBtn" class="micro-button demo-reset-button" type="button">Reset Demo Data</button>
-            <button id="testDebugToggleBtn" class="micro-button" type="button">Debug</button>
-          </div>
-        </div>
         <pre id="testDebugPanel" class="empty-state hidden" style="white-space: pre-wrap; overflow:auto; max-height:260px;"></pre>
         <div class="command-center-actions">
           <button id="commandCenterQualifyingBtn" class="button button-secondary" type="button">Open Qualifying</button>
@@ -14559,7 +14509,7 @@
     <div id="view-home" class="view-section">
       <header class="hero hero-simple spectator-only">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=063647f4ccb4" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=e3bfe365b801" alt="Prodigy RC logo" /></div>
           <p class="eyebrow" id="landingHeroEyebrow">Prodigy RC Drift Arena</p>
           <h1 id="landingHeroTitle"><span class="landing-brand-wordmark" aria-label="Live Drift Event Hub">Live Drift Event Hub</span></h1>
           <p id="landingHeroCopy" class="hero-copy">Check in, follow standings, and keep Prodigy RC Drift Arena event days moving from one live event home.</p>
@@ -14636,7 +14586,7 @@
     <div id="view-live" class="view-section">
       <header class="hero hero-simple spectator-only">
         <div class="hero-copy-block">
-          <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=063647f4ccb4" alt="Prodigy RC logo" /></div>
+          <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=e3bfe365b801" alt="Prodigy RC logo" /></div>
           <p class="eyebrow">Live Broadcast</p>
           <h1><span class="landing-brand-wordmark">LIVE</span></h1>
           <p class="hero-copy">Watch the active event stream with a layout that follows qualifying, battles, brackets, standings, and results automatically.</p>
@@ -14672,7 +14622,7 @@
     <div id="view-self-register" class="view-section">
       <header class="hero">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=063647f4ccb4" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=e3bfe365b801" alt="Prodigy RC logo" /></div>
           <p class="eyebrow">Driver Check-In</p>
           <h1>Self Registration</h1>
           <p class="hero-copy">Pre-register from home, then verify your location at the venue to complete check-in before event admin moves you into the live roster.</p>
@@ -14804,37 +14754,6 @@
       <div id="broadcastTickerTrack" class="broadcast-ticker-track"></div>
     </div>
 
-    <div class="demo-sandbox-stack">
-      <div id="demoSandboxBar" class="demo-sandbox-bar hidden">
-          <div class="demo-sandbox-copy">
-            <strong>Interactive Demo Sandbox</strong>
-            <span id="demoSandboxStatus">Keep this window on the live board, then open a judge phone demo on a second device to watch the standings update in real time.</span>
-          </div>
-          <div class="demo-sandbox-actions">
-            <label class="demo-judge-picker" for="demoJudgeRoleSelect">
-              <span>Judge</span>
-              <select id="demoJudgeRoleSelect">
-                <option value="j1">Judge 1</option>
-                <option value="j2">Judge 2</option>
-                <option value="j3">Judge 3</option>
-              </select>
-            </label>
-            <button id="openDemoJudgeLaunchBtn" class="micro-button" type="button">Judge Phone Demo</button>
-            <button class="micro-button button-accent" type="button" data-demo-launch data-demo-role="spectator" data-demo-view="bracket" data-demo-scenario="bracket">Interactive Bracket</button>
-            <button class="micro-button demo-reset-button" type="button" data-demo-reset>Reset Demo</button>
-          </div>
-        </div>
-        <div id="demoQualifyingQrPanel" class="demo-qualifying-qr-panel" hidden>
-          <strong>Scan To Open The Judge Phone Demo</strong>
-          <div class="registration-form-note">Open this on a phone or second device. The judge submits scores there while this main demo window stays on the live results board.</div>
-          <img id="demoQualifyingQrImage" alt="QR code for the live qualifying phone demo" />
-          <a id="demoQualifyingQrLink" class="simulation-qr-link invite-code-value route-link-value" href="#" target="_blank" rel="noopener noreferrer">Loading live qualifying demo link...</a>
-          <div class="demo-qualifying-qr-actions">
-            <button id="copyDemoQualifyingLinkBtn" class="micro-button" type="button">Copy Link</button>
-            <button id="openDemoQualifyingBtn" class="micro-button button-accent" type="button">Open Judge Phone Demo</button>
-          </div>
-        </div>
-    </div>
 
     <!-- ============================================== -->
     <!-- QUALIFYING VIEW                                -->
@@ -14842,7 +14761,7 @@
     <div id="view-qualifying" class="view-section">
       <header class="hero hero-simple">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=063647f4ccb4" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=e3bfe365b801" alt="Prodigy RC logo" /></div>
           <div class="spectator-qualifying-title spectator-only">
             <p class="eyebrow">Live Event</p>
             <h1>Qualifying Standings</h1>
@@ -14864,7 +14783,6 @@
           <button id="startQualifyingBtn" class="button button-secondary admin-action" type="button">Start Qualifying</button>
           <button id="randomizeQualifyingBtn" class="button button-secondary admin-action" type="button">Randomize Qualifying Order</button>
           <button id="openBracketBtn" class="button button-accent admin-action" type="button">Launch Bracket</button>
-          <button id="loadSampleBtn" class="button button-secondary admin-action" type="button">Load Test Sample</button>
         </div>
           <div id="launchWarning" class="error-msg">You need at least 2 scored drivers to launch.</div>
           <div class="hero-meta-inline admin-only">
@@ -14941,7 +14859,7 @@
     <div id="view-results" class="view-section">
       <header class="hero hero-simple">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=063647f4ccb4" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=e3bfe365b801" alt="Prodigy RC logo" /></div>
           <p class="eyebrow">Results</p>
           <h1>Past Events</h1>
           <p class="hero-copy">
@@ -14975,7 +14893,7 @@
     <div id="view-website-admin" class="view-section">
       <header class="hero">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=063647f4ccb4" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=e3bfe365b801" alt="Prodigy RC logo" /></div>
           <p class="eyebrow">Website Admin</p>
           <h1>Website Admin</h1>
           <p class="hero-copy">
@@ -15112,7 +15030,7 @@
       <!-- Fixed Fullscreen Toolbar -->
       <div class="bracket-header-bar">
         <div id="bracketHeaderLogoSlot">
-              <img class="bracket-header-logo" src="./assets/prodigy-rc-logo-transparent.png?v=063647f4ccb4" alt="Prodigy RC logo" />
+              <img class="bracket-header-logo" src="./assets/prodigy-rc-logo-transparent.png?v=e3bfe365b801" alt="Prodigy RC logo" />
         </div>
         <div class="button-row bracket-header-actions">
           <button id="fullscreenBracketBtn" class="button button-secondary bracket-header-icon-button" type="button" aria-label="Toggle fullscreen bracket" title="Toggle fullscreen">⛶<span class="icon-label">Fullscreen</span></button>
@@ -15167,7 +15085,7 @@
               <div class="bracket-header-center">
                 <p class="section-kicker">Play-In</p>
                 <h2 class="main-board-title">Lower Bracket</h2>
-                <img class="bracket-stage-logo" src="./assets/prodigy-rc-logo-transparent.png?v=063647f4ccb4" alt="Prodigy RC logo" />
+                <img class="bracket-stage-logo" src="./assets/prodigy-rc-logo-transparent.png?v=e3bfe365b801" alt="Prodigy RC logo" />
               </div>
               <div id="lowerBracketNextBattle" class="bracket-flow-slot right"></div>
             </div>
@@ -15186,7 +15104,7 @@
               <div class="bracket-header-center">
                 <p class="section-kicker">Main Event</p>
                 <h2 id="mainBracketTitle" class="main-board-title">Main Competition</h2>
-                <img class="bracket-stage-logo" src="./assets/prodigy-rc-logo-transparent.png?v=063647f4ccb4" alt="Prodigy RC logo" />
+                <img class="bracket-stage-logo" src="./assets/prodigy-rc-logo-transparent.png?v=e3bfe365b801" alt="Prodigy RC logo" />
               </div>
               <div id="mainBracketNextBattle" class="bracket-flow-slot right"></div>
             </div>
@@ -15481,17 +15399,17 @@
   </div>
 
   <!-- APP LOGIC -->
-  <script src="./client-config.js?v=063647f4ccb4"></script>
+  <script src="./client-config.js?v=e3bfe365b801"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script type="module">
-    import { parseVoiceCommandsWithFallback, sendResultsSummaryEmail } from "./assets/js/legacy-client-features.js?v=063647f4ccb4";
-    import { isHistoricalBracketUnavailable, resolveRecoveredBracket, shouldPreserveUnavailableHistoricalBracket } from "./assets/js/historical-bracket.js?v=063647f4ccb4";
+    import { parseVoiceCommandsWithFallback, sendResultsSummaryEmail } from "./assets/js/legacy-client-features.js?v=e3bfe365b801";
+    import { isHistoricalBracketUnavailable, resolveRecoveredBracket, shouldPreserveUnavailableHistoricalBracket } from "./assets/js/historical-bracket.js?v=e3bfe365b801";
     import {
       createSelectedEventSubscriptionController,
       resolveSelectionEventMeta,
       shouldReplaceCachedSelection,
       getLiveJudgeSelectionMismatch,
-    } from "./assets/js/event-selection-sync.js?v=063647f4ccb4";
+    } from "./assets/js/event-selection-sync.js?v=e3bfe365b801";
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, connectAuthEmulator } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, collection, doc, setDoc, onSnapshot, deleteDoc, deleteField, getDoc, runTransaction, connectFirestoreEmulator } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -15502,21 +15420,20 @@
         productName: "Prodigy Event Control",
         buildLabel: "Template Build 2026.04.16.1",
         browserTitle: "Prodigy Event Control",
-        demoWindowName: "prodigy-live-demo-window",
       },
       branding: {
         venueName: "Prodigy RC Drift Arena",
         venueLabelPlaceholder: "Prodigy RC Drift Arena",
         eventNamePlaceholder: "Prodigy RC Drift Arena",
-        logoPrimary: "./assets/prodigy-rc-logo-transparent.png?v=063647f4ccb4",
-        logoInverted: "./assets/prodigy-rc-logo-white-transparent.png?v=063647f4ccb4",
+        logoPrimary: "./assets/prodigy-rc-logo-transparent.png?v=e3bfe365b801",
+        logoInverted: "./assets/prodigy-rc-logo-white-transparent.png?v=e3bfe365b801",
         logoTreatment: {
           invertLight: false,
           invertDark: false,
         },
         logoAlt: "Prodigy RC logo",
-        backgroundImage: "./assets/track-background.png?v=063647f4ccb4",
-        homeHeroImage: "./assets/track-background.png?v=063647f4ccb4",
+        backgroundImage: "./assets/track-background.png?v=e3bfe365b801",
+        homeHeroImage: "./assets/track-background.png?v=e3bfe365b801",
         shopUrl: "https://www.prodigydrift.com/",
         shopLabel: "Shop Prodigy RC Here",
         pdfHeaderTitle: "PRODIGY RC",
@@ -15760,31 +15677,18 @@
     const FIREBASE_AUTH_EMULATOR_PORT = Number.parseInt(PAGE_SEARCH_PARAMS.get("authEmulatorPort") || "9099", 10) || 9099;
     const FIREBASE_FIRESTORE_EMULATOR_PORT = Number.parseInt(PAGE_SEARCH_PARAMS.get("firestoreEmulatorPort") || "8080", 10) || 8080;
     const FIREBASE_FUNCTIONS_EMULATOR_PORT = Number.parseInt(PAGE_SEARCH_PARAMS.get("functionsEmulatorPort") || "5001", 10) || 5001;
-    const STANDALONE_DEMO_MODE = PAGE_SEARCH_PARAMS.get("demoWindow") === "1";
-    const STANDALONE_DEMO_SESSION_PARAM = PAGE_SEARCH_PARAMS.get("demoSession") || "";
-    const DEMO_PREVIEW_SESSION_ID = "preview-live-demo";
-    const STANDALONE_DEMO_ROLE_PARAM = PAGE_SEARCH_PARAMS.get("demoRole");
-    const STANDALONE_DEMO_VIEW_PARAM = PAGE_SEARCH_PARAMS.get("demoView");
-    const STANDALONE_DEMO_SCENARIO_PARAM = PAGE_SEARCH_PARAMS.get("demoScenario");
-    const TEST_MODE_STORAGE_KEY = `rc-drift-test-mode-v${EVENT_STORAGE_VERSION}`;
-    const TEST_MODE_PENDING_SCENARIO_KEY = `rc-drift-test-mode-pending-scenario-v${EVENT_STORAGE_VERSION}`;
-    const TEST_MODE_DEBUG_STORAGE_KEY = `rc-drift-test-mode-debug-v${EVENT_STORAGE_VERSION}`;
-    const TEST_MODE_ENABLED = (() => {
-      if (STANDALONE_DEMO_MODE) return true;
-      try {
-        if (PAGE_SEARCH_PARAMS.get("testMode") === "0") {
-          localStorage.removeItem(TEST_MODE_STORAGE_KEY);
-          return false;
-        }
-        if (PAGE_SEARCH_PARAMS.get("testMode") === "1") {
-          localStorage.setItem(TEST_MODE_STORAGE_KEY, "1");
-          return true;
-        }
-        return localStorage.getItem(TEST_MODE_STORAGE_KEY) === "1";
-      } catch (error) {
-        return PAGE_SEARCH_PARAMS.get("testMode") === "1";
-      }
-    })();
+    // Browser routes always use the configured Firebase project. Legacy
+    // test/demo query and storage state is intentionally ignored.
+    try {
+      [
+        `rc-drift-test-mode-v${EVENT_STORAGE_VERSION}`,
+        `rc-drift-test-mode-pending-scenario-v${EVENT_STORAGE_VERSION}`,
+        `rc-drift-test-mode-debug-v${EVENT_STORAGE_VERSION}`,
+      ]
+        .forEach((key) => localStorage.removeItem(key));
+    } catch (error) {
+      // Storage can be unavailable in hardened browsers.
+    }
     const ROLE_ORDER = ["admin", "j1", "j2", "j3"];
     const JUDGE_ROLE_ORDER = ["j1", "j2", "j3"];
     const ROLE_ROUTE_SLUGS = Object.freeze({
@@ -15808,7 +15712,7 @@
       "website-admin": sanitizeHostValue(CLIENT_ROUTING.websiteAdminHost),
     });
     const ROUTABLE_VIEWS = new Set(["registration", "home", "live", "self-register", "self-register-display", "qualifying", "bracket", "results"]);
-    const STREAMER_VIEWS = new Set(["streamer-dashboard", "streamer-library", "streamer-demo", "streamer-scene"]);
+    const STREAMER_VIEWS = new Set(["streamer-dashboard", "streamer-library", "streamer-scene"]);
     const STREAMER_SCENE_ORDER = Object.freeze(["starting-soon", "qualifying", "battle", "bracket", "standings", "results", "intermission", "event-complete"]);
     const STREAMER_SCENE_META = Object.freeze({
       "starting-soon": {
@@ -16934,7 +16838,7 @@
     }
 
     async function commitRound3PdfRestore({ eventId, eventMeta, eventPayload, archivedRecord, syncStamp }) {
-      if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE && prodigyActionCallable) {
+      if (prodigyActionCallable) {
         const result = await callProdigyAction("commitEventSnapshot", {
           eventId,
           eventMeta,
@@ -17590,7 +17494,7 @@
         return false;
       }
 
-      if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE && prodigyActionCallable) {
+      if (prodigyActionCallable) {
         const remoteRevisionAtSubmit = remoteEventSnapshotRevision;
         setJudgeSubmissionInFlightState(true);
         try {
@@ -17712,7 +17616,7 @@
             syncStamp: lastLocalPush,
           }, { merge: true });
 
-          if (!STANDALONE_DEMO_MODE) {
+          if (true) {
             transaction.set(getDirectoryDocRef(), {
               events: {
                 [activeEventId]: cloneEventMeta(updatedMeta),
@@ -17831,7 +17735,7 @@
         return failedVote("Cloud sync is not connected yet. Wait for Sync Online, then tap again on the latest battle.");
       }
 
-      if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE && prodigyActionCallable) {
+      if (prodigyActionCallable) {
         setJudgeSubmissionInFlightState(true);
         try {
           const result = await callProdigyAction("submitJudgeVote", {
@@ -17921,7 +17825,7 @@
             syncStamp: lastLocalPush,
           }, { merge: true });
 
-          if (!STANDALONE_DEMO_MODE) {
+          if (true) {
             transaction.set(getDirectoryDocRef(), {
               events: {
                 [activeEventId]: cloneEventMeta(updatedMeta),
@@ -18044,7 +17948,7 @@
         return false;
       }
 
-      if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE && prodigyActionCallable) {
+      if (prodigyActionCallable) {
         setJudgeSubmissionInFlightState(true);
         try {
           const result = await callProdigyAction("submitJudgeScorecard", {
@@ -18135,7 +18039,7 @@
             syncStamp: lastLocalPush,
           }, { merge: true });
 
-          if (!STANDALONE_DEMO_MODE) {
+          if (true) {
             transaction.set(getDirectoryDocRef(), {
               events: {
                 [activeEventId]: cloneEventMeta(updatedMeta),
@@ -18221,7 +18125,7 @@
       competitionDecisionPanel?.classList.add("is-exiting");
       cancelCompetitionDecisionCountdown();
       try {
-        if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE && prodigyActionCallable) {
+        if (prodigyActionCallable) {
           const result = await callProdigyAction("adminCompetitionDecision", {
             eventId: activeEventId,
             decision,
@@ -20711,7 +20615,7 @@
       if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) return;
       ownerClaimExpiryTimer = window.setTimeout(() => {
         ownerClaimExpiryTimer = null;
-        if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE) setWebsiteAdminAccess(false, { persist: false });
+        if (true) setWebsiteAdminAccess(false, { persist: false });
       }, Math.max(0, expiresAt - Date.now() + 250));
     }
 
@@ -21621,7 +21525,7 @@
     }
 
     function saveEventStateCache() {
-      if (STANDALONE_DEMO_MODE) return;
+      if (false) return;
       if (!activeEventId || !activeEventMeta) return;
       syncQualifyingFlowState();
       const persistedState = getPersistableActiveEventState();
@@ -21646,7 +21550,7 @@
     }
 
     function saveDirectoryCache() {
-      if (STANDALONE_DEMO_MODE) return;
+      if (false) return;
       localStorage.setItem(EVENT_DIRECTORY_STORAGE_KEY, JSON.stringify(eventDirectory));
       localStorage.setItem(DELETED_EVENT_IDS_STORAGE_KEY, JSON.stringify(getDeletedEventIdsSnapshot()));
       if (activeEventId) {
@@ -21769,20 +21673,11 @@
 
     function isRoleUnlockedForEvent(eventId, role) {
       if (!eventId || !role || role === "spectator") return false;
-      if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE) {
-        return cloudClaimsIncludeRole(role, eventId);
-      }
-      // Test Mode is constrained to the separately writable testData scope.
-      // Its fixtures must be immediately usable from a second judge phone; no
-      // production role claim or production event data can be reached here.
-      if (TEST_MODE_ENABLED) return true;
-      const unlockMap = readRoleUnlockMap();
-      return Boolean(unlockMap?.[eventId]?.[role]);
+      return cloudClaimsIncludeRole(role, eventId);
     }
 
     function canApplyRoleForEvent(eventId, role, eventMeta = activeEventMeta) {
       if (!role || role === "spectator") return true;
-      if (STANDALONE_DEMO_MODE) return true;
       if (!isRoleAvailableForEvent(role, eventMeta)) return false;
       if (role?.startsWith("j") && isJudgeAccessLocked(eventMeta)) return false;
       return isRoleUnlockedForEvent(eventId, role);
@@ -21924,7 +21819,7 @@
         };
       };
 
-      if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE && prodigyActionCallable) {
+      if (prodigyActionCallable) {
         if (!auth?.currentUser || !activeEventServerReady) {
           const message = "Cloud sync is not connected yet. Wait for Sync Online, then choose your judge assignment again.";
           if (!options.silent) window.alert(message);
@@ -22031,7 +21926,7 @@
             syncStamp: lastLocalPush,
           }, { merge: true });
 
-          if (!STANDALONE_DEMO_MODE) {
+          if (true) {
             transaction.set(getDirectoryDocRef(), {
               events: {
                 [activeEventId]: cloneEventMeta(updatedMeta),
@@ -22211,6 +22106,14 @@
 
     function applyRemoteEventState(data) {
       if (!data) return;
+      const payloadEventId = String(data.id || activeEventId || "").trim();
+      if (!payloadEventId || payloadEventId !== activeEventId) {
+        console.warn("Ignored a stale event payload for a different selection.", {
+          activeEventId,
+          payloadEventId,
+        });
+        return false;
+      }
       remoteEventSnapshotRevision += 1;
       const nextSyncStamp = Number(data.syncStamp || 0);
       // Event sync stamps come from each client's clock, so they cannot safely
@@ -22239,12 +22142,14 @@
     }
 
     function publishSyncDiagnostics() {
-      const debugEnabled = TEST_MODE_ENABLED || new URLSearchParams(window.location.search).has("syncDebug");
+      const debugEnabled = new URLSearchParams(window.location.search).has("syncDebug");
       if (!debugEnabled) return;
       const control = getCompetitionJudgeControl();
       const entry = getCompetitionEntryFromControlOrFlow();
       const snapshot = {
         eventId: activeEventId,
+        listenerEventId: activeEventSubscriptionController?.getSelectedEventId?.() ?? null,
+        renderedEventId: activeEventMeta?.id || null,
         matchId: buildCompetitionJudgeEntryKey(entry),
         attemptId: getCompetitionJudgeAttemptId(control, entry),
         listenerRevision: activeEventSubscriptionController?.getRevision?.() ?? null,
@@ -22344,11 +22249,11 @@
     }
 
     function getFirebaseDataScopeKey() {
-      return TEST_MODE_ENABLED ? 'testData' : 'data';
+      return 'data';
     }
 
     function getEventCollectionKey() {
-      return STANDALONE_DEMO_MODE ? 'demoEvents' : 'events';
+      return 'events';
     }
 
     function getEventDocRef(eventId) {
@@ -22405,7 +22310,7 @@
       };
     }
 
-    function getThemeAwareLogoSource(primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=063647f4ccb4", invertedLogo = CLIENT_BRANDING.logoInverted || primaryLogo) {
+    function getThemeAwareLogoSource(primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=e3bfe365b801", invertedLogo = CLIENT_BRANDING.logoInverted || primaryLogo) {
       return document.body?.dataset.theme === "dark" ? invertedLogo : primaryLogo;
     }
 
@@ -22477,7 +22382,7 @@
         let activeEventPayload = null;
         let superseded = false;
         try {
-          if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE && prodigyActionCallable) {
+          if (prodigyActionCallable) {
             try {
               const result = await callProdigyAction("setActiveSelection", {
                 eventId: selectedEventId,
@@ -22739,7 +22644,7 @@
       archivedResultsChanged = false,
       archivedResultRecord = undefined,
     }) {
-      if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE && prodigyActionCallable) {
+      if (prodigyActionCallable) {
         const securePayload = {
           eventId,
           eventPayload,
@@ -22777,7 +22682,7 @@
           syncStamp: publishSyncStamp,
         });
 
-        if (!STANDALONE_DEMO_MODE) {
+        if (true) {
           transaction.set(getDirectoryDocRef(), {
             events: {
               [eventId]: cloneEventMeta(eventMeta),
@@ -22933,7 +22838,7 @@
     }
 
     async function bootstrapStandaloneDemoSession() {
-      if (!STANDALONE_DEMO_MODE || !db || !activeEventId) return;
+      if (!db || !activeEventId) return;
       const statusEl = document.getElementById('syncStatus');
       if (statusEl) {
         statusEl.textContent = "Demo Window";
@@ -22956,7 +22861,7 @@
     function setupCloudSync(user) {
       if (!db || !user) return;
       const statusEl = document.getElementById('syncStatus');
-      if (STANDALONE_DEMO_MODE) {
+      if (false) {
         statusEl.textContent = "Demo Window";
         statusEl.classList.remove("online");
         bootstrapStandaloneDemoSession();
@@ -23252,14 +23157,6 @@
     const commandCenterQualifyingBtn = document.getElementById("commandCenterQualifyingBtn");
     const commandCenterBracketBtn = document.getElementById("commandCenterBracketBtn");
     const commandCenterFinalizeBtn = document.getElementById("commandCenterFinalizeBtn");
-    const testModePanel = document.getElementById("testModePanel");
-    const testModePanelTitle = document.getElementById("testModePanelTitle");
-    const testModePanelStatus = document.getElementById("testModePanelStatus");
-    const testScenarioSelect = document.getElementById("testScenarioSelect");
-    const startDemoEventBtn = document.getElementById("startDemoEventBtn");
-    const resetDemoDataBtn = document.getElementById("resetDemoDataBtn");
-    const testDebugToggleBtn = document.getElementById("testDebugToggleBtn");
-    const testDebugPanel = document.getElementById("testDebugPanel");
     const landingHeroEyebrow = document.getElementById("landingHeroEyebrow");
     const landingHeroTitle = document.getElementById("landingHeroTitle");
     const landingHeroCopy = document.getElementById("landingHeroCopy");
@@ -23296,15 +23193,6 @@
     const resultsEventList = document.getElementById("resultsEventList");
     const broadcastTicker = document.getElementById("broadcastTicker");
     const broadcastTickerTrack = document.getElementById("broadcastTickerTrack");
-    const demoSandboxBar = document.getElementById("demoSandboxBar");
-    const demoSandboxStatus = document.getElementById("demoSandboxStatus");
-    const demoQualifyingQrPanel = document.getElementById("demoQualifyingQrPanel");
-    const demoQualifyingQrImage = document.getElementById("demoQualifyingQrImage");
-    const demoQualifyingQrLink = document.getElementById("demoQualifyingQrLink");
-    const demoJudgeRoleSelect = document.getElementById("demoJudgeRoleSelect");
-    const openDemoJudgeLaunchBtn = document.getElementById("openDemoJudgeLaunchBtn");
-    const copyDemoQualifyingLinkBtn = document.getElementById("copyDemoQualifyingLinkBtn");
-    const openDemoQualifyingBtn = document.getElementById("openDemoQualifyingBtn");
     const websiteAdminGate = document.getElementById("websiteAdminGate");
     const websiteAdminWorkspace = document.getElementById("websiteAdminWorkspace");
     const websiteAdminUnlockBtn = document.getElementById("websiteAdminUnlockBtn");
@@ -23329,7 +23217,6 @@
     const driversTableBody = document.getElementById("driversTableBody");
     const driversTableWrap = document.getElementById("driversTableWrap");
     const mobileDriversList = document.getElementById("mobileDriversList");
-    const loadSampleBtn = document.getElementById("loadSampleBtn");
     const fullscreenQualifyingBtn = document.getElementById("fullscreenQualifyingBtn");
     const openBracketBtn = document.getElementById("openBracketBtn");
     const resultsExportPdfBtn = document.getElementById("resultsExportPdfBtn");
@@ -23359,28 +23246,6 @@
     function getConfiguredWindowBaseUrl() {
       if (typeof window !== "undefined" && window.location.href) return window.location.href;
       return "https://example.com/";
-    }
-
-    function shouldKeepStandaloneDemoOnCurrentOrigin() {
-      if (typeof window === "undefined") return false;
-      if (STANDALONE_DEMO_MODE) return true;
-      const protocol = String(window.location.protocol || "").toLowerCase();
-      if (protocol === "file:") return true;
-      const host = String(window.location.hostname || "").toLowerCase();
-      return host === "localhost" || host === "127.0.0.1" || host.endsWith(".local");
-    }
-
-    function buildStandaloneDemoBaseUrl() {
-      const targetUrl = new URL(getConfiguredWindowBaseUrl());
-      if (!shouldKeepStandaloneDemoOnCurrentOrigin() && PUBLIC_ROLE_HOSTNAMES.spectator) {
-        targetUrl.protocol = "https:";
-        targetUrl.hostname = PUBLIC_ROLE_HOSTNAMES.spectator;
-        targetUrl.port = "";
-      }
-      targetUrl.pathname = "/";
-      targetUrl.hash = "";
-      targetUrl.search = "";
-      return targetUrl;
     }
 
     function getConfiguredSiteLabel() {
@@ -23698,11 +23563,11 @@
 
     function applyClientBranding() {
       const root = document.documentElement;
-      const primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=063647f4ccb4";
+      const primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=e3bfe365b801";
       const invertedLogo = CLIENT_BRANDING.logoInverted || primaryLogo;
       const logoTreatment = isPlainObject(CLIENT_BRANDING.logoTreatment) ? CLIENT_BRANDING.logoTreatment : {};
       const logoAlt = CLIENT_BRANDING.logoAlt || CLIENT_BRANDING.venueName || "Track logo";
-      const backgroundImage = CLIENT_BRANDING.backgroundImage || "./assets/track-background.png?v=063647f4ccb4";
+      const backgroundImage = CLIENT_BRANDING.backgroundImage || "./assets/track-background.png?v=e3bfe365b801";
       const homeHeroImage = CLIENT_BRANDING.homeHeroImage || backgroundImage;
       const browserTitle = CLIENT_PLATFORM.browserTitle || CLIENT_PLATFORM.productName || "Prodigy Event Control";
 
@@ -23925,7 +23790,7 @@
     }
 
     function setWebsiteAdminAccess(enabled, options = {}) {
-      const canUseClaim = TEST_MODE_ENABLED || STANDALONE_DEMO_MODE || cloudOwnerClaimActive(cloudClaims);
+      const canUseClaim = cloudOwnerClaimActive(cloudClaims);
       isWebsiteAdmin = Boolean(enabled && canUseClaim);
       document.body.dataset.siteAdmin = String(isWebsiteAdmin);
       syncWebsiteAdminButtonVisibility();
@@ -23980,7 +23845,7 @@
       syncWebsiteAdminUpcomingBannerUi();
     }
 
-    function syncBrandLogoAssetsForTheme(primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=063647f4ccb4", invertedLogo = CLIENT_BRANDING.logoInverted || primaryLogo, logoAlt = CLIENT_BRANDING.logoAlt || "Prodigy RC logo") {
+    function syncBrandLogoAssetsForTheme(primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=e3bfe365b801", invertedLogo = CLIENT_BRANDING.logoInverted || primaryLogo, logoAlt = CLIENT_BRANDING.logoAlt || "Prodigy RC logo") {
       const themedLogo = getThemeAwareLogoSource(primaryLogo, invertedLogo);
       document.querySelectorAll(".hero-logo, .bracket-stage-logo, .bracket-header-logo, .topbar-brand-mark img, .streamer-topbar-mark img, .native-broadcast-brand img").forEach((logoEl) => {
         logoEl.setAttribute("src", themedLogo);
@@ -24235,13 +24100,11 @@
 
     function detectForcedHostContext() {
       if (typeof window === "undefined") return null;
-      if (STANDALONE_DEMO_MODE) return null;
       const search = new URLSearchParams(window.location.search || "");
       const rawHash = String(window.location.hash || "").trim().toLowerCase();
       const cleanedHash = rawHash.replace(/^#\/?/, "");
       const segments = cleanedHash.split("/").filter(Boolean);
-      const explicitStreamerRoute = search.get("streamer") === "1"
-        || (shouldKeepStandaloneDemoOnCurrentOrigin() && ["dashboard", "library", "demo", "scene", "overlay"].includes(segments[0] || ""));
+      const explicitStreamerRoute = search.get("streamer") === "1";
       if (explicitStreamerRoute) {
         return { kind: "streamer", view: "streamer-dashboard", slug: "streamer" };
       }
@@ -24256,7 +24119,6 @@
         globalRoleSelect.disabled = Boolean(forcedHostContext && (forcedHostContext.kind === "role" || forcedHostContext.kind === "streamer"));
       }
       renderWebsiteAdminAccessState();
-      syncStandaloneDemoSandboxUi();
     }
 
     function isRoleAllowedForHost(role) {
@@ -24289,7 +24151,7 @@
     function normalizeStreamerViewName(viewName) {
       const normalized = String(viewName || "").trim().toLowerCase();
       if (normalized === "library" || normalized === "streamer-library") return "streamer-library";
-      if (normalized === "demo" || normalized === "streamer-demo") return "streamer-demo";
+      if (normalized === "demo" || normalized === "streamer-demo") return "streamer-dashboard";
       if (normalized === "scene" || normalized === "overlay" || normalized === "streamer-scene") return "streamer-scene";
       return "streamer-dashboard";
     }
@@ -24302,7 +24164,7 @@
         view,
         scene: normalizeStreamerScene(route.scene),
         variant,
-        demo: route.demo === true,
+        demo: false,
       };
     }
 
@@ -24343,7 +24205,7 @@
     }
 
     function getActiveViewName() {
-      const views = ["registration", "home", "live", "self-register", "self-register-display", "qualifying", "results", "website-admin", "bracket", "streamer-dashboard", "streamer-library", "streamer-demo", "streamer-scene"];
+      const views = ["registration", "home", "live", "self-register", "self-register-display", "qualifying", "results", "website-admin", "bracket", "streamer-dashboard", "streamer-library", "streamer-scene"];
       return views.find((viewName) => document.getElementById(`view-${viewName}`)?.classList.contains("is-active")) || "qualifying";
     }
 
@@ -24439,9 +24301,6 @@
         targetUrl.pathname = "/";
         targetUrl.hash = "";
         targetUrl.search = "";
-        if (TEST_MODE_ENABLED) {
-          targetUrl.searchParams.set("testMode", "1");
-        }
         const resolvedView = normalizeRouteViewForRole(role, viewName || getDefaultViewForRole(role));
         if (!forcedHostContext && routeKey !== "website-admin" && resolvedView && resolvedView !== getDefaultViewForRole(role)) {
           targetUrl.hash = buildRoleRouteHash(role, resolvedView);
@@ -24485,7 +24344,7 @@
       const cleanedHash = rawHash.replace(/^#\/?/, "");
       const segments = cleanedHash.split("/").filter(Boolean);
       const hasStreamerSegments = ["dashboard", "library", "demo", "scene", "overlay"].includes(segments[0] || "");
-      if (forcedHostContext?.kind === "streamer" || search.get("streamer") === "1" || (shouldKeepStandaloneDemoOnCurrentOrigin() && hasStreamerSegments)) {
+      if (forcedHostContext?.kind === "streamer" || search.get("streamer") === "1" || hasStreamerSegments) {
         if (!segments.length) {
           return normalizeStreamerRoute({
             view: forcedHostContext.view || "streamer-dashboard",
@@ -24497,14 +24356,14 @@
           return normalizeStreamerRoute({ view: "streamer-library" });
         }
         if (segments[0] === "demo") {
-          return normalizeStreamerRoute({ view: "streamer-demo" });
+          return normalizeStreamerRoute({ view: "streamer-dashboard" });
         }
         if (segments[0] === "scene" || segments[0] === "overlay") {
           return normalizeStreamerRoute({
             view: "streamer-scene",
             variant: segments[0],
             scene: segments[1],
-            demo: segments[2] === "demo",
+            demo: false,
           });
         }
         return normalizeStreamerRoute({ view: "streamer-dashboard" });
@@ -24563,9 +24422,6 @@
       }
       targetUrl.pathname = "/";
       targetUrl.search = "";
-      if (TEST_MODE_ENABLED) {
-        targetUrl.searchParams.set("testMode", "1");
-      }
       targetUrl.hash = "#/spectator/self-register";
       return targetUrl.toString();
     }
@@ -24621,9 +24477,6 @@
       targetUrl.pathname = "/";
       targetUrl.hash = "#/spectator/self-register";
       targetUrl.search = "";
-      if (TEST_MODE_ENABLED) {
-        targetUrl.searchParams.set("testMode", "1");
-      }
       if (eventMeta?.id) {
         targetUrl.searchParams.set("eventId", eventMeta.id);
       }
@@ -24645,430 +24498,6 @@
       const selfRegisterUrl = buildVenueQrCheckInUrl();
       if (!selfRegisterUrl) return "";
       return `https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encodeURIComponent(selfRegisterUrl)}`;
-    }
-
-    function getSelectedDemoJudgeRole() {
-      return normalizeStandaloneDemoRole(demoJudgeRoleSelect?.value || "j1");
-    }
-
-    function buildQualifyingDemoUrl(role = getSelectedDemoJudgeRole()) {
-      return buildStandaloneDemoUrl({
-        role,
-        view: "qualifying",
-        scenario: "judging",
-        sessionId: STANDALONE_DEMO_SESSION_PARAM || DEMO_PREVIEW_SESSION_ID,
-      });
-    }
-
-    function buildQualifyingDemoQrUrl(role = getSelectedDemoJudgeRole()) {
-      const qualifyingUrl = buildQualifyingDemoUrl(role);
-      if (!qualifyingUrl) return "";
-      return `https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encodeURIComponent(qualifyingUrl)}`;
-    }
-
-    function syncQualifyingDemoQrPreview(linkEl, imageEl, role = getSelectedDemoJudgeRole()) {
-      if (!linkEl || !imageEl) return;
-      const qualifyingUrl = buildQualifyingDemoUrl(role);
-      const qrUrl = buildQualifyingDemoQrUrl(role);
-      linkEl.href = qualifyingUrl || "#";
-      linkEl.textContent = qualifyingUrl || "Judge phone demo link unavailable.";
-      if (qrUrl) {
-        imageEl.src = qrUrl;
-        imageEl.hidden = false;
-      } else {
-        imageEl.removeAttribute("src");
-        imageEl.hidden = true;
-      }
-    }
-
-    function syncDemoQualifyingQrPanel() {
-      syncQualifyingDemoQrPreview(demoQualifyingQrLink, demoQualifyingQrImage);
-    }
-
-    function normalizeStandaloneDemoRole(role) {
-      return ["spectator", "admin", "j1", "j2", "j3"].includes(role) ? role : "spectator";
-    }
-
-    function normalizeStandaloneDemoView(viewName, role = "spectator") {
-      const normalizedRole = normalizeStandaloneDemoRole(role);
-      const resolvedView = viewName === "qualifying" ? "qualifying" : "bracket";
-      if (normalizedRole.startsWith("j")) return "qualifying";
-      return resolvedView;
-    }
-
-    function normalizeStandaloneDemoScenario(scenario, role = "spectator", viewName = "bracket") {
-      if (scenario === "live") return "live";
-      if (scenario === "judging" && normalizeStandaloneDemoRole(role).startsWith("j")) return "judging";
-      if (scenario === "overview") return "overview";
-      return normalizeStandaloneDemoView(viewName, role) === "qualifying" ? "judging" : "bracket";
-    }
-
-    function createStandaloneDemoSessionId() {
-      return `live-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-    }
-
-    function getStandaloneDemoEventId(sessionId = STANDALONE_DEMO_SESSION_PARAM) {
-      return `standalone-demo-${sessionId || "window"}`;
-    }
-
-    function getLiveDemoLaunchOptions(overrides = {}) {
-      return {
-        role: "spectator",
-        view: "qualifying",
-        scenario: "live",
-        sessionId: overrides.sessionId || STANDALONE_DEMO_SESSION_PARAM || createStandaloneDemoSessionId(),
-      };
-    }
-
-    function buildStandaloneDemoUrl(options = {}) {
-      if (typeof window === "undefined") return "";
-      const demoRole = normalizeStandaloneDemoRole(options.role || STANDALONE_DEMO_ROLE_PARAM || "spectator");
-      const demoView = normalizeStandaloneDemoView(options.view || STANDALONE_DEMO_VIEW_PARAM || "qualifying", demoRole);
-      const demoScenario = normalizeStandaloneDemoScenario(options.scenario || STANDALONE_DEMO_SCENARIO_PARAM || null, demoRole, demoView);
-      const demoSessionId = options.sessionId || STANDALONE_DEMO_SESSION_PARAM || createStandaloneDemoSessionId();
-      const targetUrl = buildStandaloneDemoBaseUrl();
-      targetUrl.searchParams.set("demoWindow", "1");
-      targetUrl.searchParams.set("demoSession", demoSessionId);
-      targetUrl.searchParams.set("demoRole", demoRole);
-      targetUrl.searchParams.set("demoView", demoView);
-      targetUrl.searchParams.set("demoScenario", demoScenario);
-      targetUrl.hash = buildRoleRouteHash(demoRole, demoView);
-      return targetUrl.toString();
-    }
-
-    const TEST_SAMPLE_DRIVER_ENTRIES = Object.freeze([
-      ["Takumi Sato", "Project D", "Yokomo MD 2.0", 99.2, 98.7],
-      ["Mika Torres", "Slide Theory", "MST RMX 2.5", 98.8, 98.1],
-      ["Jordan Lee", "White Smoke", "Reve D RDX", 98.1, 97.9],
-      ["Chris Vega", "Night Shift", "Overdose Galm", 97.6, 97.2],
-      ["Noah Kim", "Apex Line", "Yokomo SD 3.0", 97.4, 96.9],
-      ["Aiden Brooks", "Countersteer Crew", "MST RMX EX GT", 96.8, 96.1],
-      ["Luis Ramirez", "Static Works", "Reve D RDX", 96.2, 95.7],
-      ["Kai Foster", "Blackout Drift", "Yokomo MD 1.0", 95.9, 95.1],
-      ["Mason Hill", "Side Bite", "MST RMX 2.5", 95.4, 94.8],
-      ["Eli Carter", "Ghost Angle", "Overdose Galm", 94.9, 94.2],
-      ["Asher Bell", "Prime Slide", "Reve D RDX", 94.4, 93.9],
-      ["Roman Ward", "Late Apex", "Yokomo SD 2.0", 93.8, 93.2],
-      ["Caleb Reed", "Steel Smoke", "MST RMX 2.0", 93.1, 92.4],
-      ["Hunter Miles", "Street Limit", "Yokomo MD 2.0", 92.6, 92.1],
-      ["Tristan Holt", "Clean Line", "Reve D RDX", 92.0, 91.5],
-      ["Blake Griffin", "North Side", "MST RMX EX GT", 91.4, 90.9],
-      ["Levi Cruz", "Shadow Team", "Overdose Galm", 90.9, 90.2],
-      ["Carter Quinn", "Rogue Angle", "Yokomo SD 3.0", 90.3, 89.7],
-      ["Griffin Shaw", "Voltage RC", "MST RMX 2.5", 89.8, 89.1],
-      ["Ethan Perry", "Track Ritual", "Reve D RDX", 89.2, 88.8],
-      ["Roman Diaz", "Finish First", "Yokomo MD 2.0", 88.7, 88.1],
-      ["Cole Bennett", "Zero Counter", "MST RMX 2.0", 88.2, 87.6],
-      ["Nico Alvarez", "Broken Traction", "Overdose Galm", 87.6, 86.9],
-      ["Jaxon Reed", "Clip Point", "Yokomo MD 1.0", 87.1, 86.4],
-      ["Tyler West", "Rear Lock", "MST RMX 2.5", 86.5, 85.9],
-      ["Shawn Mercer", "Throttle Line", "Reve D RDX", 85.8, 85.1],
-      ["Owen Pierce", "Street Ghost", "Yokomo SD 2.0", 85.2, 84.7],
-      ["Marco Ellis", "Counter King", "Overdose Galm", 84.9, 84.1],
-      ["Devon Park", "Burnout Club", "MST RMX EX GT", 84.1, 83.6],
-      ["Logan Frost", "Sideways Lab", "Yokomo MD 2.0", 83.5, 82.9],
-      ["Miles Tanaka", "Late Entry", "Reve D RDX", 82.8, 82.2],
-      ["Parker Stone", "Static Habit", "MST RMX 2.0", 82.1, 81.6],
-    ]);
-
-    function buildTestSampleDrivers(populateScores = false) {
-      return TEST_SAMPLE_DRIVER_ENTRIES.map(([name, teamName, chassis, run1, run2], index) => {
-        const driver = createEmptyDriver(index + 1);
-        driver.name = name;
-        driver.teamName = teamName;
-        driver.chassis = chassis;
-        driver.runFlags = { run1: null, run2: null, runoff: null };
-        JUDGE_ROLE_ORDER.forEach((role, roleIndex) => {
-            const run1Score = populateScores ? clampJudgeScoreValue(run1 - (roleIndex * 0.1), role) : null;
-            const run2Score = populateScores ? clampJudgeScoreValue(run2 - (roleIndex * 0.1), role) : null;
-          driver.scores[role] = {
-            run1: run1Score,
-            run2: run2Score,
-            runoff: null,
-            submitted: { run1: run1Score, run2: run2Score, runoff: null },
-            deductionHistory: { run1: [], run2: [], runoff: [] },
-          };
-        });
-        return driver;
-      });
-    }
-
-    function createStandaloneDemoDrivers() {
-      return buildTestSampleDrivers(true).slice(0, 16);
-    }
-
-    function buildStandaloneJudgeDemoDrivers(activeRole = "j1") {
-      const demoRole = normalizeStandaloneDemoRole(activeRole);
-      return TEST_SAMPLE_DRIVER_ENTRIES.slice(0, 23).map(([name, teamName, chassis], index) => {
-        const driver = createEmptyDriver(index + 1);
-        driver.name = name;
-        driver.teamName = teamName;
-        driver.chassis = chassis;
-        driver.runFlags = { run1: null, run2: null, runoff: null };
-        JUDGE_ROLE_ORDER.forEach((role) => {
-          const isInteractiveRole = role === demoRole;
-          driver.scores[role] = {
-            run1: null,
-            run2: null,
-            runoff: null,
-            submitted: {
-              run1: null,
-              run2: null,
-              runoff: null,
-            },
-            deductionHistory: { run1: [], run2: [], runoff: [] },
-          };
-          if (!isInteractiveRole) {
-            driver.scores[role].run1 = null;
-            driver.scores[role].run2 = null;
-          }
-        });
-        return driver;
-      });
-    }
-
-    function createStandaloneDemoSnapshot(options = {}) {
-      const initialRole = normalizeStandaloneDemoRole(options.role || STANDALONE_DEMO_ROLE_PARAM || "spectator");
-      const initialView = normalizeStandaloneDemoView(options.view || STANDALONE_DEMO_VIEW_PARAM || "qualifying", initialRole);
-      const scenario = normalizeStandaloneDemoScenario(options.scenario || STANDALONE_DEMO_SCENARIO_PARAM || null, initialRole, initialView);
-      const createdAt = new Date().toISOString();
-      const sessionId = options.sessionId || STANDALONE_DEMO_SESSION_PARAM || createStandaloneDemoSessionId();
-      const bracketDrivers = createStandaloneDemoDrivers();
-      const bracketRankedDrivers = rankDrivers(bracketDrivers);
-      const demoTournament = createTournamentState(bracketRankedDrivers, FORMAT_CLASSIC, 0);
-      const liveQualifyingBoard = scenario === "live";
-      const demoDrivers = (scenario === "judging" && initialRole.startsWith("j")) || liveQualifyingBoard
-        ? buildStandaloneJudgeDemoDrivers(initialRole)
-        : bracketDrivers;
-      const rankedDrivers = rankDrivers(demoDrivers);
-      const liveQualifying = scenario === "judging" && initialRole.startsWith("j");
-      const judgeCount = liveQualifyingBoard || liveQualifying ? 1 : 3;
-
-      return {
-        meta: {
-          id: getStandaloneDemoEventId(sessionId),
-          name: liveQualifyingBoard
-            ? `${CLIENT_PLATFORM.productName || "Prodigy Event Control"} Live Demo`
-            : liveQualifying
-              ? `${CLIENT_PLATFORM.productName || "Prodigy Event Control"} Judge Sandbox`
-              : `${CLIENT_PLATFORM.productName || "Prodigy Event Control"} Bracket Sandbox`,
-          date: new Date().toISOString().slice(0, 10),
-          status: "active",
-          judgeCount,
-          createdAt,
-          updatedAt: createdAt,
-          syncStamp: Date.now(),
-          roleNames: buildDefaultRoleNames(),
-          venueConfig: createDefaultVenueConfig({
-            enabled: true,
-            label: CLIENT_BRANDING.demoVenueLabel || CLIENT_BRANDING.venueName || "Prodigy Demo Arena",
-            latitude: 33,
-            longitude: -117,
-            radiusMeters: 150,
-          }),
-          venueProfiles: [],
-          pendingRegistrations: [],
-          upcomingEventBanner: null,
-          latestApprovalToast: null,
-          judgeRoleClaims: createEmptyJudgeRoleClaims(),
-          roleAccess: {},
-          results: {
-            ...buildEmptyEventResults(),
-            qualifiedCount: rankedDrivers.length,
-            totalDrivers: rankedDrivers.length,
-            planDescription: liveQualifyingBoard
-              ? "Dedicated live demo window. Keep this board open, scan the QR on a phone, submit scores there, then switch to bracket mode to advance demo battles."
-              : liveQualifying
-              ? "Fresh live judging demo. Start at 100, use deductions, and submit each run to watch the qualifying lane update live."
-              : (demoTournament?.plan?.description || "Interactive demo bracket ready."),
-          },
-        },
-        drivers: demoDrivers,
-        qualifyingFlow: liveQualifying || liveQualifyingBoard
-          ? {
-              currentDriverId: demoDrivers[0]?.id || null,
-              readyRoles: {},
-              started: true,
-              completed: false,
-            }
-          : {
-              currentDriverId: null,
-              readyRoles: {},
-              started: true,
-              completed: true,
-            },
-        tournament: demoTournament,
-        initialRole,
-        initialView,
-        scenario,
-      };
-    }
-
-    function syncStandaloneDemoSandboxUi() {
-      if (!demoSandboxBar || !demoSandboxStatus) return;
-      demoSandboxBar.classList.toggle("hidden", !STANDALONE_DEMO_MODE);
-      document.body.dataset.demoWindow = STANDALONE_DEMO_MODE ? "true" : "false";
-      if (demoQualifyingQrPanel && !STANDALONE_DEMO_MODE) {
-        demoQualifyingQrPanel.hidden = true;
-      }
-      if (!STANDALONE_DEMO_MODE) return;
-
-      const activeView = getActiveViewName();
-      const isJudgeDemo = currentRole?.startsWith("j") && activeView === "qualifying";
-      const isLiveDemoBoard = currentRole === "spectator" && activeView === "qualifying";
-      demoSandboxStatus.textContent = isJudgeDemo
-        ? `${getRoleDisplayName(currentRole)} phone demo is live. Submit Run 1 and Run 2 here while the main demo window stays on the live spectator board.`
-        : isLiveDemoBoard
-          ? "This standalone live demo window is the spectator board. Scan the QR on a phone to submit scores here live, or switch to the bracket demo when you're ready."
-          : "Interactive bracket sandbox is live. Click any sample winner card or battle flow card to advance the bracket.";
-      if (demoJudgeRoleSelect && currentRole?.startsWith("j")) {
-        demoJudgeRoleSelect.value = currentRole;
-      }
-      syncDemoQualifyingQrPanel();
-      if (demoQualifyingQrPanel) {
-        demoQualifyingQrPanel.hidden = !(currentRole === "spectator" && activeView === "qualifying");
-      }
-
-      demoSandboxBar.querySelectorAll("[data-demo-launch]").forEach((button) => {
-        const buttonRole = normalizeStandaloneDemoRole(button.dataset.demoRole || "spectator");
-        const buttonView = normalizeStandaloneDemoView(button.dataset.demoView || "bracket", buttonRole);
-        button.classList.toggle("is-active", buttonRole === currentRole && buttonView === activeView);
-      });
-    }
-
-    function isTestDebugEnabled() {
-      try {
-        return localStorage.getItem(TEST_MODE_DEBUG_STORAGE_KEY) === "1";
-      } catch (error) {
-        return false;
-      }
-    }
-
-    function setTestDebugEnabled(enabled) {
-      try {
-        if (enabled) localStorage.setItem(TEST_MODE_DEBUG_STORAGE_KEY, "1");
-        else localStorage.removeItem(TEST_MODE_DEBUG_STORAGE_KEY);
-      } catch (error) {}
-    }
-
-    function buildTestDebugSnapshot() {
-      const currentDriver = getCurrentQualifyingDriver();
-      const twinRound = getTwinCompCurrentRound();
-      return {
-        mode: TEST_MODE_ENABLED ? "TEST" : "PRODUCTION",
-        dataScope: TEST_MODE_ENABLED ? "testData" : "data",
-        activeEventId,
-        activeView: getActiveViewName(),
-        role: currentRole,
-        eventName: activeEventMeta?.name || null,
-        competitionMode: activeEventMeta?.competitionMode || null,
-        currentDriverOrTeam: currentDriver ? { id: currentDriver.id, name: currentDriver.name, teamName: currentDriver.teamName } : null,
-        qualifyingFlow,
-        bracketLive: Boolean(tournamentState?.mainBracket?.rounds?.length),
-        twinComp: twinCompState ? {
-          status: twinCompState.status,
-          roundNumber: twinCompState.roundNumber,
-          currentRoundId: twinCompState.currentRoundId,
-          activeTeams: getTwinCompActiveTeams().length,
-          currentRound: twinRound ? {
-            number: twinRound.number,
-            status: twinRound.status,
-            scoredTeams: twinRound.teamIds?.filter((teamId) => getTwinCompTeamRoundScore(teamId, twinRound)).length || 0,
-            totalTeams: twinRound.teamIds?.length || 0,
-          } : null,
-        } : null,
-        judges: getActiveJudgeRoles(activeEventMeta).map((role) => ({
-          role,
-          ready: Boolean(qualifyingFlow?.readyRoles?.[role]),
-          currentSubmitted: currentDriver ? {
-            run1: currentDriver.scores?.[role]?.submitted?.run1 ?? null,
-            run2: currentDriver.scores?.[role]?.submitted?.run2 ?? null,
-          } : null,
-        })),
-        directoryEvents: Object.keys(eventDirectory || {}),
-      };
-    }
-
-    function syncTestModeUi() {
-      document.body.dataset.testMode = TEST_MODE_ENABLED ? "true" : "false";
-      if (topbarLifecyclePill && TEST_MODE_ENABLED) {
-        topbarLifecyclePill.textContent = "TEST MODE";
-        topbarLifecyclePill.className = "topbar-inline-pill archived";
-      }
-      if (!testModePanel) return;
-      const canShowControls = currentRole === "admin" || isWebsiteAdmin || TEST_MODE_ENABLED;
-      testModePanel.classList.toggle("hidden", !canShowControls);
-      if (testModePanelTitle) testModePanelTitle.textContent = TEST_MODE_ENABLED ? "TEST MODE" : "Demo Environment";
-      if (testModePanelStatus) {
-        testModePanelStatus.textContent = TEST_MODE_ENABLED
-          ? "Isolated Firebase testData namespace. Demo resets and judge submissions cannot write to production event data."
-          : "Click Start Demo Event to enter isolated test mode and seed a fully populated QA event.";
-      }
-      if (startDemoEventBtn) startDemoEventBtn.textContent = TEST_MODE_ENABLED ? "Start Demo Event" : "Enter Test Mode + Start Demo";
-      if (resetDemoDataBtn) resetDemoDataBtn.disabled = !TEST_MODE_ENABLED;
-      if (testDebugToggleBtn) testDebugToggleBtn.classList.toggle("is-active", isTestDebugEnabled());
-      if (testDebugPanel) {
-        const showDebug = TEST_MODE_ENABLED && isTestDebugEnabled();
-        testDebugPanel.classList.toggle("hidden", !showDebug);
-        if (showDebug) {
-          testDebugPanel.textContent = JSON.stringify(buildTestDebugSnapshot(), null, 2);
-        }
-      }
-    }
-
-    function activateStandaloneDemoWindow(options = {}) {
-      const demoSnapshot = createStandaloneDemoSnapshot(options);
-      eventDirectory = { [demoSnapshot.meta.id]: cloneEventMeta(demoSnapshot.meta) };
-      applyActiveEventState({
-        id: demoSnapshot.meta.id,
-        meta: cloneEventMeta(demoSnapshot.meta),
-        drivers: sanitizeLoadedDrivers(demoSnapshot.drivers),
-        qualifyingFlow: demoSnapshot.qualifyingFlow,
-        bracket: demoSnapshot.tournament,
-        formatMode: FORMAT_CLASSIC,
-        lowerCount: "0",
-      });
-      currentRole = demoSnapshot.initialRole;
-      applyUiState({
-        localEventPreviewMode: true,
-        pendingRouteView: demoSnapshot.initialView,
-        activeCompetitionBracketPage: tournamentState?.lowerBracket ? "lower" : "main",
-      });
-      document.body.dataset.role = currentRole;
-      if (globalRoleSelect) {
-        globalRoleSelect.value = currentRole;
-      }
-      if (typeof window !== "undefined" && STANDALONE_DEMO_MODE) {
-        history.replaceState(null, "", buildStandaloneDemoUrl({
-          role: demoSnapshot.initialRole,
-          view: demoSnapshot.initialView,
-          scenario: demoSnapshot.scenario,
-          sessionId: options.sessionId || STANDALONE_DEMO_SESSION_PARAM || null,
-        }));
-      }
-      syncStandaloneDemoSandboxUi();
-      if (db && auth?.currentUser) {
-        bootstrapStandaloneDemoSession();
-      }
-    }
-
-    function runStandaloneDemoMode(options = {}) {
-      activateStandaloneDemoWindow(options);
-      applyRoleChange(currentRole);
-      syncStandaloneDemoSandboxUi();
-    }
-
-    function openStandaloneDemoWindow(options = {}) {
-      const targetUrl = buildStandaloneDemoUrl(options);
-      if (!targetUrl) return null;
-      return window.open(targetUrl, CLIENT_PLATFORM.demoWindowName || "prodigy-live-demo-window", "width=1680,height=960");
-    }
-
-    function launchStandaloneDemo(options = {}) {
-      const demoWindow = openStandaloneDemoWindow(options);
-      if (demoWindow) return demoWindow;
-      window.alert(`Please allow pop-ups for ${getConfiguredSiteLabel()} so Live Demo can open in a separate window.`);
-      return null;
     }
 
     function applyResolvedRoute(route) {
@@ -25420,7 +24849,6 @@
       syncBroadcastTicker();
       syncSelfRegisterProfileCard();
       renderCommandCenter();
-      syncTestModeUi();
       syncNetworkStatusIndicator();
     }
 
@@ -25750,7 +25178,6 @@
     }
 
     function saveCachedActiveEventSelection(snapshot, options = {}) {
-      if (STANDALONE_DEMO_MODE) return null;
       const normalizedSnapshot = normalizeActiveEventSelectionSnapshot(snapshot);
       if (!normalizedSnapshot) {
         localStorage.removeItem(ACTIVE_EVENT_SELECTION_CACHE_KEY);
@@ -27671,505 +27098,6 @@
       });
     }
 
-    function normalizeTestScenario(value) {
-      return ["qualifying", "bracket", "sdc8", "sdc16", "sdc32", "team", "twin"].includes(value) ? value : "qualifying";
-    }
-
-    function getTestModeUrl(scenario = "qualifying") {
-      const targetUrl = new URL(window.location.href);
-      targetUrl.searchParams.set("testMode", "1");
-      targetUrl.searchParams.set("seedTest", normalizeTestScenario(scenario));
-      targetUrl.hash = buildRoleRouteHash("admin", "registration");
-      try {
-        localStorage.setItem(TEST_MODE_STORAGE_KEY, "1");
-        localStorage.setItem(TEST_MODE_PENDING_SCENARIO_KEY, normalizeTestScenario(scenario));
-      } catch (error) {}
-      return targetUrl.toString();
-    }
-
-    function buildDemoTeamDrivers(count = 8) {
-      return buildTestSampleDrivers(false).slice(0, count).map((driver, index) => {
-        const memberCount = index % 3 === 0 ? 3 : 2;
-        const sourceOffset = index * 3;
-        const memberNames = Array.from({ length: memberCount }, (_, memberIndex) => {
-          const source = TEST_SAMPLE_DRIVER_ENTRIES[(sourceOffset + memberIndex) % TEST_SAMPLE_DRIVER_ENTRIES.length];
-          return source?.[0] || `Demo Driver ${index + 1}-${memberIndex + 1}`;
-        });
-        const teamName = TEST_SAMPLE_DRIVER_ENTRIES[index]?.[1] || `Demo Team ${index + 1}`;
-        driver.name = teamName;
-        driver.teamName = memberNames.join(", ");
-        driver.chassis = `${memberCount} driver twin team`;
-        driver.memberCount = memberCount;
-        driver.teamMemberCount = memberCount;
-        driver.tandemMembers = memberNames;
-        driver.tandemType = "team";
-        driver.tandemBonusPoints = memberCount >= TEAM_TANDEM_MAX_DRIVERS ? TEAM_TANDEM_THREE_DRIVER_BONUS : 0;
-        return driver;
-      });
-    }
-
-    function buildDemoTeamTandemDrivers(teamCount = 8) {
-      return Array.from({ length: teamCount }, (_, teamIndex) => {
-        const memberCount = teamIndex % 3 === 0 ? 3 : 2;
-        const teamName = `Demo Tandem ${teamIndex + 1}`;
-        return Array.from({ length: memberCount }, (_, memberIndex) => {
-          const source = TEST_SAMPLE_DRIVER_ENTRIES[(teamIndex * 3 + memberIndex) % TEST_SAMPLE_DRIVER_ENTRIES.length];
-          const driver = createEmptyDriver(teamIndex * TEAM_TANDEM_MAX_DRIVERS + memberIndex + 1);
-          driver.name = source?.[0] || `Tandem Driver ${teamIndex + 1}-${memberIndex + 1}`;
-          driver.teamName = teamName;
-          driver.chassis = source?.[2] || "Demo tandem chassis";
-          driver.memberCount = memberCount;
-          driver.teamMemberCount = memberCount;
-          driver.teamMemberOrder = memberIndex + 1;
-          driver.tandemMembers = [];
-          driver.tandemType = "team";
-          driver.tandemBonusPoints = memberCount >= TEAM_TANDEM_MAX_DRIVERS ? TEAM_TANDEM_THREE_DRIVER_BONUS : 0;
-          return driver;
-        });
-      }).flat();
-    }
-
-    async function buildDemoEventMeta({ id, name, competitionMode = COMPETITION_MODE_SOLO, judgingMode = JUDGING_MODE_AVERAGE, judgeCount = 3, status = EVENT_STATUS_ACTIVE, results = null }) {
-      const now = new Date().toISOString();
-      return {
-        id,
-        name,
-        date: now.slice(0, 10),
-        upcomingEventBanner: null,
-        status,
-        judgeCount: normalizeJudgeCountForMode(judgeCount, judgingMode),
-        judgingMode: normalizeJudgingMode(judgingMode),
-        competitionMode: normalizeCompetitionMode(competitionMode),
-        createdAt: now,
-        updatedAt: now,
-        syncStamp: Date.now(),
-        roleNames: buildDefaultRoleNames({
-          j1: judgingMode === JUDGING_MODE_LINE_ANGLE_STYLE ? "Line Judge" : "Judge 1",
-          j2: judgingMode === JUDGING_MODE_LINE_ANGLE_STYLE ? "Angle Judge" : "Judge 2",
-          j3: judgingMode === JUDGING_MODE_LINE_ANGLE_STYLE ? "Style Judge" : "Judge 3",
-        }),
-        venueConfig: createDefaultVenueConfig({
-          enabled: true,
-          label: CLIENT_BRANDING.demoVenueLabel || "Prodigy Demo Arena",
-          latitude: 33.6846,
-          longitude: -117.8265,
-          radiusMeters: 250,
-        }),
-        venueProfiles: [],
-        pendingRegistrations: [],
-        latestApprovalToast: null,
-        judgeRoleClaims: createEmptyJudgeRoleClaims(),
-        roleAccess: await createRoleAccessFromInvites({}),
-        results: results || buildEmptyEventResults(),
-        testMode: true,
-      };
-    }
-
-    function buildDemoCompletedResults(drivers) {
-      const ranked = rankDrivers(drivers);
-      return {
-        ...buildEmptyEventResults(),
-        championName: ranked[0]?.name || null,
-        championSeed: ranked[0]?.seed || null,
-        runnerUpName: ranked[1]?.name || null,
-        runnerUpSeed: ranked[1]?.seed || null,
-        thirdPlaceName: ranked[2]?.name || null,
-        thirdPlaceSeed: ranked[2]?.seed || null,
-        fourthPlaceName: ranked[3]?.name || null,
-        fourthPlaceSeed: ranked[3]?.seed || null,
-        topQualifierName: ranked[0]?.name || null,
-        topQualifierSeed: ranked[0]?.seed || null,
-        topQualifierScore: ranked[0]?.bestScore ?? null,
-        averageBestScore: ranked.reduce((sum, driver) => sum + Number(driver.bestScore || 0), 0) / Math.max(1, ranked.length),
-        totalBattles: 7,
-        completedBattles: 7,
-        qualifiedCount: ranked.length,
-        totalDrivers: ranked.length,
-        planDescription: "Completed demo event for results, archive, spectator, and streamer layout checks.",
-        updatedAt: new Date().toISOString(),
-        completedAt: new Date().toISOString(),
-      };
-    }
-
-    function buildDemoBracketState(drivers) {
-      const state = createTournamentState(rankDrivers(drivers), FORMAT_CLASSIC, 0);
-      const firstRound = state?.mainBracket?.rounds?.[0]?.matches || [];
-      firstRound.slice(0, 2).forEach((match, index) => {
-        const side = index % 2 === 0 ? "left" : "right";
-        if (match?.[side]) {
-          match.winner = cloneDriver(match[side]);
-          match.winnerMode = "manual";
-        }
-      });
-      normalizeBracketState(state);
-      resetCompetitionJudgeControlToCurrentEntry(state);
-      return state;
-    }
-
-    function buildDemoTwinCompState(drivers) {
-      const teams = drivers.map((driver, index) => normalizeTwinCompTeam({
-        id: driver.id,
-        seed: index + 1,
-        name: driver.teamName || driver.name || `Team ${index + 1}`,
-        eliminationPoints: index < 2 ? 1 : 0,
-        active: true,
-        roundScores: index < 4 ? [{ round: 1, run1: 82 + index, run2: 84 + index, score: 84 + index, scoredAt: new Date().toISOString() }] : [],
-      }, index));
-      const round = {
-        id: `demo-twin-round-${Date.now()}`,
-        number: 2,
-        status: "live",
-        teamIds: teams.map((team) => team.id),
-        currentTeamId: teams[0]?.id || null,
-        scores: {},
-        pointAssignments: [],
-        tieReviewRequired: false,
-        finalizedAt: null,
-      };
-      return {
-        ...createEmptyTwinCompState(),
-        status: "live",
-        roundNumber: 2,
-        currentRoundId: round.id,
-        teams,
-        rounds: [
-          {
-            id: "demo-twin-round-1",
-            number: 1,
-            status: "finalized",
-            teamIds: teams.map((team) => team.id),
-            currentTeamId: null,
-            scores: Object.fromEntries(teams.slice(0, 4).map((team, index) => [team.id, { teamId: team.id, run1: 82 + index, run2: 84 + index, score: 84 + index, scoredAt: new Date().toISOString() }])),
-            pointAssignments: teams.slice(0, 3).map((team) => team.id),
-            tieReviewRequired: false,
-            finalizedAt: new Date().toISOString(),
-          },
-          round,
-        ],
-      };
-    }
-
-    async function buildTestDemoScenario(scenario = "qualifying") {
-      const normalizedScenario = normalizeTestScenario(scenario);
-      const completedDrivers = buildTestSampleDrivers(true).slice(0, 8);
-      const completedMeta = await buildDemoEventMeta({
-        id: "demo-completed-reference",
-        name: "DEMO Completed Reference Event",
-        status: EVENT_STATUS_COMPLETED,
-        results: buildDemoCompletedResults(completedDrivers),
-      });
-
-      if (normalizedScenario === "bracket") {
-        const drivers = buildTestSampleDrivers(true).slice(0, 16);
-        const bracket = buildDemoBracketState(drivers);
-        const meta = await buildDemoEventMeta({
-          id: "demo-bracket-current",
-          name: "DEMO Bracket Battle Test",
-          results: {
-            ...buildEmptyEventResults(),
-            qualifiedCount: drivers.length,
-            totalDrivers: drivers.length,
-            planDescription: "Demo bracket with qualifying complete, a few battles advanced, and the next battle ready for judge/admin QA.",
-          },
-        });
-        return {
-          activeEventId: meta.id,
-          directory: { [meta.id]: meta, [completedMeta.id]: completedMeta },
-          archived: { [completedMeta.id]: buildArchivedResultsRecord(completedMeta, completedMeta.results) },
-          state: {
-            id: meta.id,
-            meta,
-            drivers,
-            bracket,
-            twinComp: null,
-            qualifyingFlow: { currentDriverId: null, readyRoles: {}, started: true, completed: true },
-            formatMode: FORMAT_CLASSIC,
-            lowerCount: "0",
-          },
-          view: "bracket",
-        };
-      }
-
-      const sdcFormats = {
-        sdc8: { format: FORMAT_SDC_TOP_8, count: 8, label: "SDC Top 8" },
-        sdc16: { format: FORMAT_SDC_TOP_16, count: 16, label: "SDC Top 16" },
-        sdc32: { format: FORMAT_SDC_TOP_32, count: 32, label: "SDC Top 32" },
-      };
-      if (sdcFormats[normalizedScenario]) {
-        const scenario = sdcFormats[normalizedScenario];
-        const drivers = buildTestSampleDrivers(true).slice(0, scenario.count);
-        const bracket = createTournamentState(rankDrivers(drivers), scenario.format, 0);
-        resetCompetitionJudgeControlToCurrentEntry(bracket);
-        const meta = await buildDemoEventMeta({
-          id: `demo-${normalizedScenario}-current`,
-          name: `DEMO ${scenario.label} Battle Test`,
-          results: {
-            ...buildEmptyEventResults(),
-            qualifiedCount: drivers.length,
-            totalDrivers: drivers.length,
-            planDescription: `${scenario.label} fixture with its lower-bracket play-in and the next authoritative battle ready for judge QA.`,
-          },
-        });
-        return {
-          activeEventId: meta.id,
-          directory: { [meta.id]: meta, [completedMeta.id]: completedMeta },
-          archived: { [completedMeta.id]: buildArchivedResultsRecord(completedMeta, completedMeta.results) },
-          state: {
-            id: meta.id, meta, drivers, bracket, twinComp: null,
-            qualifyingFlow: { currentDriverId: null, readyRoles: {}, started: true, completed: true },
-            formatMode: scenario.format, lowerCount: "0",
-          },
-          view: "bracket",
-        };
-      }
-
-      if (normalizedScenario === "team") {
-        const drivers = buildDemoTeamTandemDrivers(8);
-        const participants = buildTeamTandemBracketParticipants(drivers);
-        const bracket = createTournamentState(participants, FORMAT_CLASSIC, 0);
-        resetCompetitionJudgeControlToCurrentEntry(bracket);
-        const meta = await buildDemoEventMeta({
-          id: "demo-team-tandem-current",
-          name: "DEMO Team Tandem Battle Test",
-          competitionMode: COMPETITION_MODE_TEAM_TANDEM,
-          judgingMode: JUDGING_MODE_LINE_ANGLE_STYLE,
-          judgeCount: 3,
-          results: {
-            ...buildEmptyEventResults(),
-            qualifiedCount: participants.length,
-            totalDrivers: drivers.length,
-            planDescription: "Eight realistic 2-3 driver teams with a live category-scoring battle ready for judge QA.",
-          },
-        });
-        return {
-          activeEventId: meta.id,
-          directory: { [meta.id]: meta, [completedMeta.id]: completedMeta },
-          archived: { [completedMeta.id]: buildArchivedResultsRecord(completedMeta, completedMeta.results) },
-          state: {
-            id: meta.id, meta, drivers, bracket, twinComp: null,
-            qualifyingFlow: { currentDriverId: null, readyRoles: {}, started: true, completed: true },
-            formatMode: FORMAT_CLASSIC, lowerCount: "0",
-          },
-          view: "bracket",
-        };
-      }
-
-      if (normalizedScenario === "twin") {
-        const drivers = buildDemoTeamDrivers(8);
-        const twinComp = buildDemoTwinCompState(drivers);
-        const meta = await buildDemoEventMeta({
-          id: "demo-twin-current",
-          name: "DEMO Twin Comp Triple Elimination",
-          competitionMode: COMPETITION_MODE_TWIN_TRIPLE,
-          judgeCount: 3,
-          results: {
-            ...buildEmptyEventResults(),
-            qualifiedCount: drivers.length,
-            totalDrivers: drivers.length,
-            planDescription: "Demo Twin Comp triple-elimination event with Round 2 live and sample elimination points already applied.",
-          },
-        });
-        return {
-          activeEventId: meta.id,
-          directory: { [meta.id]: meta, [completedMeta.id]: completedMeta },
-          archived: { [completedMeta.id]: buildArchivedResultsRecord(completedMeta, completedMeta.results) },
-          state: {
-            id: meta.id,
-            meta,
-            drivers,
-            bracket: null,
-            twinComp,
-            qualifyingFlow: { currentDriverId: twinComp.rounds[1]?.currentTeamId || drivers[0]?.id || null, readyRoles: {}, started: true, completed: false },
-            formatMode: FORMAT_CLASSIC,
-            lowerCount: "0",
-          },
-          view: "bracket",
-        };
-      }
-
-      const drivers = buildTestSampleDrivers(false).slice(0, 16);
-      const meta = await buildDemoEventMeta({
-        id: "demo-qualifying-current",
-        name: "DEMO Qualifying Judge Test",
-        judgeCount: 3,
-        results: {
-          ...buildEmptyEventResults(),
-          qualifiedCount: 0,
-          totalDrivers: drivers.length,
-          planDescription: "Demo qualifying event with 16 drivers and judge phones ready to submit Run 1 and Run 2.",
-        },
-      });
-      return {
-        activeEventId: meta.id,
-        directory: { [meta.id]: meta, [completedMeta.id]: completedMeta },
-        archived: { [completedMeta.id]: buildArchivedResultsRecord(completedMeta, completedMeta.results) },
-        state: {
-          id: meta.id,
-          meta,
-          drivers,
-          bracket: null,
-          twinComp: null,
-          qualifyingFlow: { currentDriverId: drivers[0]?.id || null, readyRoles: {}, started: true, completed: false },
-          formatMode: FORMAT_CLASSIC,
-          lowerCount: "0",
-        },
-        view: "qualifying",
-      };
-    }
-
-    async function commitTestDemoScenario(demo) {
-      if (!TEST_MODE_ENABLED || !db || !auth?.currentUser) {
-        throw new Error("Test scenario cloud reset requires authenticated test mode.");
-      }
-
-      const syncStamp = Date.now();
-      const demoEventIds = Object.keys(demo.directory);
-      const locallyRecoveredEventIds = Object.keys(getRecoveredDirectorySnapshot());
-      const seededDirectory = Object.fromEntries(demoEventIds.map((eventId) => [
-        eventId,
-        cloneEventMeta({ ...demo.directory[eventId], syncStamp }),
-      ]));
-      const seededArchive = Object.fromEntries(Object.entries(demo.archived || {}).map(([eventId, record]) => [
-        eventId,
-        normalizeArchivedResultsRecord(record, eventId),
-      ]));
-      let nextDeletedEventIds = [];
-
-      await runTransaction(db, async (transaction) => {
-        const directoryRef = getDirectoryDocRef();
-        const directorySnap = await transaction.get(directoryRef);
-        const directoryData = directorySnap.data() || {};
-        const remoteEventIds = Object.keys(directoryData.events || {});
-        const staleEventIds = [...new Set([...remoteEventIds, ...locallyRecoveredEventIds])]
-          .filter((eventId) => !demoEventIds.includes(eventId));
-        nextDeletedEventIds = normalizeDeletedEventIds([
-          ...normalizeDeletedEventIds(directoryData.deletedEventIds || []),
-          ...staleEventIds,
-        ]).filter((eventId) => !demoEventIds.includes(eventId));
-
-        staleEventIds.forEach((eventId) => transaction.delete(getEventDocRef(eventId)));
-        demoEventIds.forEach((eventId) => {
-          const eventMeta = seededDirectory[eventId];
-          const isActiveDemoEvent = eventId === demo.activeEventId;
-          transaction.set(getEventDocRef(eventId), isActiveDemoEvent ? {
-            ...eventMeta,
-            drivers: JSON.parse(JSON.stringify(demo.state.drivers || [])),
-            bracket: demo.state.bracket ? JSON.parse(JSON.stringify(demo.state.bracket)) : null,
-            twinComp: demo.state.twinComp ? JSON.parse(JSON.stringify(demo.state.twinComp)) : null,
-            qualifyingFlow: JSON.parse(JSON.stringify(demo.state.qualifyingFlow || createEmptyQualifyingFlow())),
-            formatMode: demo.state.formatMode || FORMAT_CLASSIC,
-            lowerCount: demo.state.lowerCount || "0",
-            syncStamp,
-          } : {
-            ...eventMeta,
-            drivers: [],
-            bracket: null,
-            twinComp: null,
-            qualifyingFlow: { currentDriverId: null, readyRoles: {}, started: true, completed: true },
-            formatMode: FORMAT_CLASSIC,
-            lowerCount: "0",
-            syncStamp,
-          });
-        });
-        transaction.set(directoryRef, {
-          events: seededDirectory,
-          activeEventId: demo.activeEventId,
-          deletedEventIds: nextDeletedEventIds,
-          syncStamp,
-        });
-        transaction.set(getActiveEventSelectionDocRef(), {
-          activeEventId: demo.activeEventId,
-          eventMeta: cloneEventMeta(seededDirectory[demo.activeEventId]),
-          syncStamp,
-        });
-        transaction.set(getArchivedResultsDocRef(), {
-          events: seededArchive,
-          syncStamp,
-        });
-      });
-
-      return {
-        activeEventId: demo.activeEventId,
-        activeState: {
-          ...demo.state,
-          meta: cloneEventMeta(seededDirectory[demo.activeEventId]),
-        },
-        archive: seededArchive,
-        deletedEventIds: nextDeletedEventIds,
-        directory: seededDirectory,
-        syncStamp,
-      };
-    }
-
-    async function seedTestDemoScenario(scenario = "qualifying") {
-      const normalizedScenario = normalizeTestScenario(scenario);
-      if (!TEST_MODE_ENABLED) {
-        window.location.href = getTestModeUrl(normalizedScenario);
-        return false;
-      }
-      testScenarioSeedInFlight = true;
-      try {
-        await ensureCloudAuthReady();
-        const demo = await buildTestDemoScenario(normalizedScenario);
-        const seeded = await commitTestDemoScenario(demo);
-
-        activeEventId = seeded.activeEventId;
-        eventDirectory = seeded.directory;
-        archivedResultsDirectory = seeded.archive;
-        deletedEventIds = new Set(seeded.deletedEventIds);
-        lastRemoteDirectoryEvents = mergeDirectoryMaps(seeded.directory);
-        hasLoadedRemoteDirectory = true;
-        lastRemoteDirectorySyncStamp = seeded.syncStamp;
-        lastRemoteActiveEventSyncStamp = seeded.syncStamp;
-        lastRemoteArchivedResultsSyncStamp = seeded.syncStamp;
-        lastRemoteEventSyncStamp = seeded.syncStamp;
-        lastLocalPush = seeded.syncStamp;
-        lastKnownRemoteActiveEventSelection = normalizeActiveEventSelectionSnapshot({
-          activeEventId: seeded.activeEventId,
-          eventMeta: seeded.directory[seeded.activeEventId],
-          syncStamp: seeded.syncStamp,
-        });
-        saveCachedActiveEventSelection(lastKnownRemoteActiveEventSelection, { authoritative: true });
-        applyActiveEventState(seeded.activeState, { syncQualifying: false });
-        currentRole = "admin";
-        setRoleUnlockedForEvent(activeEventId, "admin", true);
-        saveDirectoryCache();
-        saveArchivedResultsCache();
-        saveEventStateCache();
-        applyRoleChange("admin");
-        switchView(demo.view);
-        renderEventDirectory();
-        renderRoleAdminPanel();
-        renderDriversTable();
-        syncTestModeUi();
-        return true;
-      } finally {
-        testScenarioSeedInFlight = false;
-        if (db && auth?.currentUser) setupCloudSync(auth.currentUser);
-      }
-    }
-
-    function consumeSeedTestQueryParameter() {
-      if (!PAGE_SEARCH_PARAMS.has("seedTest")) return false;
-      const nextUrl = new URL(window.location.href);
-      nextUrl.searchParams.delete("seedTest");
-      window.history.replaceState(window.history.state, "", `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`);
-      return true;
-    }
-
-    async function maybeRunPendingTestScenario() {
-      if (!TEST_MODE_ENABLED || STANDALONE_DEMO_MODE) return false;
-      let pendingScenario = null;
-      try {
-        pendingScenario = PAGE_SEARCH_PARAMS.get("seedTest") || localStorage.getItem(TEST_MODE_PENDING_SCENARIO_KEY);
-        localStorage.removeItem(TEST_MODE_PENDING_SCENARIO_KEY);
-      } catch (error) {}
-      if (!pendingScenario) return false;
-      const seeded = await seedTestDemoScenario(pendingScenario);
-      if (seeded) consumeSeedTestQueryParameter();
-      return seeded;
-    }
-
     function renderPublicEventCameraPreview({
       lifecycle,
       results,
@@ -28208,7 +27136,7 @@
           ? `#${rankedDrivers[0].seed} ${rankedDrivers[0].name}`
           : "Waiting";
       const queueLabel = nextDriver?.name || queuedBattleTitle || "Queue loading";
-      const cameraSource = escapeAttributeValue(CLIENT_BRANDING.backgroundImage || "./assets/track-background.png?v=063647f4ccb4");
+      const cameraSource = escapeAttributeValue(CLIENT_BRANDING.backgroundImage || "./assets/track-background.png?v=e3bfe365b801");
       const venueLabel = activeEventMeta?.name || CLIENT_BRANDING.venueName || "Prodigy RC Drift Arena";
 
       return `
@@ -29173,62 +28101,8 @@
       }
     }
 
-    function buildStreamerDemoContext(sceneKey = "qualifying") {
-      const sampleDrivers = buildTestSampleDrivers(true).slice(0, 12);
-      const rankedDrivers = rankDrivers(sampleDrivers);
-      const podium = rankedDrivers.slice(0, 3);
-      const demoBattle = {
-        title: sceneKey === "battle" ? "Top 16 Heat 4" : "Bracket Preview",
-        roundLabel: "Main Bracket Round 1",
-        left: rankedDrivers[0] || null,
-        right: rankedDrivers[1] || null,
-        status: sceneKey === "battle" ? "OMT Rerun Required" : "Coming Up",
-        winner: sceneKey === "results" ? rankedDrivers[0] : null,
-        omt: sceneKey === "battle",
-      };
-      return {
-        demo: true,
-        sceneKey,
-        eventName: "Prodigy Broadcast Demo",
-        venueName: CLIENT_BRANDING.demoVenueLabel || CLIENT_BRANDING.venueName || "Prodigy RC Drift Arena",
-        venueLabel: "Broadcast Sandbox",
-        dateLabel: formatEventDate(new Date().toISOString().slice(0, 10)),
-        lifecycle: { label: "Demo Data", tone: "active", detail: "Safe setup mode for native stream rehearsals" },
-        divisionLabel: "Open Class",
-        currentDriver: rankedDrivers[2] || rankedDrivers[0] || null,
-        nextDriver: rankedDrivers[3] || rankedDrivers[1] || null,
-        standings: rankedDrivers.slice(0, 8),
-        podium,
-        results: {
-          championName: podium[0]?.name || "Takumi Sato",
-          championSeed: podium[0]?.seed || 1,
-          runnerUpName: podium[1]?.name || "Mika Torres",
-          runnerUpSeed: podium[1]?.seed || 2,
-          thirdPlaceName: podium[2]?.name || "Jordan Lee",
-          thirdPlaceSeed: podium[2]?.seed || 3,
-          topQualifierName: podium[0]?.name || "Takumi Sato",
-          topQualifierSeed: podium[0]?.seed || 1,
-          topQualifierScore: podium[0]?.bestScore || 99.2,
-          averageBestScore: 95.4,
-        },
-        battle: demoBattle,
-        sponsorLabel: "Sponsor Region Available",
-        footerLabel: "Prodigy RC Comp Broadcast Suite",
-        tickerItems: [
-          "Demo mode active",
-          "Native browser stream previews",
-          "Transparent overlays supported",
-          "1920x1080 recommended",
-        ],
-      };
-    }
-
     function getStreamerSceneContext(route = streamerRouteState) {
       const normalizedRoute = normalizeStreamerRoute(route);
-      if (normalizedRoute.demo || !activeEventMeta) {
-        return buildStreamerDemoContext(normalizedRoute.scene);
-      }
-
       const rankedDrivers = rankDrivers(appDrivers);
       const queue = getQualifyingDriverQueue(appDrivers);
       const currentDriver = getCurrentQualifyingDriver();
@@ -30102,21 +28976,6 @@
       streamerLibraryAssetGrid.innerHTML = getStreamerStarterPackAssets().map((item) => renderStreamerAssetCard(item)).join("");
     }
 
-    function renderStreamerDemoView() {
-      if (!streamerDemoModeGrid) return;
-      streamerDemoModeGrid.innerHTML = STREAMER_SCENE_ORDER.map((sceneKey) => `
-        <article class="streamer-demo-card">
-          ${renderStreamerScenePreviewCard(sceneKey, buildStreamerDemoContext(sceneKey))}
-          <h3>${escapeHtml(STREAMER_SCENE_META[sceneKey]?.label || sceneKey)}</h3>
-          <p>${escapeHtml(STREAMER_SCENE_META[sceneKey]?.description || "")}</p>
-          <div class="streamer-card-actions" style="margin-top: 14px;">
-            <button class="micro-button button-accent" type="button" data-action="streamer-open-demo-scene" data-scene="${escapeAttributeValue(sceneKey)}" data-variant="scene">Open Demo Scene</button>
-            <button class="micro-button" type="button" data-action="streamer-copy-demo-obs" data-scene="${escapeAttributeValue(sceneKey)}" data-variant="overlay">Copy Demo Preview URL</button>
-          </div>
-        </article>
-      `).join("");
-    }
-
     function renderStreamerScene() {
       if (!streamerSceneShell) return;
       const route = normalizeStreamerRoute(streamerRouteState);
@@ -30129,7 +28988,7 @@
       const sceneHeader = `
         <header class="streamer-scene-header">
           <div class="streamer-scene-brand">
-            <img src="./assets/prodigy-rc-logo-transparent.png?v=063647f4ccb4" alt="Prodigy RC logo" />
+            <img src="./assets/prodigy-rc-logo-transparent.png?v=e3bfe365b801" alt="Prodigy RC logo" />
             <div class="streamer-scene-title">
               <span class="streamer-scene-kicker">${escapeHtml(meta.label)} • ${route.demo ? "Demo Data" : "Live Event"}</span>
               <h1>${escapeHtml(context.eventName)}</h1>
@@ -30319,7 +29178,6 @@
 
       renderStreamerDashboard();
       renderStreamerLibrary();
-      renderStreamerDemoView();
       renderStreamerScene();
       renderStreamerTopbar(getStreamerSceneContext(streamerRouteState));
       refreshNativeStreamDevices().catch(() => {});
@@ -30433,7 +29291,7 @@
 
     function syncNetworkStatusIndicator() {
       const statusEl = document.getElementById("syncStatus");
-      if (!statusEl || STANDALONE_DEMO_MODE) return;
+      if (!statusEl) return;
       if (isOfflineMode()) {
         statusEl.textContent = "Offline Protected";
         statusEl.classList.remove("online");
@@ -30880,7 +29738,7 @@
       const publishSyncStamp = Date.now();
       let transactionResult = null;
 
-      if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE && prodigyActionCallable) {
+      if (prodigyActionCallable) {
         try {
           const result = await callProdigyAction("adminRegistration", {
             eventId,
@@ -31298,7 +30156,7 @@
     }
 
     async function commitSecurePendingRegistrationOperation(entryId, operation, details = {}) {
-      if (TEST_MODE_ENABLED || STANDALONE_DEMO_MODE || !prodigyActionCallable) return null;
+      if (!prodigyActionCallable) return null;
       try {
         const result = await callProdigyAction("adminRegistration", {
           eventId: activeEventId,
@@ -31319,7 +30177,7 @@
     }
 
     async function markPendingRegistrationNeedsReview(entryId, reason = "Duplicate or identity mismatch at check-in.") {
-      if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE && prodigyActionCallable) {
+      if (prodigyActionCallable) {
         return (await commitSecurePendingRegistrationOperation(entryId, "needsReview", { reason }))?.status === "updated";
       }
       return updatePendingRegistrationGroupState(entryId, (entry) => ({
@@ -31332,7 +30190,7 @@
     }
 
     async function rejectPendingRegistration(entryId, reason = "Rejected by event admin.") {
-      if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE && prodigyActionCallable) {
+      if (prodigyActionCallable) {
         return (await commitSecurePendingRegistrationOperation(entryId, "reject", { reason }))?.status === "updated";
       }
       return updatePendingRegistrationGroupState(entryId, (entry) => ({
@@ -31345,7 +30203,7 @@
     }
 
     async function resetPendingArrivalState(entryId) {
-      if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE && prodigyActionCallable) {
+      if (prodigyActionCallable) {
         return (await commitSecurePendingRegistrationOperation(entryId, "resetArrival"))?.status === "updated";
       }
       return updatePendingRegistrationGroupState(entryId, (entry) => ({
@@ -31433,7 +30291,7 @@
 
       const venueConfig = getVenueConfig();
       const arrivedAt = new Date().toISOString();
-      if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE && prodigyActionCallable) {
+      if (prodigyActionCallable) {
         if (!await commitSecureSpectatorArrival("qr")) return false;
         updateSelfRegistrationState(
           "ready",
@@ -31584,7 +30442,7 @@
         const pendingEntry = getPendingRegistrationGroupLeader(pendingGroup);
         if (pendingEntry && pendingGroup.some((entry) => !entry.checkedInAt)) {
           const checkedInAt = new Date().toISOString();
-          if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE && prodigyActionCallable) {
+          if (prodigyActionCallable) {
             if (!await commitSecureSpectatorArrival("geofence", distanceMeters, selfRegistrationArrivalCoordinates)) return;
             updateSelfRegistrationState(
               "ready",
@@ -31700,7 +30558,7 @@
       const publishSyncStamp = Date.now();
       let transactionResult = null;
 
-      if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE && prodigyActionCallable) {
+      if (prodigyActionCallable) {
         try {
           const result = await callProdigyAction("submitSelfRegistration", {
             eventId,
@@ -32153,7 +31011,7 @@
       const publishSyncStamp = Date.now();
       let transactionResult = null;
 
-      if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE && prodigyActionCallable) {
+      if (prodigyActionCallable) {
         try {
           const result = await callProdigyAction("adminRegistration", {
             eventId,
@@ -32431,7 +31289,7 @@
       const pendingEntries = getPendingRegistrations();
       const entryGroup = getPendingRegistrationGroupEntries(entryId);
       if (!entryGroup.length) return false;
-      if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE && prodigyActionCallable) {
+      if (prodigyActionCallable) {
         return (await commitSecurePendingRegistrationOperation(entryId, "remove"))?.status === "updated";
       }
       if (db) {
@@ -32781,7 +31639,7 @@
     async function revokeCloudEventRole(eventId, role, { silent = false } = {}) {
       if (!eventId || !role || role === "spectator") return true;
       try {
-        if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE) {
+        if (true) {
           await callProdigyAction("revokeAccess", { eventId, role });
           await refreshCloudClaims(true);
         }
@@ -32799,7 +31657,7 @@
         globalRoleSelect.value = currentRole;
         return;
       }
-      if (STANDALONE_DEMO_MODE) {
+      if (false) {
         applyRoleChange(role);
         return;
       }
@@ -32958,7 +31816,7 @@
       }
 
       let accessVersion = activeEventMeta.roleAccess?.[role]?.accessVersion || null;
-      if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE) {
+      if (true) {
         try {
           const result = await callProdigyAction("manageRoleSecret", { eventId: activeEventId, role, password: nextPassword });
           accessVersion = result?.accessVersion || null;
@@ -32980,7 +31838,7 @@
 
     async function resetRoleAccess(role) {
       if (!activeEventMeta || !activeEventMeta.roleAccess?.[role]) return;
-      if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE) {
+      if (true) {
         try {
           await callProdigyAction("manageRoleSecret", { eventId: activeEventId, role, clear: true });
         } catch (error) {
@@ -33011,7 +31869,7 @@
     async function resetAllJudgeAccess() {
       if (!activeEventMeta) return;
       for (const role of getActiveJudgeRoles(activeEventMeta)) {
-        if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE) {
+        if (true) {
           try {
             await callProdigyAction("manageRoleSecret", { eventId: activeEventId, role, clear: true });
           } catch (error) {
@@ -33253,7 +32111,7 @@
     async function commitEventDeletion(eventId, preferredReplacementId = null) {
       const publishSyncStamp = Date.now();
       let transactionResult = null;
-      if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE && prodigyActionCallable) {
+      if (prodigyActionCallable) {
         const result = await callProdigyAction("deleteEvent", {
           eventId,
           replacementEventId: preferredReplacementId,
@@ -33513,7 +32371,6 @@
       updateEventChrome();
       renderRoleAdminPanel();
       renderDriversTable();
-      syncStandaloneDemoSandboxUi();
       syncJudgeRoleClaimHeartbeat();
       if (previousRole?.startsWith("j") && newRole !== previousRole && previousClaimedRole === previousRole) {
         releaseJudgeRoleClaim(previousClaimedRole, { silent: true }).catch((error) => {
@@ -33543,7 +32400,7 @@
         && shouldUseJudgeRoleClaims(activeEventMeta)
         && pendingJudgeRoleSelection === selectedRole;
       try {
-        if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE) {
+        if (true) {
           const authorization = await callProdigyAction("authorizeAccess", {
             kind: "eventRole",
             eventId: activeEventId,
@@ -33724,7 +32581,7 @@
         formatMode: FORMAT_CLASSIC,
         lowerCount: "0",
       };
-      if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE && prodigyActionCallable) {
+      if (prodigyActionCallable) {
         try {
           const created = await callProdigyAction("createEvent", {
             eventId: eventMeta.id,
@@ -33748,9 +32605,9 @@
       openEventById(eventMeta.id, "registration", false);
       applyActiveEventState(initialEventState);
       saveEventStateCache();
-      if ((TEST_MODE_ENABLED || STANDALONE_DEMO_MODE || !prodigyActionCallable) && !await publishStateImmediately()) return;
+      if ((!prodigyActionCallable) && !await publishStateImmediately()) return;
       setLocalEventPreviewModeState(false);
-      if (TEST_MODE_ENABLED || STANDALONE_DEMO_MODE || !prodigyActionCallable) await publishActiveEventSelection();
+      if (!prodigyActionCallable) await publishActiveEventSelection();
       applyRoleChange("spectator");
       renderDriversTable();
       globalRoleSelect.value = "admin";
@@ -33797,7 +32654,7 @@
     websiteAdminBackBtn.addEventListener("click", () => switchView("registration"));
     websiteAdminSignOutBtn.addEventListener("click", async () => {
       try {
-        if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE) {
+        if (true) {
           await callProdigyAction("revokeAccess", { kind: "websiteAdmin" });
           await refreshCloudClaims(true);
         }
@@ -33816,7 +32673,7 @@
     websiteAdminSubmitBtn.addEventListener("click", async () => {
       websiteAdminSubmitBtn.disabled = true;
       try {
-        if (!TEST_MODE_ENABLED && !STANDALONE_DEMO_MODE) {
+        if (true) {
           await callProdigyAction("authorizeAccess", {
             kind: "websiteAdmin",
             password: websiteAdminPasswordInput.value.trim(),
@@ -34065,17 +32922,6 @@
       await copyAllStreamerLinks();
     });
 
-    streamerToggleDemoBtn?.addEventListener("click", () => {
-      const nextDemoState = !streamerRouteState.demo;
-      openStreamerRoute({
-        ...streamerRouteState,
-        demo: nextDemoState,
-        view: nextDemoState && getActiveViewName() === "streamer-dashboard"
-          ? "streamer-demo"
-          : (getActiveViewName() === "streamer-demo" && !nextDemoState ? "streamer-dashboard" : streamerRouteState.view),
-      });
-    });
-
     streamerOpenFeaturedSceneBtn?.addEventListener("click", () => {
       if (nativeStreamActive) {
         setNativeStreamStatus("Stream Studio is already live.", "live");
@@ -34235,104 +33081,6 @@
           demo: true,
         }, { newTab: true });
       }
-    });
-
-    document.querySelectorAll("[data-open-demo-role]").forEach((button) => {
-      button.addEventListener("click", () => {
-        const launchResult = launchStandaloneDemo({
-          role: button.dataset.openDemoRole || "spectator",
-          view: button.dataset.openDemoView || "bracket",
-          scenario: button.dataset.openDemoScenario || null,
-        });
-        if (!launchResult) {
-          window.alert("The demo could not be opened right now. Please try again.");
-        }
-      });
-    });
-
-    document.querySelectorAll("[data-demo-launch]").forEach((button) => {
-      button.addEventListener("click", () => {
-        if (!STANDALONE_DEMO_MODE) return;
-        const nextRole = button.dataset.demoRole || "spectator";
-        const nextView = button.dataset.demoView || "bracket";
-        if (currentRole === "spectator" && nextRole === "spectator") {
-          switchView(nextView);
-          syncStandaloneDemoSandboxUi();
-          return;
-        }
-        runStandaloneDemoMode({
-          role: nextRole,
-          view: nextView,
-          scenario: button.dataset.demoScenario || null,
-          sessionId: STANDALONE_DEMO_SESSION_PARAM || null,
-        });
-      });
-    });
-
-    document.querySelectorAll("[data-demo-reset]").forEach((button) => {
-      button.addEventListener("click", () => {
-        if (!STANDALONE_DEMO_MODE) return;
-        runStandaloneDemoMode({
-          role: currentRole?.startsWith("j") ? currentRole : "spectator",
-          view: getActiveViewName() === "qualifying" ? "qualifying" : "bracket",
-          scenario: currentRole?.startsWith("j") ? "judging" : "bracket",
-        });
-      });
-    });
-
-    demoJudgeRoleSelect?.addEventListener("change", () => {
-      if (!STANDALONE_DEMO_MODE) return;
-      syncDemoQualifyingQrPanel();
-    });
-
-    openDemoJudgeLaunchBtn?.addEventListener("click", () => {
-      if (!STANDALONE_DEMO_MODE) return;
-      runStandaloneDemoMode({
-        role: getSelectedDemoJudgeRole(),
-        view: "qualifying",
-        scenario: "judging",
-        sessionId: STANDALONE_DEMO_SESSION_PARAM || null,
-      });
-    });
-
-    copyDemoQualifyingLinkBtn?.addEventListener("click", async () => {
-      const qualifyingUrl = buildQualifyingDemoUrl();
-      const copied = await copyTextToClipboard(qualifyingUrl);
-      if (!copied) {
-          window.prompt("Copy this judge phone demo link:", qualifyingUrl);
-          return;
-        }
-        window.alert("Judge phone demo link copied.");
-    });
-
-    openDemoQualifyingBtn?.addEventListener("click", () => {
-      const launchResult = launchStandaloneDemo({
-        role: getSelectedDemoJudgeRole(),
-        view: "qualifying",
-        scenario: "judging",
-        sessionId: STANDALONE_DEMO_SESSION_PARAM || null,
-      });
-      if (!launchResult) {
-        window.alert("The judge phone demo could not be opened right now. Please try again.");
-      }
-    });
-
-    startDemoEventBtn?.addEventListener("click", async () => {
-      const scenario = normalizeTestScenario(testScenarioSelect?.value || "qualifying");
-      await seedTestDemoScenario(scenario);
-    });
-
-    resetDemoDataBtn?.addEventListener("click", async () => {
-      if (!TEST_MODE_ENABLED) return;
-      const scenario = normalizeTestScenario(testScenarioSelect?.value || "qualifying");
-      const confirmed = window.confirm(`Reset isolated demo data and re-seed the ${scenario} scenario?`);
-      if (!confirmed) return;
-      await seedTestDemoScenario(scenario);
-    });
-
-    testDebugToggleBtn?.addEventListener("click", () => {
-      setTestDebugEnabled(!isTestDebugEnabled());
-      syncTestModeUi();
     });
 
     document.addEventListener('click', (event) => {
@@ -34607,7 +33355,6 @@
       if (!STREAMER_VIEWS.has(viewName)) {
         saveViewForEventRole(activeEventId, currentRole, viewName);
       }
-      syncStandaloneDemoSandboxUi();
       syncRouteWithState();
     }
 
@@ -35966,22 +34713,6 @@
       switchView("qualifying");
     });
 
-    loadSampleBtn.addEventListener("click", async () => {
-      if (!adminCanEdit() || !isSampleEventEnabled(activeEventMeta)) return;
-      const confirmed = window.confirm("Load test sample drivers into this TEST event? This is only for practice or demo events.");
-      if (!confirmed) return;
-      const populateScores = window.confirm("Populate qualifying scores too?\n\nPress OK to load 32 sample drivers with qualifying scores.\nPress Cancel to load 32 sample drivers with names only.");
-      applyActiveEventState({
-        drivers: buildTestSampleDrivers(populateScores),
-        qualifyingFlow: createEmptyQualifyingFlow(),
-        bracket: null,
-      });
-      setCompetitionBracketPageState("main");
-      saveBracketPagePreference(activeEventId, activeCompetitionBracketPage);
-      if (!await publishStateImmediately()) return;
-      renderDriversTable();
-    });
-
     openBracketBtn.addEventListener("click", openCompetitionBracket);
     searchInput?.addEventListener("input", applySearchFilter);
     window.addEventListener("resize", () => {
@@ -37009,7 +35740,7 @@
       const pendingAdminDecision = isControlledEntry && judgeControl.status === "admin_decision";
       const omtRerun = isControlledEntry && judgeControl.status === "voting" && judgeControl.reason === "omt";
       const canAdvance = isCurrent
-        && (adminCanEdit() || STANDALONE_DEMO_MODE)
+        && (adminCanEdit())
         && !currentRole?.startsWith("j")
         && !isControlledEntry
         && !bracketReorderModeEnabled
@@ -37318,7 +36049,7 @@
     }
 
     function canUseBracketReorderTools() {
-      return Boolean(adminCanEdit() || STANDALONE_DEMO_MODE);
+      return Boolean(adminCanEdit());
     }
 
     function clearBracketSwapSource() {
@@ -37368,7 +36099,7 @@
     }
 
     function isBracketSlotReorderable(bracketKey, roundIndex, matchIndex, side, state = tournamentState) {
-      if (!(adminCanEdit() || STANDALONE_DEMO_MODE)) return false;
+      if (!(adminCanEdit())) return false;
       if (!["main", "lower", "third"].includes(bracketKey)) return false;
       if (!["left", "right"].includes(side)) return false;
       const match = getCompetitionMatchRef(bracketKey, roundIndex, matchIndex, state);
@@ -37513,7 +36244,7 @@
       const canReorder = Boolean(driver) && isBracketSlotReorderable(bracketKey, roundIndex, matchIndex, side);
       const slotState = { bracketKey, roundIndex, matchIndex, side };
       const isSwapSource = bracketReorderModeEnabled && isBracketSwapSource(slotState);
-      const disabledHTML = (!(adminCanEdit() || STANDALONE_DEMO_MODE) || (!canChoose && !canReorder)) ? "disabled" : "";
+      const disabledHTML = (!(adminCanEdit()) || (!canChoose && !canReorder)) ? "disabled" : "";
       if (!driver) {
         return `<div class="lower-battle-slot" ${slotAttrs} data-drop-slot="1"><button class="driver-button empty" type="button" disabled><span>${getEmptySlotText(bracketKey, roundIndex, matchIndex, side)}</span></button></div>`;
       }
@@ -37565,7 +36296,7 @@
 
       const selected = participantKey(driver) === participantKey(winner);
       const loser = Boolean(winner) && !selected;
-      const disabledHTML = (!(adminCanEdit() || STANDALONE_DEMO_MODE) || (!canChoose && !canReorder)) ? "disabled" : "";
+      const disabledHTML = (!(adminCanEdit()) || (!canChoose && !canReorder)) ? "disabled" : "";
       const secondaryLine = isTeamTandemParticipant(driver)
         ? (getTeamTandemMetaLine(driver) || getTeamTandemMemberSummary(driver) || "")
         : (driver.teamName?.trim() || "");
@@ -37963,7 +36694,7 @@
     }
 
     function chooseWinner(bracketKey, roundIndex, matchIndex, side) {
-      if (!adminCanEdit() && !STANDALONE_DEMO_MODE) return;
+      if (!adminCanEdit()) return;
       let match = null;
       if (bracketKey === "lower") {
         if (!tournamentState.lowerBracket) return;
@@ -38350,13 +37081,9 @@
       const initialExplicitRoute = parseRouteFromLocation()
         || (String(window.location.hash || "").toLowerCase() === "#/website-admin" ? { kind: "website-admin" } : null);
       startAutoEventSwitchWatcher();
-      if (STANDALONE_DEMO_MODE) {
-        activateStandaloneDemoWindow();
-      }
-      const seededTestScenario = await maybeRunPendingTestScenario();
       renderEventDirectory();
       setWebsiteAdminAccess(cloudClaims?.owner === true || cloudClaims?.websiteAdmin === true, { persist: false });
-      const hasExplicitInitialRoute = Boolean(initialExplicitRoute) && !seededTestScenario;
+      const hasExplicitInitialRoute = Boolean(initialExplicitRoute);
       if (hasExplicitInitialRoute) {
         applyResolvedRoute(initialExplicitRoute);
       } else {
@@ -38366,7 +37093,7 @@
       ensureForcedHostRoleAccess();
       if (db && auth?.currentUser) {
         setupCloudSync(auth.currentUser);
-        if (initialExplicitRoute && !seededTestScenario) {
+        if (initialExplicitRoute) {
           window.setTimeout(() => {
             applyResolvedRoute(initialExplicitRoute);
           }, 350);

@@ -14,9 +14,10 @@ const html = fs.readFileSync(path.join(repoRoot, "index.html"), "utf8");
 const backend = fs.readFileSync(path.join(repoRoot, "functions", "index.js"), "utf8");
 
 const normalEvent = { id: "event-a", name: "Event A", status: "active", formatMode: "classic" };
+const event123 = { id: "123", name: "Event 123", status: "active", formatMode: "classic" };
 const sdcRound3 = { id: "sdc-round-3-las-vegas", name: "SDC Round 3 | Las Vegas", status: "completed", formatMode: "sdc-top-16" };
 const completedEvent = { id: "event-b", name: "Event B", status: "completed", formatMode: "classic" };
-const directory = { "event-a": normalEvent, "event-b": completedEvent, "sdc-round-3-las-vegas": sdcRound3 };
+const directory = { "event-a": normalEvent, "event-b": completedEvent, "123": event123, "sdc-round-3-las-vegas": sdcRound3 };
 
 // The authoritative directory metadata wins over a stale embedded selection payload.
 assert.deepEqual(resolveSelectionEventMeta({
@@ -87,6 +88,9 @@ const controller = createSelectedEventSubscriptionController({
 
 controller.select("event-a");
 listeners.get("event-a").at(-1).next({ version: "a1" });
+controller.select("123");
+listeners.get("event-a").at(-1).next({ version: "stale-a-after-123" });
+listeners.get("123").at(-1).next({ version: "event-123" });
 controller.select("event-b");
 listeners.get("event-a")[0].next({ version: "stale-a" });
 listeners.get("event-b").at(-1).next({ version: "b1" });
@@ -98,11 +102,13 @@ listeners.get("event-a").at(-1).next({ version: "a2" });
 
 assert.deepEqual(applied, [
   ["event-a", "a1"],
+  ["123", "event-123"],
   ["event-b", "b1"],
   ["sdc-round-3-las-vegas", "sdc1"],
   ["event-a", "a2"],
 ]);
 assert.equal(unsubscribeCount.get("event-a"), 1);
+assert.equal(unsubscribeCount.get("123"), 1);
 assert.equal(unsubscribeCount.get("event-b"), 1);
 assert.equal(unsubscribeCount.get("sdc-round-3-las-vegas"), 1);
 
@@ -142,6 +148,9 @@ assert.match(backend, /transaction\.set\(selectionRef\(appId\), activeSelectionP
 assert.match(backend, /requireEventAdmin\(request, eventId\);/);
 assert.match(html, /getLiveJudgeSelectionMismatch\(/);
 assert.match(html, /Battle changed\. Syncing your judge screen/);
+const remoteEventApplySource = html.slice(html.indexOf("function applyRemoteEventState(data)"), html.indexOf("function isJudgeEditingScoreInput()"));
+assert.match(remoteEventApplySource, /payloadEventId !== activeEventId/);
+assert.match(remoteEventApplySource, /Ignored a stale event payload for a different selection/);
 const openEventByIdSource = html.slice(html.indexOf("function openEventById"), html.indexOf("eventSelect.addEventListener"));
 assert.match(openEventByIdSource, /failed shared-selection publish/);
 assert.match(openEventByIdSource, /adoptActiveEvent\(liveSelection\.activeEventId, currentRole\)/);

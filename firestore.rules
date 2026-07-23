@@ -38,12 +38,6 @@ service cloud.firestore {
       return isEventAdmin(appId, eventId);
     }
 
-    // QA data is isolated by path and remains writable to authenticated local
-    // emulator clients. Production writes must use trusted callable functions.
-    match /artifacts/{appId}/public/testData/{document=**} {
-      allow read, write: if signedIn();
-    }
-
     match /artifacts/{appId}/public/data/events/{eventId} {
       allow read: if signedIn();
       allow write: if false;
