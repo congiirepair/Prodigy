@@ -8,8 +8,8 @@ const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 
 assert.match(
   html,
-  /function supportsTruthfulMainBracketConnectors\(bracketKey, rounds\) \{[\s\S]*?bracketKey !== "main" \|\| tournamentState\?\.lowerBracket \|\| !Array\.isArray\(rounds\) \|\| rounds\.length < 2/,
-  "connectors must stay limited to standard main brackets with no lower bracket"
+  /function supportsTruthfulMainBracketConnectors\(bracketKey, rounds\) \{[\s\S]*?bracketKey !== "main"[\s\S]*?tournamentState\?\.lowerBracket[\s\S]*?tournamentState\?\.qualifiedDrivers\?\.some\(isTeamTandemParticipant\)[\s\S]*?!Array\.isArray\(rounds\)[\s\S]*?rounds\.length < 2/,
+  "connectors must stay limited to standard main brackets with no lower bracket or Team Tandem participants"
 );
 assert.match(
   html,
@@ -25,6 +25,11 @@ assert.match(
   html,
   /Math\.floor\(matchIndex \/ 2\)/,
   "connector destinations must follow the bracket match index, not visual alignment"
+);
+assert.match(
+  html,
+  /const bendX = \(sourcePoint\.x \+ targetPoint\.x\) \/ 2;/,
+  "connector bends must be based on both rendered endpoints so dense fitted boards retain their actual relationships"
 );
 assert.match(
   html,
