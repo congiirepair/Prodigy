@@ -1014,6 +1014,7 @@
     }
     body.bracket-fullscreen .competition-subtabs,
     body.bracket-fullscreen #summaryStrip,
+    body.bracket-fullscreen #bracketLiveHeaderBar,
     body.bracket-fullscreen #battleFlowPanel,
     body.bracket-fullscreen #championBanner,
     body.bracket-fullscreen #emptyBracketState {
@@ -3547,6 +3548,17 @@
       border-top-color: transparent;
       animation: prodigyBusySpin 720ms linear infinite;
       flex: 0 0 auto;
+    }
+    body.bracket-fullscreen .bracket-live-header-bar {
+      justify-content: center;
+      padding: 10px 4px 14px;
+      margin-bottom: 6px;
+    }
+    body.bracket-fullscreen .bracket-live-header-name {
+      font-size: clamp(1.05rem, 2vw, 1.4rem);
+    }
+    body.bracket-fullscreen .bracket-live-header-status {
+      margin-left: 0;
     }
 
     @keyframes prodigyBusySpin {
@@ -6146,6 +6158,130 @@
 
     .battle-flow-panel { display: none !important; }
     .battle-flow-panel.twin-comp-flow { display: block !important; }
+
+    /* Presentation-only bracket context. This stays outside the board so it
+       never changes match geometry or captures competition interactions. */
+    .bracket-live-header-bar {
+      display: flex;
+      align-items: baseline;
+      flex-wrap: wrap;
+      gap: 6px 14px;
+      padding: 8px 4px 12px;
+      margin-bottom: 4px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .bracket-live-header-name {
+      font-family: var(--font-graffiti);
+      font-size: clamp(0.92rem, 1.6vw, 1.15rem);
+      color: var(--text);
+      line-height: 1.1;
+      overflow-wrap: anywhere;
+    }
+
+    .bracket-live-header-round {
+      font-size: 0.76rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-soft);
+    }
+
+    .bracket-live-header-status {
+      margin-left: auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.7rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-soft);
+    }
+
+    .bracket-live-header-status.is-live {
+      color: var(--gold-bright);
+    }
+
+    .bracket-live-header-status.is-live::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--gold);
+      box-shadow: 0 0 0 0 var(--gold-pulse);
+      animation: prodigyLivePulse 1.9s ease-out infinite;
+    }
+
+    .bracket-live-header-status.is-complete {
+      color: var(--text-soft);
+    }
+
+    /* Fixed and pointer-events:none so a round announcement can never shift
+       the bracket or delay event-admin controls. */
+    .round-transition-toast {
+      position: fixed;
+      top: 18px;
+      left: 50%;
+      z-index: 1500;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      max-width: calc(100vw - 32px);
+      padding: 10px 22px;
+      border: 1px solid var(--gold-ring-mid);
+      border-radius: 999px;
+      background: linear-gradient(135deg, rgba(24, 27, 36, 0.94), rgba(11, 13, 19, 0.96));
+      color: #f5eee6;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.4);
+      font-size: 0.86rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      pointer-events: none;
+      opacity: 0;
+    }
+
+    .round-transition-toast .round-transition-prev {
+      color: rgba(245, 238, 230, 0.56);
+      font-weight: 700;
+    }
+
+    .round-transition-toast .round-transition-arrow {
+      color: var(--gold-bright);
+    }
+
+    .round-transition-toast .round-transition-next {
+      color: #fff;
+    }
+
+    .round-transition-toast.is-announcing {
+      animation: roundTransitionToast 2600ms var(--ease-snap) both;
+    }
+
+    @keyframes roundTransitionToast {
+      0% { opacity: 0; transform: translateX(-50%) translateY(-14px); }
+      10% { opacity: 1; transform: translateX(-50%) translateY(0); }
+      85% { opacity: 1; transform: translateX(-50%) translateY(0); }
+      100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .bracket-live-header-status.is-live::before { animation: none; }
+      .round-transition-toast.is-announcing {
+        animation: roundTransitionToastReduced 2600ms linear both;
+        transform: translateX(-50%);
+      }
+    }
+
+    @keyframes roundTransitionToastReduced {
+      0% { opacity: 0; }
+      10%, 85% { opacity: 1; }
+      100% { opacity: 0; }
+    }
 
     .bracket-header-layout {
       display: grid;
@@ -14999,6 +15135,12 @@
         </div>
         <div id="summaryStrip" class="summary-strip"></div>
         <section id="historicalBracketState" class="historical-bracket-state hidden" aria-live="polite"></section>
+        <div id="bracketLiveHeaderBar" class="bracket-live-header-bar hidden">
+          <span id="bracketLiveHeaderName" class="bracket-live-header-name"></span>
+          <span id="bracketLiveHeaderRound" class="bracket-live-header-round"></span>
+          <span id="bracketLiveHeaderStatus" class="bracket-live-header-status"></span>
+        </div>
+        <div id="roundTransitionToast" class="round-transition-toast" aria-live="polite"></div>
         <section id="battleFlowPanel" class="battle-flow-panel hidden">
           <div class="battle-flow-head">
             <div>
@@ -20436,6 +20578,9 @@
     let judgeLaneIndex = uiState.judgeLaneIndex;
     let qualifyingFlow = activeEventState.qualifyingFlow;
     let lastBattleFlowSignature = null;
+    let lastAnnouncedRoundEventId = null;
+    let lastAnnouncedRoundKey = null;
+    let lastAnnouncedRoundName = null;
     let lastStandingsSignature = null;
     let lastPodiumSignature = null;
     let winnerAnimationState = null;
@@ -36846,6 +36991,75 @@
       }
     }
 
+    // Presentation-only. Reads the already resolved event/bracket state and
+    // never changes battle selection, votes, or admin controls.
+    function renderBracketLiveHeader(currentEntry) {
+      const bar = document.getElementById("bracketLiveHeaderBar");
+      if (!bar) return;
+      if (!tournamentState?.mainBracket) {
+        bar.classList.add("hidden");
+        clearRoundTransitionAnnouncement();
+        lastAnnouncedRoundEventId = null;
+        lastAnnouncedRoundKey = null;
+        lastAnnouncedRoundName = null;
+        return;
+      }
+
+      const nameEl = document.getElementById("bracketLiveHeaderName");
+      const roundEl = document.getElementById("bracketLiveHeaderRound");
+      const statusEl = document.getElementById("bracketLiveHeaderStatus");
+      if (nameEl) nameEl.textContent = activeEventMeta?.name || "Competition";
+      const roundsForEntry = currentEntry?.bracketKey === "lower"
+        ? tournamentState.lowerBracket?.rounds
+        : tournamentState.mainBracket?.rounds;
+      const roundName = roundsForEntry?.[currentEntry?.roundIndex]?.name || null;
+      if (roundEl) roundEl.textContent = roundName || "Bracket";
+      if (statusEl) {
+        const isComplete = isArchivedOrCompleted(activeEventMeta);
+        statusEl.textContent = isComplete ? "Complete" : (currentEntry ? "Live" : "In Progress");
+        statusEl.className = `bracket-live-header-status ${isComplete ? "is-complete" : (currentEntry ? "is-live" : "")}`.trim();
+      }
+      bar.classList.remove("hidden");
+
+      // Establish a baseline for each event before announcing changes. This
+      // prevents first-paint and event-switch notifications while retaining
+      // announcements for genuine round changes in the same active event.
+      const eventId = activeEventId || activeEventMeta?.id || "";
+      if (lastAnnouncedRoundEventId !== eventId) {
+        clearRoundTransitionAnnouncement();
+        lastAnnouncedRoundEventId = eventId;
+        lastAnnouncedRoundKey = null;
+        lastAnnouncedRoundName = null;
+      }
+      if (!currentEntry || !roundName) return;
+
+      const roundKey = `${currentEntry.bracketKey || "main"}:${currentEntry.roundIndex}`;
+      if (lastAnnouncedRoundKey !== null && roundKey !== lastAnnouncedRoundKey) {
+        announceRoundTransition(lastAnnouncedRoundName, roundName);
+      }
+      lastAnnouncedRoundKey = roundKey;
+      lastAnnouncedRoundName = roundName;
+    }
+
+    function clearRoundTransitionAnnouncement() {
+      const toast = document.getElementById("roundTransitionToast");
+      if (!toast) return;
+      toast.classList.remove("is-announcing");
+      toast.replaceChildren();
+    }
+
+    function announceRoundTransition(prevRoundName, nextRoundName) {
+      const toast = document.getElementById("roundTransitionToast");
+      if (!toast || !nextRoundName) return;
+      toast.innerHTML = `
+        ${prevRoundName ? `<span class="round-transition-prev">${escapeHtml(prevRoundName)} Complete</span><span class="round-transition-arrow">→</span>` : ""}
+        <span class="round-transition-next">${escapeHtml(nextRoundName)}</span>
+      `;
+      toast.classList.remove("is-announcing");
+      void toast.offsetWidth;
+      toast.classList.add("is-announcing");
+    }
+
     function renderBattleFlow() {
       const panel = document.getElementById("battleFlowPanel");
       const content = document.getElementById("battleFlowContent");
@@ -36861,6 +37075,7 @@
         [lowerCurrent, lowerNext, mainCurrent, mainNext].forEach((slot) => {
           if (slot) slot.innerHTML = "";
         });
+        renderBracketLiveHeader(null);
         lastBattleFlowSignature = null;
         return;
       }
@@ -36882,6 +37097,7 @@
       }
       const visibleEntries = activeCompetitionBracketPage === "lower" && lowerDisplayEntries.length ? lowerDisplayEntries : mainDisplayEntries;
       const currentEntry = visibleEntries[0] || null;
+      renderBracketLiveHeader(currentEntry);
       const currentSignature = judgeControl.entry && judgeControl.status !== "idle"
         ? buildCompetitionJudgeEntryKey(judgeControl.entry)
         : (currentEntry ? `${currentEntry.bracketKey}:${currentEntry.roundIndex}:${currentEntry.matchIndex}` : "none");
