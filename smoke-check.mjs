@@ -87,6 +87,7 @@ const checks = [
     name: "completed historical recovery never fabricates a competition bracket",
     test: () => historicalBracketSource.includes('HISTORICAL_BRACKET_UNAVAILABLE = "unavailable"')
       && historicalBracketSource.includes("completedWithoutBracketEvidence")
+      && historicalBracketSource.includes("shouldPreserveUnavailableHistoricalBracket")
       && html.includes('id="historicalBracketState"')
       && html.includes("Historical battle bracket unavailable")
       && backendSource.includes('if (action === "repairHistoricalBracketUnavailable")')
@@ -94,6 +95,17 @@ const checks = [
       && backendSource.includes("verify: verification")
       && backendSource.includes("transaction.create(auditDocument")
       && backendSource.includes("bracket: FieldValue.delete()"),
+  },
+  {
+    name: "historical unavailable events block synthetic battle regeneration and stale live battle UI",
+    test: () => activeEventStateApplySource.includes("shouldPreserveUnavailableHistoricalBracket(resolvedMeta)")
+      && activeEventStateApplySource.includes("? null")
+      && autoBracketSource.includes("shouldPreserveUnavailableHistoricalBracket(activeEventMeta)")
+      && renderBracketSource.includes("shouldPreserveUnavailableHistoricalBracket(activeEventMeta)")
+      && html.includes("const historicalBracketUnavailable = shouldPreserveUnavailableHistoricalBracket(activeEventMeta);")
+      && html.includes("if (!historicalBracketUnavailable && tournamentState?.mainBracket?.rounds?.length)")
+      && html.includes("getCompetitionFlowEntriesForState(null)")
+      && html.includes("Historical bracket details are unavailable for this completed event."),
   },
   {
     name: "browser bundles contain no privileged role credentials",

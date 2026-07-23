@@ -15338,7 +15338,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script type="module">
     import { parseVoiceCommandsWithFallback, sendResultsSummaryEmail } from "./assets/js/legacy-client-features.js";
-    import { isHistoricalBracketUnavailable, resolveRecoveredBracket } from "./assets/js/historical-bracket.js";
+    import { isHistoricalBracketUnavailable, resolveRecoveredBracket, shouldPreserveUnavailableHistoricalBracket } from "./assets/js/historical-bracket.js";
     import {
       createSelectedEventSubscriptionController,
       resolveSelectionEventMeta,
@@ -20706,9 +20706,10 @@
       const resolvedMeta = nextState.meta !== undefined
         ? (nextState.meta ? cloneEventMeta(nextState.meta) : null)
         : previousState.meta;
-      const resolvedBracket = isTwinTripleMode(resolvedMeta)
+      const requestedBracket = nextState.bracket !== undefined ? nextState.bracket : previousState.bracket;
+      const resolvedBracket = isTwinTripleMode(resolvedMeta) || shouldPreserveUnavailableHistoricalBracket(resolvedMeta)
         ? null
-        : (nextState.bracket !== undefined ? nextState.bracket : previousState.bracket);
+        : requestedBracket;
       activeEventState = createActiveEventState({
         ...previousState,
         ...nextState,
@@ -26697,6 +26698,7 @@
     function buildBroadcastTickerItems() {
       const items = [];
       const eventName = activeEventMeta?.name || "Main Event";
+      const historicalBracketUnavailable = shouldPreserveUnavailableHistoricalBracket(activeEventMeta);
       items.push(`Event <strong>${escapeHtml(eventName)}</strong>`);
 
       const qualifyingPhase = getQualifyingFlowPhase(qualifyingFlow, appDrivers);
@@ -26740,7 +26742,7 @@
         items.push(`Pending Check-Ins <strong>${pendingCount}</strong>`);
       }
 
-      if (tournamentState?.mainBracket?.rounds?.length) {
+      if (!historicalBracketUnavailable && tournamentState?.mainBracket?.rounds?.length) {
         const bracketEntries = getMainBattleFlowEntries(
           tournamentState.mainBracket.rounds,
           tournamentState.mainBracket.thirdPlaceMatch,
@@ -27069,12 +27071,15 @@
       const queue = getQualifyingDriverQueue();
       const currentIndex = currentDriver ? queue.findIndex((entry) => entry.id === currentDriver.id) : -1;
       const nextDriver = currentIndex > -1 ? queue[currentIndex + 1] || null : null;
-      const competitionFlow = getCompetitionFlowEntriesForState(tournamentState);
+      const historicalBracketUnavailable = shouldPreserveUnavailableHistoricalBracket(activeEventMeta);
+      const competitionFlow = historicalBracketUnavailable
+        ? getCompetitionFlowEntriesForState(null)
+        : getCompetitionFlowEntriesForState(tournamentState);
       const currentBattle = competitionFlow.currentEntry || null;
       const activeJudgeRoles = getActiveJudgeRoles(activeEventMeta);
       const judgesReady = activeJudgeRoles.filter((role) => qualifyingFlow?.readyRoles?.[role]).length;
       const results = activeEventMeta?.results || {};
-      const bracketPublished = Boolean(tournamentState?.mainBracket?.rounds?.length);
+      const bracketPublished = !historicalBracketUnavailable && Boolean(tournamentState?.mainBracket?.rounds?.length);
       const twinLive = twinTripleMode && twinState?.status !== "setup";
 
       if (commandCenterPhase) {
@@ -27105,7 +27110,7 @@
         <article class="command-center-card cc-now${ccNowIsLive ? " is-live" : ""}">
           <span>${teamTandemMode ? "Current Battle" : twinTripleMode ? "Current Team" : "Current Driver"}</span>
           <strong>${escapeHtml(teamTandemMode ? (currentBattle?.match?.left?.name && currentBattle?.match?.right?.name ? `${currentBattle.match.left.name} vs ${currentBattle.match.right.name}` : "Waiting") : twinTripleMode ? (currentDriver?.teamName || currentDriver?.name || "Waiting") : (currentDriver?.name || "Waiting"))}</strong>
-          <small>${teamTandemMode ? (bracketPublished ? "Judges score line, angle, and proximity for the live team battle." : "Launch the randomized team bracket straight from registration.") : twinTripleMode ? (twinRound ? `Round ${twinRound.number}: ${twinRound.teamIds.filter((teamId) => getTwinCompTeamRoundScore(teamId, twinRound)).length}/${twinRound.teamIds.length} scores locked.` : "Start the first triple-elimination round from Competition.") : (nextDriver?.name ? `On deck: ${nextDriver.name}` : "No next driver locked yet.")}</small>
+          <small>${teamTandemMode ? (historicalBracketUnavailable ? "This completed historical event preserves verified results without an original battle ladder." : bracketPublished ? "Judges score line, angle, and proximity for the live team battle." : "Launch the randomized team bracket straight from registration.") : twinTripleMode ? (twinRound ? `Round ${twinRound.number}: ${twinRound.teamIds.filter((teamId) => getTwinCompTeamRoundScore(teamId, twinRound)).length}/${twinRound.teamIds.length} scores locked.` : "Start the first triple-elimination round from Competition.") : (historicalBracketUnavailable ? "Historical bracket details are unavailable for this completed event." : (nextDriver?.name ? `On deck: ${nextDriver.name}` : "No next driver locked yet."))}</small>
         </article>
         <article class="command-center-card cc-status ${ccJudgeTone}">
           <span>Judges Ready</span>
@@ -30105,6 +30110,7 @@
 
     function maybeAutoBuildBracket() {
       if (isTeamCompetitionMode()) return false;
+      if (shouldPreserveUnavailableHistoricalBracket(activeEventMeta)) return false;
       if (tournamentState?.mainBracket?.rounds?.length) return false;
       const validation = getBracketValidationState();
       if (!validation.buildReady) return false;
@@ -37433,7 +37439,7 @@
       historicalBracketState.classList.add("hidden");
       document.getElementById("lowerBracketPage").classList.remove("hidden");
       document.getElementById("mainBracketPage").classList.remove("hidden");
-      if (isHistoricalBracketUnavailable(activeEventMeta, tournamentState)) {
+      if (shouldPreserveUnavailableHistoricalBracket(activeEventMeta) || isHistoricalBracketUnavailable(activeEventMeta, tournamentState)) {
         setBracketReorderUiState({ bracketReorderModeEnabled: false });
         clearBracketSwapSource();
         renderHistoricalBracketUnavailableState();

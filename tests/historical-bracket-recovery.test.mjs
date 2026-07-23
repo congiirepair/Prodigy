@@ -7,6 +7,7 @@ import {
   HISTORICAL_BRACKET_AVAILABLE,
   isHistoricalBracketUnavailable,
   resolveRecoveredBracket,
+  shouldPreserveUnavailableHistoricalBracket,
 } from "../assets/js/historical-bracket.js";
 
 const repoRoot = fileURLToPath(new URL("../", import.meta.url));
@@ -37,6 +38,9 @@ const unavailable = resolveRecoveredBracket({
 });
 assert.equal(unavailable.bracket, null);
 assert.equal(unavailable.historicalBracketStatus, HISTORICAL_BRACKET_UNAVAILABLE);
+assert.equal(shouldPreserveUnavailableHistoricalBracket({ status: "completed", historicalBracketStatus: "unavailable" }), true);
+assert.equal(shouldPreserveUnavailableHistoricalBracket({ status: "completed", historicalBracketStatus: "available" }), false);
+assert.equal(shouldPreserveUnavailableHistoricalBracket({ status: "active", historicalBracketStatus: "unavailable" }), false);
 assert.equal(isHistoricalBracketUnavailable({ status: "completed", historicalBracketStatus: "unavailable" }, null), true);
 
 let activeBracketBuilds = 0;
@@ -60,6 +64,23 @@ const validated = resolveRecoveredBracket({
 assert.deepEqual(validated.bracket, validatedBracket);
 assert.notEqual(validated.bracket, validatedBracket);
 assert.equal(validated.historicalBracketStatus, HISTORICAL_BRACKET_AVAILABLE);
+
+function resolveClientBracketForEvent(meta, previousBracket, nextBracket = undefined, { twinComp = false } = {}) {
+  const requestedBracket = nextBracket !== undefined ? nextBracket : previousBracket;
+  return twinComp || shouldPreserveUnavailableHistoricalBracket(meta)
+    ? null
+    : requestedBracket;
+}
+
+const activeBracketState = { mainBracket: { rounds: [{ matches: [{ left: { name: "A" }, right: { name: "B" }, winner: null }] }] } };
+const historicalUnavailableMeta = { status: "completed", historicalBracketStatus: "unavailable" };
+const activeMeta = { status: "active", historicalBracketStatus: null };
+const completedHistoricalWithBracketMeta = { status: "completed", historicalBracketStatus: "available" };
+assert.equal(resolveClientBracketForEvent(historicalUnavailableMeta, activeBracketState), null);
+assert.equal(resolveClientBracketForEvent(historicalUnavailableMeta, activeBracketState, activeBracketState), null);
+assert.deepEqual(resolveClientBracketForEvent(activeMeta, null, activeBracketState), activeBracketState);
+assert.deepEqual(resolveClientBracketForEvent(completedHistoricalWithBracketMeta, null, validatedBracket), validatedBracket);
+assert.deepEqual(resolveClientBracketForEvent(activeMeta, activeBracketState), activeBracketState);
 
 const syntheticBracket = {
   version: 9,
@@ -266,11 +287,25 @@ const recoveryBuilder = html.slice(
   html.indexOf("function buildRound3PdfRecoverySnapshot"),
   html.indexOf("async function commitRound3PdfRestore"),
 );
+const activeEventStateApplySource = sourceBetween(html, "function applyActiveEventState(nextState = {}, options = {}) {", "function setActiveEventIdState(nextId) {");
+const autoBracketSource = sourceBetween(html, "function maybeAutoBuildBracket() {", "function syncNetworkStatusIndicator() {");
+const broadcastTickerSource = sourceBetween(html, "function buildBroadcastTickerItems() {", "function isOfflineMode() {");
+const commandCenterSource = sourceBetween(html, "function renderCommandCenter() {", "async function finalizeCurrentEventResults() {");
+const renderBracketSource = sourceBetween(html, "function renderBracket() {", "function updateCompetitionBracketPage() {");
 assert.match(recoveryBuilder, /resolveRecoveredBracket/);
 assert.doesNotMatch(recoveryBuilder, /createTournamentState/);
 assert.match(html, /id="historicalBracketState"/);
 assert.match(html, /Historical battle bracket unavailable/);
 assert.match(html, /isHistoricalBracketUnavailable\(activeEventMeta, tournamentState\)/);
+assert.match(activeEventStateApplySource, /shouldPreserveUnavailableHistoricalBracket\(resolvedMeta\)/);
+assert.match(activeEventStateApplySource, /\? null\s*\n\s*: requestedBracket/);
+assert.match(autoBracketSource, /shouldPreserveUnavailableHistoricalBracket\(activeEventMeta\)/);
+assert.match(broadcastTickerSource, /const historicalBracketUnavailable = shouldPreserveUnavailableHistoricalBracket\(activeEventMeta\);/);
+assert.match(broadcastTickerSource, /if \(!historicalBracketUnavailable && tournamentState\?\.mainBracket\?\.rounds\?\.length\)/);
+assert.match(commandCenterSource, /const historicalBracketUnavailable = shouldPreserveUnavailableHistoricalBracket\(activeEventMeta\);/);
+assert.match(commandCenterSource, /getCompetitionFlowEntriesForState\(null\)/);
+assert.match(commandCenterSource, /const bracketPublished = !historicalBracketUnavailable && Boolean\(tournamentState\?\.mainBracket\?\.rounds\?\.length\)/);
+assert.match(renderBracketSource, /shouldPreserveUnavailableHistoricalBracket\(activeEventMeta\)/);
 assert.match(html, /id="repairRound3HistoricalBracketBtn"/);
 assert.match(html, /expectedBracketHash: dryRun\.bracketHash/);
 assert.match(html, /expectedSyncStamp: dryRun\.currentSyncStamp/);
@@ -330,4 +365,11 @@ function firstDifference(left, right, path = "bracket") {
     return null;
   }
   return { path, left, right };
+}
+
+function sourceBetween(source, startMarker, endMarker) {
+  const startIndex = source.indexOf(startMarker);
+  const endIndex = source.indexOf(endMarker, startIndex + startMarker.length);
+  if (startIndex < 0 || endIndex < 0) return "";
+  return source.slice(startIndex, endIndex);
 }

@@ -35,8 +35,11 @@ export function resolveRecoveredBracket({
   };
 }
 
-export function isHistoricalBracketUnavailable(eventMeta, bracket) {
+export function shouldPreserveUnavailableHistoricalBracket(eventMeta) {
   return String(eventMeta?.status || "").toLowerCase() === "completed"
-    && eventMeta?.historicalBracketStatus === HISTORICAL_BRACKET_UNAVAILABLE
-    && !bracket;
+    && eventMeta?.historicalBracketStatus === HISTORICAL_BRACKET_UNAVAILABLE;
+}
+
+export function isHistoricalBracketUnavailable(eventMeta, bracket) {
+  return shouldPreserveUnavailableHistoricalBracket(eventMeta) && !bracket;
 }
