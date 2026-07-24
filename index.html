@@ -10,7 +10,7 @@
   <style>
     @font-face {
       font-family: 'Ethnocentric';
-      src: url('./assets/fonts/Ethnocentric-Regular.otf?v=085c8a14ee19') format('opentype');
+      src: url('./assets/fonts/Ethnocentric-Regular.otf?v=cc152aa894d9') format('opentype');
       font-weight: 400;
       font-style: normal;
       font-display: swap;
@@ -58,11 +58,11 @@
       --radius-panel: 24px;
       --radius-card: 18px;
       --radius-button: 14px;
-      --brand-track-background-image: url("./assets/track-background.png?v=085c8a14ee19");
-      --brand-watermark-image: url("./assets/prodigy-rc-logo-white-transparent.png?v=085c8a14ee19");
+      --brand-track-background-image: url("./assets/track-background.png?v=cc152aa894d9");
+      --brand-watermark-image: url("./assets/prodigy-rc-logo-white-transparent.png?v=cc152aa894d9");
       --font-graffiti: 'Ethnocentric', 'Orbitron', 'Inter', sans-serif;
       --font-sans: 'Inter', sans-serif;
-      --brand-home-hero-image: url("./assets/track-background.png?v=085c8a14ee19");
+      --brand-home-hero-image: url("./assets/track-background.png?v=cc152aa894d9");
       --accent-rgb: 44, 36, 29;
       --button-accent-rgb: 43, 36, 29;
       --button-accent-dark-rgb: 122, 99, 75;
@@ -7906,6 +7906,26 @@
       line-height: 1.5;
     }
 
+    /* QA / Event Setup Tools: visually distinct from normal competition
+       controls (dashed border, no accent color) so it never reads as part
+       of the live event-day flow. */
+    .qa-tools-panel {
+      border: 2px dashed rgba(17, 17, 17, 0.28);
+      background: rgba(0, 0, 0, 0.02);
+      margin-bottom: 18px;
+    }
+    body[data-theme="dark"] .qa-tools-panel {
+      border-color: rgba(255, 255, 255, 0.22);
+      background: rgba(255, 255, 255, 0.03);
+    }
+    .qa-tools-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: end;
+      gap: 12px;
+      margin-top: 10px;
+    }
+
     .pdf-preview-actions {
       display: flex;
       flex-wrap: wrap;
@@ -14408,7 +14428,7 @@
       <div class="topbar-left">
         <div class="topbar-brand">
           <div class="topbar-brand-mark">
-            <img src="./assets/prodigy-rc-logo-transparent.png?v=085c8a14ee19" alt="Prodigy RC logo" />
+            <img src="./assets/prodigy-rc-logo-transparent.png?v=cc152aa894d9" alt="Prodigy RC logo" />
           </div>
           <div class="topbar-brand-copy">
             <span class="topbar-brand-kicker">Prodigy RC Comp</span>
@@ -14465,7 +14485,7 @@
       <div class="streamer-topbar-main">
         <div class="streamer-topbar-brandline">
           <div class="streamer-topbar-mark">
-            <img src="./assets/prodigy-rc-logo-transparent.png?v=085c8a14ee19" alt="Prodigy RC logo" />
+            <img src="./assets/prodigy-rc-logo-transparent.png?v=cc152aa894d9" alt="Prodigy RC logo" />
           </div>
           <div class="streamer-topbar-copy">
             <span class="streamer-topbar-kicker">Prodigy Stream Studio</span>
@@ -14664,7 +14684,7 @@
     <div id="view-registration" class="view-section is-active">
       <header class="hero">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=085c8a14ee19" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=cc152aa894d9" alt="Prodigy RC logo" /></div>
           <p class="eyebrow">Registration</p>
           <h1>Driver Sign-Up</h1>
           <div class="hero-actions">
@@ -14803,7 +14823,7 @@
     <div id="view-home" class="view-section">
       <header class="hero hero-simple spectator-only">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=085c8a14ee19" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=cc152aa894d9" alt="Prodigy RC logo" /></div>
           <p class="eyebrow" id="landingHeroEyebrow">Prodigy RC Drift Arena</p>
           <h1 id="landingHeroTitle"><span class="landing-brand-wordmark" aria-label="Live Drift Event Hub">Live Drift Event Hub</span></h1>
           <p id="landingHeroCopy" class="hero-copy">Check in, follow standings, and keep Prodigy RC Drift Arena event days moving from one live event home.</p>
@@ -14880,7 +14900,7 @@
     <div id="view-live" class="view-section">
       <header class="hero hero-simple spectator-only">
         <div class="hero-copy-block">
-          <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=085c8a14ee19" alt="Prodigy RC logo" /></div>
+          <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=cc152aa894d9" alt="Prodigy RC logo" /></div>
           <p class="eyebrow">Live Broadcast</p>
           <h1><span class="landing-brand-wordmark">LIVE</span></h1>
           <p class="hero-copy">Watch the active event stream with a layout that follows qualifying, battles, brackets, standings, and results automatically.</p>
@@ -14916,7 +14936,7 @@
     <div id="view-self-register" class="view-section">
       <header class="hero">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=085c8a14ee19" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=cc152aa894d9" alt="Prodigy RC logo" /></div>
           <p class="eyebrow">Driver Check-In</p>
           <h1>Self Registration</h1>
           <p class="hero-copy">Pre-register from home, then verify your location at the venue to complete check-in before event admin moves you into the live roster.</p>
@@ -15055,7 +15075,7 @@
     <div id="view-qualifying" class="view-section">
       <header class="hero hero-simple">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=085c8a14ee19" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=cc152aa894d9" alt="Prodigy RC logo" /></div>
           <div class="spectator-qualifying-title spectator-only">
             <p class="eyebrow">Live Event</p>
             <h1>Qualifying Standings</h1>
@@ -15092,6 +15112,30 @@
       </header>
 
       <section id="qualifyingLivePanel" class="qualifying-live-shell"></section>
+
+      <section id="sampleDataToolsPanel" class="panel qa-tools-panel admin-only">
+        <div class="panel-header compact">
+          <div>
+            <p class="section-kicker">QA / Event Setup Tools</p>
+            <h2>Load Sample Drivers</h2>
+          </div>
+        </div>
+        <div class="helper-text">
+          Adds sample drivers to the currently selected real event using the normal registration data format. This is not a separate test environment: it writes through the same event you have open, and real drivers are never removed automatically.
+        </div>
+        <div class="qa-tools-row">
+          <label class="search-field" style="max-width:140px;">
+            <span>Driver Count</span>
+            <select id="sampleDriverCountSelect">
+              <option value="8">8</option>
+              <option value="16" selected>16</option>
+              <option value="32">32</option>
+            </select>
+          </label>
+          <button id="loadSampleNoScoresBtn" class="button button-secondary" type="button">Load Drivers &mdash; No Qualifying Scores</button>
+          <button id="loadSampleWithScoresBtn" class="button button-secondary" type="button">Load Drivers + Qualifying Scores</button>
+        </div>
+      </section>
 
       <main class="qualifying-layout">
         <section class="panel">
@@ -15153,7 +15197,7 @@
     <div id="view-results" class="view-section">
       <header class="hero hero-simple">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=085c8a14ee19" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=cc152aa894d9" alt="Prodigy RC logo" /></div>
           <p class="eyebrow">Results</p>
           <h1>Past Events</h1>
           <p class="hero-copy">
@@ -15187,7 +15231,7 @@
     <div id="view-website-admin" class="view-section">
       <header class="hero">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=085c8a14ee19" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=cc152aa894d9" alt="Prodigy RC logo" /></div>
           <p class="eyebrow">Website Admin</p>
           <h1>Website Admin</h1>
           <p class="hero-copy">
@@ -15324,7 +15368,7 @@
       <!-- Fixed Fullscreen Toolbar -->
       <div class="bracket-header-bar">
         <div id="bracketHeaderLogoSlot">
-              <img class="bracket-header-logo" src="./assets/prodigy-rc-logo-transparent.png?v=085c8a14ee19" alt="Prodigy RC logo" />
+              <img class="bracket-header-logo" src="./assets/prodigy-rc-logo-transparent.png?v=cc152aa894d9" alt="Prodigy RC logo" />
         </div>
         <div class="button-row bracket-header-actions">
           <button id="fullscreenBracketBtn" class="button button-secondary bracket-header-icon-button" type="button" aria-label="Toggle fullscreen bracket" title="Toggle fullscreen">⛶<span class="icon-label">Fullscreen</span></button>
@@ -15380,7 +15424,7 @@
               <div class="bracket-header-center">
                 <p class="section-kicker">Play-In</p>
                 <h2 class="main-board-title">Lower Bracket</h2>
-                <img class="bracket-stage-logo" src="./assets/prodigy-rc-logo-transparent.png?v=085c8a14ee19" alt="Prodigy RC logo" />
+                <img class="bracket-stage-logo" src="./assets/prodigy-rc-logo-transparent.png?v=cc152aa894d9" alt="Prodigy RC logo" />
               </div>
               <div id="lowerBracketNextBattle" class="bracket-flow-slot right"></div>
             </div>
@@ -15399,7 +15443,7 @@
               <div class="bracket-header-center">
                 <p class="section-kicker">Main Event</p>
                 <h2 id="mainBracketTitle" class="main-board-title">Main Competition</h2>
-                <img class="bracket-stage-logo" src="./assets/prodigy-rc-logo-transparent.png?v=085c8a14ee19" alt="Prodigy RC logo" />
+                <img class="bracket-stage-logo" src="./assets/prodigy-rc-logo-transparent.png?v=cc152aa894d9" alt="Prodigy RC logo" />
               </div>
               <div id="mainBracketNextBattle" class="bracket-flow-slot right"></div>
             </div>
@@ -15695,17 +15739,17 @@
   </div>
 
   <!-- APP LOGIC -->
-  <script src="./client-config.js?v=085c8a14ee19"></script>
+  <script src="./client-config.js?v=cc152aa894d9"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script type="module">
-    import { parseVoiceCommandsWithFallback, sendResultsSummaryEmail } from "./assets/js/legacy-client-features.js?v=085c8a14ee19";
-    import { isHistoricalBracketUnavailable, resolveRecoveredBracket, shouldPreserveUnavailableHistoricalBracket } from "./assets/js/historical-bracket.js?v=085c8a14ee19";
+    import { parseVoiceCommandsWithFallback, sendResultsSummaryEmail } from "./assets/js/legacy-client-features.js?v=cc152aa894d9";
+    import { isHistoricalBracketUnavailable, resolveRecoveredBracket, shouldPreserveUnavailableHistoricalBracket } from "./assets/js/historical-bracket.js?v=cc152aa894d9";
     import {
       createSelectedEventSubscriptionController,
       resolveSelectionEventMeta,
       shouldReplaceCachedSelection,
       getLiveJudgeSelectionMismatch,
-    } from "./assets/js/event-selection-sync.js?v=085c8a14ee19";
+    } from "./assets/js/event-selection-sync.js?v=cc152aa894d9";
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, connectAuthEmulator } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, collection, doc, setDoc, onSnapshot, deleteDoc, deleteField, getDoc, runTransaction, connectFirestoreEmulator } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -15721,15 +15765,15 @@
         venueName: "Prodigy RC Drift Arena",
         venueLabelPlaceholder: "Prodigy RC Drift Arena",
         eventNamePlaceholder: "Prodigy RC Drift Arena",
-        logoPrimary: "./assets/prodigy-rc-logo-transparent.png?v=085c8a14ee19",
-        logoInverted: "./assets/prodigy-rc-logo-white-transparent.png?v=085c8a14ee19",
+        logoPrimary: "./assets/prodigy-rc-logo-transparent.png?v=cc152aa894d9",
+        logoInverted: "./assets/prodigy-rc-logo-white-transparent.png?v=cc152aa894d9",
         logoTreatment: {
           invertLight: false,
           invertDark: false,
         },
         logoAlt: "Prodigy RC logo",
-        backgroundImage: "./assets/track-background.png?v=085c8a14ee19",
-        homeHeroImage: "./assets/track-background.png?v=085c8a14ee19",
+        backgroundImage: "./assets/track-background.png?v=cc152aa894d9",
+        homeHeroImage: "./assets/track-background.png?v=cc152aa894d9",
         shopUrl: "https://www.prodigydrift.com/",
         shopLabel: "Shop Prodigy RC Here",
         pdfHeaderTitle: "PRODIGY RC",
@@ -17406,6 +17450,108 @@
       return createDriverSet();
     }
 
+    // ==== QA / Event Setup Tools: safe sample-data loader ===================
+    // Writes real driver entries into the CURRENTLY SELECTED real event using
+    // the exact same schema and sync path as normal registration/admin edits
+    // (applyActiveEventState + publishStateImmediately) -- this is not a
+    // separate environment, browser Test Mode, or testData scope. Generated
+    // drivers are marked with isSampleDriver: true (an internal, non-breaking
+    // metadata field never surfaced in spectator UI) so they can be safely
+    // identified for a later explicit "replace samples only" action without
+    // ever touching real, non-sample drivers.
+    const SAMPLE_DRIVER_ENTRIES = Object.freeze([
+      ["Takumi Sato", "Project D", "Yokomo MD 2.0", 99.2, 98.7],
+      ["Mika Torres", "Slide Theory", "MST RMX 2.5", 98.8, 98.1],
+      ["Jordan Lee", "White Smoke", "Reve D RDX", 98.1, 97.9],
+      ["Chris Vega", "Night Shift", "Overdose Galm", 97.6, 97.2],
+      ["Noah Kim", "Apex Line", "Yokomo SD 3.0", 97.4, 96.9],
+      ["Aiden Brooks", "Countersteer Crew", "MST RMX EX GT", 96.8, 96.1],
+      ["Luis Ramirez", "Static Works", "Reve D RDX", 96.2, 95.7],
+      ["Kai Foster", "Blackout Drift", "Yokomo MD 1.0", 95.9, 95.1],
+      ["Mason Hill", "Side Bite", "MST RMX 2.5", 95.4, 94.8],
+      ["Eli Carter", "Ghost Angle", "Overdose Galm", 94.9, 94.2],
+      ["Asher Bell", "Prime Slide", "Reve D RDX", 94.4, 93.9],
+      ["Roman Ward", "Late Apex", "Yokomo SD 2.0", 93.8, 93.2],
+      ["Caleb Reed", "Steel Smoke", "MST RMX 2.0", 93.1, 92.4],
+      ["Hunter Miles", "Street Limit", "Yokomo MD 2.0", 92.6, 92.1],
+      ["Tristan Holt", "Clean Line", "Reve D RDX", 92.0, 91.5],
+      ["Blake Griffin", "North Side", "MST RMX EX GT", 91.4, 90.9],
+      ["Levi Cruz", "Shadow Team", "Overdose Galm", 90.9, 90.2],
+      ["Carter Quinn", "Rogue Angle", "Yokomo SD 3.0", 90.3, 89.7],
+      ["Griffin Shaw", "Voltage RC", "MST RMX 2.5", 89.8, 89.1],
+      ["Ethan Perry", "Track Ritual", "Reve D RDX", 89.2, 88.8],
+      ["Roman Diaz", "Finish First", "Yokomo MD 2.0", 88.7, 88.1],
+      ["Cole Bennett", "Zero Counter", "MST RMX 2.0", 88.2, 87.6],
+      ["Nico Alvarez", "Broken Traction", "Overdose Galm", 87.6, 86.9],
+      ["Jaxon Reed", "Clip Point", "Yokomo MD 1.0", 87.1, 86.4],
+      ["Tyler West", "Rear Lock", "MST RMX 2.5", 86.5, 85.9],
+      ["Shawn Mercer", "Throttle Line", "Reve D RDX", 85.8, 85.1],
+      ["Owen Pierce", "Street Ghost", "Yokomo SD 2.0", 85.2, 84.7],
+      ["Marco Ellis", "Counter King", "Overdose Galm", 84.9, 84.1],
+      ["Devon Park", "Burnout Club", "MST RMX EX GT", 84.1, 83.6],
+      ["Logan Frost", "Sideways Lab", "Yokomo MD 2.0", 83.5, 82.9],
+      ["Miles Tanaka", "Late Entry", "Reve D RDX", 82.8, 82.2],
+      ["Parker Stone", "Static Habit", "MST RMX 2.0", 82.1, 81.6],
+    ]);
+
+    function buildSampleDrivers(count, populateScores, startingPosition) {
+      const safeCount = Math.max(1, Math.min(Number(count) || 0, SAMPLE_DRIVER_ENTRIES.length));
+      const suffix = String(Date.now()).slice(-5);
+      return SAMPLE_DRIVER_ENTRIES.slice(0, safeCount).map(([name, teamName, chassis, run1, run2], index) => {
+        const position = startingPosition + index;
+        const driver = createEmptyDriver(position);
+        driver.id = `sample-${suffix}-${index}-${generateId()}`;
+        driver.name = name;
+        driver.teamName = teamName;
+        driver.chassis = chassis;
+        driver.isSampleDriver = true;
+        JUDGE_ROLE_ORDER.forEach((role, roleIndex) => {
+          const run1Score = populateScores ? clampJudgeScoreValue(run1 - (roleIndex * 0.1), role) : null;
+          const run2Score = populateScores ? clampJudgeScoreValue(run2 - (roleIndex * 0.1), role) : null;
+          driver.scores[role] = {
+            run1: run1Score,
+            run2: run2Score,
+            runoff: null,
+            submitted: { run1: run1Score, run2: run2Score, runoff: null },
+            deductionHistory: { run1: [], run2: [], runoff: [] },
+          };
+        });
+        return driver;
+      });
+    }
+
+    async function loadSampleDrivers(count, populateScores) {
+      if (!adminCanEdit()) return false;
+      if (!activeEventId || !activeEventMeta) {
+        window.alert("Select an event before loading sample drivers.");
+        return false;
+      }
+      const existingSampleDrivers = appDrivers.filter((entry) => entry.isSampleDriver);
+      if (existingSampleDrivers.length) {
+        const replace = window.confirm(
+          `This event already has ${existingSampleDrivers.length} sample driver(s). Press OK to replace only the existing sample drivers (real drivers are never touched). Press Cancel to add ${count} more sample drivers alongside them.`,
+        );
+        if (replace) {
+          const confirmed = window.confirm(`This adds sample drivers to the currently selected event ("${activeEventMeta.name || activeEventId}"), replacing the existing sample set. Continue?`);
+          if (!confirmed) return false;
+          const realDrivers = appDrivers.filter((entry) => !entry.isSampleDriver);
+          const nextSample = buildSampleDrivers(count, populateScores, getNextSignUpPosition(realDrivers));
+          setActiveDriversState(resequenceDrivers([...realDrivers, ...nextSample], true));
+          if (!(await publishStateImmediately())) return false;
+          renderDriversTable();
+          return true;
+        }
+      } else {
+        const confirmed = window.confirm(`This adds ${count} sample driver(s) to the currently selected event ("${activeEventMeta.name || activeEventId}"). Existing real drivers are never removed. Continue?`);
+        if (!confirmed) return false;
+      }
+      const nextSample = buildSampleDrivers(count, populateScores, getNextSignUpPosition(appDrivers));
+      setActiveDriversState(resequenceDrivers([...appDrivers, ...nextSample], true));
+      if (!(await publishStateImmediately())) return false;
+      renderDriversTable();
+      return true;
+    }
+
     function getNextSignUpPosition(drivers) {
       return getRegisteredDrivers(drivers).reduce((maxValue, driver) => Math.max(maxValue, driver.signUpPosition || 0), 0) + 1;
     }
@@ -17660,6 +17806,11 @@
       if (!driver || !role.startsWith("j") || isJudgeAccessLocked()) return;
       const judgeScores = driver.scores?.[role];
       if (!judgeScores || !(runKey in judgeScores.submitted)) return;
+      // Never optimistically mark an already-finalized run as submitted
+      // again locally: the server will reject a duplicate outright, and
+      // briefly believing the new (unaccepted) value was saved is exactly
+      // what let a stale local edit masquerade as the authoritative score.
+      if (judgeScores.submitted[runKey] !== null && judgeScores.submitted[runKey] !== undefined) return;
       judgeScores[runKey] = getJudgeDraftScoreValue(driver, role, runKey);
       judgeScores.submitted[runKey] = judgeScores[runKey];
       triggerJudgeSubmissionFeedback(driverId, role, runKey);
@@ -17810,6 +17961,29 @@
           return true;
         } catch (error) {
           console.error("Secure judge submission failed:", error);
+          // DUPLICATE-REJECTION RECOVERY: a generic connectivity/conflict
+          // rollback restores whatever draft snapshot was captured right
+          // before this attempt — but for an "already submitted" rejection
+          // that snapshot can itself already be a diverged, edited-after-
+          // finalization draft (exactly how a locally-edited "50" survived
+          // next to an authoritative "84" on screen). For this specific
+          // rejection, don't trust the snapshot: force the draft back to
+          // whatever this device already knows was accepted, so the run
+          // reads as finalized immediately rather than staying "pending"
+          // forever.
+          const alreadySubmitted = typeof error?.message === "string" && error.message.includes("already submitted");
+          if (alreadySubmitted && runRef) {
+            const runKey = getRunKey(runRef);
+            const driverForReconcile = appDrivers.find((entry) => entry.id === driverId);
+            const knownSubmitted = driverForReconcile?.scores?.[role]?.submitted?.[runKey];
+            if (driverForReconcile && knownSubmitted !== null && knownSubmitted !== undefined) {
+              driverForReconcile.scores[role][runKey] = knownSubmitted;
+              clearJudgeDeductionHistory(driverForReconcile, role, runKey);
+              saveEventStateCache();
+              window.alert(`${error.message} The finalized score for this run is now shown.`);
+              return false;
+            }
+          }
           const rollbackRestored = restoreJudgeSubmissionRollback(rollbackState, remoteRevisionAtSubmit);
           window.alert(rollbackRestored
             ? `${error?.message || "Your score could not be saved."} Your previous submitted score has been restored.`
@@ -18509,6 +18683,12 @@
       const runKey = getRunKey(runRef);
       const driver = appDrivers.find((entry) => entry.id === driverId);
       if (!driver || !role?.startsWith("j")) return false;
+      // A run that has already been server-accepted is finalized: no further
+      // deductions may change its draft. Without this guard, taps landing
+      // after a successful submit silently diverge the draft from the
+      // submitted score, which resurrects an editable/enabled Submit control
+      // for a run the server will never allow a second write for.
+      if (hasSubmittedJudgeRun(driver, role, runKey)) return false;
       if (deduction === "crash") {
         driver.scores[role][runKey] = 0;
         driver.runFlags[runKey] = "Crash";
@@ -22607,7 +22787,7 @@
       };
     }
 
-    function getThemeAwareLogoSource(primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=085c8a14ee19", invertedLogo = CLIENT_BRANDING.logoInverted || primaryLogo) {
+    function getThemeAwareLogoSource(primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=cc152aa894d9", invertedLogo = CLIENT_BRANDING.logoInverted || primaryLogo) {
       return document.body?.dataset.theme === "dark" ? invertedLogo : primaryLogo;
     }
 
@@ -23860,11 +24040,11 @@
 
     function applyClientBranding() {
       const root = document.documentElement;
-      const primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=085c8a14ee19";
+      const primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=cc152aa894d9";
       const invertedLogo = CLIENT_BRANDING.logoInverted || primaryLogo;
       const logoTreatment = isPlainObject(CLIENT_BRANDING.logoTreatment) ? CLIENT_BRANDING.logoTreatment : {};
       const logoAlt = CLIENT_BRANDING.logoAlt || CLIENT_BRANDING.venueName || "Track logo";
-      const backgroundImage = CLIENT_BRANDING.backgroundImage || "./assets/track-background.png?v=085c8a14ee19";
+      const backgroundImage = CLIENT_BRANDING.backgroundImage || "./assets/track-background.png?v=cc152aa894d9";
       const homeHeroImage = CLIENT_BRANDING.homeHeroImage || backgroundImage;
       const browserTitle = CLIENT_PLATFORM.browserTitle || CLIENT_PLATFORM.productName || "Prodigy Event Control";
 
@@ -24142,7 +24322,7 @@
       syncWebsiteAdminUpcomingBannerUi();
     }
 
-    function syncBrandLogoAssetsForTheme(primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=085c8a14ee19", invertedLogo = CLIENT_BRANDING.logoInverted || primaryLogo, logoAlt = CLIENT_BRANDING.logoAlt || "Prodigy RC logo") {
+    function syncBrandLogoAssetsForTheme(primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=cc152aa894d9", invertedLogo = CLIENT_BRANDING.logoInverted || primaryLogo, logoAlt = CLIENT_BRANDING.logoAlt || "Prodigy RC logo") {
       const themedLogo = getThemeAwareLogoSource(primaryLogo, invertedLogo);
       document.querySelectorAll(".hero-logo, .bracket-stage-logo, .bracket-header-logo, .topbar-brand-mark img, .streamer-topbar-mark img, .native-broadcast-brand img").forEach((logoEl) => {
         logoEl.setAttribute("src", themedLogo);
@@ -27421,7 +27601,7 @@
           ? `#${rankedDrivers[0].seed} ${rankedDrivers[0].name}`
           : "Waiting";
       const queueLabel = nextDriver?.name || queuedBattleTitle || "Queue loading";
-      const cameraSource = escapeAttributeValue(CLIENT_BRANDING.backgroundImage || "./assets/track-background.png?v=085c8a14ee19");
+      const cameraSource = escapeAttributeValue(CLIENT_BRANDING.backgroundImage || "./assets/track-background.png?v=cc152aa894d9");
       const venueLabel = activeEventMeta?.name || CLIENT_BRANDING.venueName || "Prodigy RC Drift Arena";
 
       return `
@@ -29273,7 +29453,7 @@
       const sceneHeader = `
         <header class="streamer-scene-header">
           <div class="streamer-scene-brand">
-            <img src="./assets/prodigy-rc-logo-transparent.png?v=085c8a14ee19" alt="Prodigy RC logo" />
+            <img src="./assets/prodigy-rc-logo-transparent.png?v=cc152aa894d9" alt="Prodigy RC logo" />
             <div class="streamer-scene-title">
               <span class="streamer-scene-kicker">${escapeHtml(meta.label)} • ${route.demo ? "Demo Data" : "Live Event"}</span>
               <h1>${escapeHtml(context.eventName)}</h1>
@@ -33735,8 +33915,14 @@
       const totalJudgeCount = getActiveJudgeRoles(activeEventMeta).length || 0;
       const run1AllSubmitted = totalJudgeCount > 0 && run1SubmitCount === totalJudgeCount;
       const run2AllSubmitted = totalJudgeCount > 0 && run2SubmitCount === totalJudgeCount;
-      const showRun2 = run1SubmittedByMe;
-      const showRun1Card = !run1SubmittedByMe || run1Pending;
+      // AUTHORITATIVE SUBMITTED-RUN INVARIANT: once a run is server-accepted
+      // for this judge, its editable card must never reappear. Draft/submitted
+      // divergence ("pending") is now impossible for a finalized run (the
+      // mutation guards above prevent it), but the render stays keyed
+      // strictly off "already submitted" rather than "currently matches" so
+      // it can never be fooled by stale draft state from any other path.
+      const showRun2Editable = run1SubmittedByMe && !run2SubmittedByMe;
+      const showRun1Card = !run1SubmittedByMe;
       const run1Flag = driver.runFlags.run1;
       const run2Flag = driver.runFlags.run2;
       const queue = getQualifyingDriverQueue();
@@ -33746,7 +33932,7 @@
       const nextDriverLabel = nextDriver
         ? `${escapeHtml((twinTripleMode ? nextDriver.name : (nextDriver.teamName || nextDriver.name)) || `Unnamed ${entryLabel}`)} - Reg #${escapeHtml(nextDriver.reg || nextDriver.signUpPosition || index + 2)}`
         : `Final ${entryLabel.toLowerCase()} in queue`;
-      const activeRunKey = (!run1SubmittedByMe || run1Pending) ? "run1" : "run2";
+      const activeRunKey = !run1SubmittedByMe ? "run1" : "run2";
       const activeRunLabel = activeRunKey === "run1"
         ? getJudgeRunTitle(1, scoringRole, activeEventMeta)
         : getJudgeRunTitle(2, scoringRole, activeEventMeta);
@@ -33824,7 +34010,7 @@
                   <button class="micro-button" type="button" data-action="clear-score" data-col="r1">Clear</button>
                 </label>
               ` : ""}
-              ${showRun2 ? `
+              ${showRun2Editable ? `
                 <label class="judge-score-card">
                   <div class="judge-score-head">
                     <strong>${getJudgeRunTitle(2, scoringRole, activeEventMeta)}</strong>
@@ -33842,6 +34028,14 @@
                   ${activeRunKey === "run2" ? `<button class="button button-accent judge-run-submit ${run2JustSubmitted ? "just-submitted" : ""}" type="button" data-action="submit-judge-run" data-run="run2" ${activeRunDisabled ? "disabled" : ""}>${activeRunButtonLabel}</button>` : ""}
                   <button class="micro-button" type="button" data-action="clear-score" data-col="r2">Clear</button>
                 </label>
+              ` : run2SubmittedByMe ? `
+                <div class="judge-score-card runoff-card">
+                  <div class="judge-score-head">
+                    <strong>${getJudgeRunTitle(2, scoringRole, activeEventMeta)}</strong>
+                    <span class="judge-score-live">Submitted</span>
+                  </div>
+                  <div class="judge-score-help">Run 2 submitted: ${formatScore(driver.scores[scoringRole].submitted.run2)}${run2Flag ? ` | Auto zero: ${run2Flag}` : ""}</div>
+                </div>
               ` : `
                 <div class="judge-score-card runoff-card">
                   <div class="judge-score-head">
@@ -34092,6 +34286,14 @@
       if (e.target.classList.contains("driver-name")) {
         driver.name = e.target.value;
       } else if (e.target.classList.contains("score-input")) {
+          // Judges (not admin, whose desktop-table edits are the separate,
+          // intentional correction path) can never type over a run that has
+          // already been server-accepted for their role.
+          const editingRunKey = e.target.classList.contains("r1") ? "run1" : e.target.classList.contains("r2") ? "run2" : e.target.classList.contains("runoff") ? "runoff" : null;
+          if (currentRole.startsWith("j") && editingRunKey && hasSubmittedJudgeRun(driver, currentRole, editingRunKey)) {
+            e.target.value = String(getJudgeDraftScoreValue(driver, currentRole, editingRunKey));
+            return;
+          }
           const parsedValue = toNumber(e.target.value);
           const val = parsedValue === null ? null : clampJudgeScoreValue(parsedValue, currentRole, activeEventMeta);
           if (val !== null) e.target.value = String(val);
@@ -34170,6 +34372,9 @@
       const submitButton = e.target.closest("[data-action='submit-judge-scores']");
       if (submitButton) {
         if (!userCanEdit() || currentRole === "admin" || currentRole === "spectator") return;
+        // Pending-submission protection: a rapid second click before the
+        // first request settles must never fire a competing submission.
+        if (judgeSubmissionInFlight) return;
         if (document.activeElement?.classList?.contains("score-input") && typeof document.activeElement.blur === "function") {
           document.activeElement.blur();
         }
@@ -34238,6 +34443,11 @@
       if (e.target.classList.contains("driver-name")) {
         driver.name = e.target.value;
       } else if (e.target.classList.contains("score-input")) {
+        const editingRunKey = e.target.classList.contains("r1") ? "run1" : e.target.classList.contains("r2") ? "run2" : e.target.classList.contains("runoff") ? "runoff" : null;
+        if (currentRole.startsWith("j") && editingRunKey && hasSubmittedJudgeRun(driver, currentRole, editingRunKey)) {
+          e.target.value = String(getJudgeDraftScoreValue(driver, currentRole, editingRunKey));
+          return;
+        }
         const parsedValue = toNumber(e.target.value);
         const val = parsedValue === null ? null : clampJudgeScoreValue(parsedValue, currentRole, activeEventMeta);
         if (val !== null) e.target.value = String(val);
@@ -34379,6 +34589,7 @@
       const submitButton = e.target.closest("[data-action='submit-judge-scores']");
       if (submitButton) {
         if (!userCanEdit() || currentRole === "admin" || currentRole === "spectator") return;
+        if (judgeSubmissionInFlight) return;
         if (document.activeElement?.classList?.contains("score-input") && typeof document.activeElement.blur === "function") {
           document.activeElement.blur();
         }
@@ -34394,10 +34605,17 @@
       const submitRunButton = e.target.closest("[data-action='submit-judge-run']");
       if (submitRunButton) {
         if (!userCanEdit() || currentRole === "admin" || currentRole === "spectator") return;
+        // Pending-submission protection: block a competing click while the
+        // previous request for this judge is still in flight, and refuse to
+        // even attempt a run that's already finalized (belt-and-braces on
+        // top of the server's own rejection).
+        if (judgeSubmissionInFlight) return;
+        const runKey = submitRunButton.dataset.run;
+        const driverForGuard = appDrivers.find((entry) => entry.id === card.dataset.id);
+        if (driverForGuard && hasSubmittedJudgeRun(driverForGuard, currentRole, runKey)) return;
         if (document.activeElement?.classList?.contains("score-input") && typeof document.activeElement.blur === "function") {
           document.activeElement.blur();
         }
-        const runKey = submitRunButton.dataset.run;
         if (!confirmJudgeScoreSubmission(card.dataset.id, currentRole, runKey)) return;
         const rollbackState = captureJudgeSubmissionRollback(card.dataset.id, currentRole);
         submitJudgeRun(card.dataset.id, runKey, currentRole);
@@ -35031,6 +35249,14 @@
     });
 
     openBracketBtn.addEventListener("click", openCompetitionBracket);
+    document.getElementById("loadSampleNoScoresBtn")?.addEventListener("click", () => {
+      const count = Number.parseInt(document.getElementById("sampleDriverCountSelect")?.value, 10) || 16;
+      loadSampleDrivers(count, false);
+    });
+    document.getElementById("loadSampleWithScoresBtn")?.addEventListener("click", () => {
+      const count = Number.parseInt(document.getElementById("sampleDriverCountSelect")?.value, 10) || 16;
+      loadSampleDrivers(count, true);
+    });
     searchInput?.addEventListener("input", applySearchFilter);
     window.addEventListener("resize", () => {
       clearTimeout(window.__driverLayoutResizeTimer);
