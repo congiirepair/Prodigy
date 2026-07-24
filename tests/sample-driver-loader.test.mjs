@@ -174,6 +174,47 @@ function testSyncsThroughNormalPath() {
   console.log("ok - sample loader syncs through the existing publishStateImmediately architecture");
 }
 
+function testSampleLoaderSuppressesQualifyingRevealCascade() {
+  const loaderSrc = extractFunctionSource("loadSampleDrivers");
+  assert.match(loaderSrc, /suppressQualifyingRevealQueueing = true;/, "the loader must suppress qualifying-reveal queueing while it writes already-scored sample drivers");
+  assert.match(loaderSrc, /suppressQualifyingRevealQueueing = false;/, "the loader must clear the suppression flag once its write settles");
+
+  // Behavioral check: with the suppression flag set (as it is for the whole
+  // duration of a sample load), a batch of already-complete drivers must be
+  // marked seen -- and never queued -- exactly like first-pass hydration.
+  // Regression for: loading "Drivers + Scores" into a freshly-opened event
+  // cascaded one qualifying-score reveal popup per sample driver, because
+  // the event's hydration pass ran earlier against an empty roster.
+  const context = {
+    activeEventId: "qa-sample-load-test",
+    activeEventMeta: {},
+    appDrivers: [
+      { id: "d1", name: "Driver One" },
+      { id: "d2", name: "Driver Two" },
+    ],
+    isQualifyingRunRevealed: () => true,
+    getRunAverage: (driver, run) => (run === 1 ? 90 : 91),
+    getBestScore: (r1, r2) => Math.max(r1, r2),
+    maybeStartNextQualifyingReveal: () => {},
+  };
+  vm.createContext(context);
+  new vm.Script([
+    "var qualifyingRevealQueue = [];",
+    "var qualifyingRevealSeenByEvent = new Map();",
+    "var qualifyingRevealHydratedEvents = new Set(['qa-sample-load-test']);", // already hydrated, like a pre-visited empty event
+    "var suppressQualifyingRevealQueueing = true;",
+    extractFunctionSource("getQualifyingRevealSeenSet"),
+    extractFunctionSource("buildQualifyingRevealFingerprint"),
+    extractFunctionSource("scanQualifyingReveals"),
+    "scanQualifyingReveals();",
+  ].join("\n\n")).runInContext(context);
+
+  assert.equal(context.qualifyingRevealQueue.length, 0, "already-complete sample drivers must never be queued while suppression is active");
+  const seenSet = context.qualifyingRevealSeenByEvent.get("qa-sample-load-test");
+  assert.equal(seenSet?.size, 2, "both sample drivers must still be marked seen so they never reveal later either");
+  console.log("ok - sample loader suppresses the qualifying-reveal cascade for bulk-loaded already-scored drivers");
+}
+
 console.log("\nAll sample-driver-loader tests passed will be printed below if none fail.\n");
 
 const tests = [
@@ -184,6 +225,7 @@ const tests = [
   ["real drivers are never silently deleted", testRealDriversNeverDeleted],
   ["admin-only + explicit confirmation required", testAdminOnlyAndConfirmation],
   ["syncs through the normal publish architecture", testSyncsThroughNormalPath],
+  ["suppresses qualifying-reveal cascade for bulk-loaded sample drivers", testSampleLoaderSuppressesQualifyingRevealCascade],
 ];
 
 let failures = 0;
