@@ -151,8 +151,8 @@ function testShowRunCardLogicInSource() {
   );
   assert.match(
     cardSrc,
-    /run2SubmittedByMe \? `[\s\S]*?Run 2 submitted:/,
-    "a finalized Run 2 must render a locked, non-editable confirmation instead of the raw editable form",
+    /run2SubmittedByMe \? `[\s\S]*?renderJudgeFinalizedRunSummary/,
+    "a finalized Run 2 must render the locked, non-editable finalized-run summary instead of the raw editable form",
   );
   assert.doesNotMatch(
     cardSrc,
@@ -160,6 +160,24 @@ function testShowRunCardLogicInSource() {
     "renderJudgeLaneCard must never reference a bare 'showRun2' identifier (only 'showRun2Editable' is declared) -- a stray reference throws ReferenceError and crashes the entire judge card render",
   );
   console.log("ok - renderJudgeLaneCard never re-shows an editable/submit-enabled card for an already-finalized run");
+}
+
+// ---- 3b. renderJudgeFinalizedRunSummary never emits an editable control ---
+
+function testFinalizedRunSummaryNeverEditable() {
+  const sandbox = buildSandbox([
+    "function escapeHtml(value) { return String(value ?? '').replace(/[&<>\"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[c])); }",
+    "function formatScore(score) { const n = Number(score); return Number.isFinite(n) ? n.toFixed(1) : '-'; }",
+    "let qualifyingRunSubmittingKey = null;",
+    "function isJudgeSubmissionFeedbackActive() { return false; }",
+    extractFunctionSource("renderJudgeFinalizedRunSummary"),
+  ]);
+  const html = sandbox.renderJudgeFinalizedRunSummary("driver-1", "j1", 2, "run2", 84, null);
+  assert.doesNotMatch(html, /<input/, "the finalized-run summary must never render an <input>");
+  assert.doesNotMatch(html, /score-deduction-btn/, "the finalized-run summary must never render deduction buttons");
+  assert.doesNotMatch(html, /data-action="submit-judge-run"/, "the finalized-run summary must never render a submit button");
+  assert.match(html, /84\.0/, "the finalized-run summary must still show the authoritative submitted value");
+  console.log("ok - renderJudgeFinalizedRunSummary never emits an input, deduction button, or submit control");
 }
 
 // ---- 4. desktop + mobile score-input handlers refuse to edit a finalized run
@@ -208,6 +226,7 @@ const tests = [
   ["applyJudgeScoreDeduction refuses to edit a finalized run", testDeductionGuardWithRoster],
   ["submitJudgeRun never optimistically overwrites a finalized run", testSubmitJudgeRunGuard],
   ["renderJudgeLaneCard never resurrects a finalized run's editable card", testShowRunCardLogicInSource],
+  ["renderJudgeFinalizedRunSummary never emits an editable control", testFinalizedRunSummaryNeverEditable],
   ["score-input handlers guard finalized runs on both surfaces", testInputHandlersGuardFinalizedRuns],
   ["pending-submission protection on run-submit paths", testInFlightGuardOnRunSubmit],
   ["duplicate-rejection recovery reconciles authoritative state", testDuplicateRejectionRecovery],
