@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#f7f9fc" />
   <title>Prodigy Event Control</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -10,37 +11,38 @@
   <style>
     @font-face {
       font-family: 'Ethnocentric';
-      src: url('./assets/fonts/Ethnocentric-Regular.otf?v=91814eb68b7f') format('opentype');
+      src: url('./assets/fonts/Ethnocentric-Regular.otf?v=ecb9173a289d') format('opentype');
       font-weight: 400;
       font-style: normal;
       font-display: swap;
     }
 
     :root {
-      --bg: #090705;
-      --panel: rgba(18, 13, 10, 0.86);
-      --panel-strong: rgba(26, 20, 16, 0.94);
-      --panel-soft: rgba(255, 246, 236, 0.06);
-      --text: #f5eee6;
-      --text-soft: #b9ab9b;
-      --line: rgba(255, 244, 232, 0.15);
-      --line-strong: rgba(255, 244, 232, 0.30);
-      --accent: #d0a06b;
-      --accent-dark: #6f553c;
-      --button-accent: #b88a59;
-      --button-accent-dark: #5c4735;
-      --accent-cyan: #87a6b2;
-      --accent-green: #8fa083;
-      --accent-green-dark: #5b684f;
-      --panel-highlight: #d3a36d;
-      --accent-warm: #f3d3aa;
-      --accent-glow: 0 0 0 1px rgba(208, 160, 107, 0.34), 0 0 24px rgba(208, 160, 107, 0.18), 0 0 52px rgba(135, 166, 178, 0.10);
-      --button-glow: 0 0 0 1px rgba(184, 138, 89, 0.34), 0 0 24px rgba(184, 138, 89, 0.18), 0 0 52px rgba(92, 71, 53, 0.12);
-      --accent-green-glow: 0 0 0 1px rgba(143, 160, 131, 0.32), 0 0 18px rgba(143, 160, 131, 0.16);
-      --bracket-advance-glow: 0 0 0 1px rgba(211, 163, 109, 0.88), 0 0 16px rgba(211, 163, 109, 0.54), 0 0 34px rgba(143, 160, 131, 0.38), 0 16px 28px rgba(0, 0, 0, 0.24);
-      --panel-shadow: 0 28px 72px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255,255,255,0.05);
-      --card-shadow: 0 18px 42px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255,255,255,0.04);
-      --button-shadow: 0 16px 28px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255,255,255,0.08);
+      color-scheme: light;
+      --bg: #f4f1eb;
+      --panel: rgba(255, 252, 248, 0.9);
+      --panel-strong: rgba(255, 255, 255, 0.96);
+      --panel-soft: rgba(35, 27, 21, 0.05);
+      --text: #221914;
+      --text-soft: #726559;
+      --line: rgba(59, 46, 36, 0.12);
+      --line-strong: rgba(59, 46, 36, 0.22);
+      --accent: #2c241d;
+      --accent-dark: #8a7358;
+      --button-accent: #2b241d;
+      --button-accent-dark: #7a634b;
+      --accent-cyan: #6e8792;
+      --accent-green: #6f7d62;
+      --accent-green-dark: #4d5847;
+      --panel-highlight: #b48b5a;
+      --accent-warm: #d3a36d;
+      --accent-glow: 0 0 0 1px rgba(44, 36, 29, 0.22), 0 12px 28px rgba(122, 99, 75, 0.16);
+      --button-glow: 0 0 0 1px rgba(43, 36, 29, 0.22), 0 12px 28px rgba(122, 99, 75, 0.18);
+      --accent-green-glow: 0 0 0 1px rgba(111, 125, 98, 0.24), 0 10px 22px rgba(111, 125, 98, 0.16);
+      --bracket-advance-glow: 0 0 0 1px rgba(111, 125, 98, 0.94), 0 0 16px rgba(111, 125, 98, 0.74), 0 0 34px rgba(111, 125, 98, 0.5), 0 16px 28px rgba(22, 29, 43, 0.24);
+      --panel-shadow: 0 22px 48px rgba(22, 29, 43, 0.14), inset 0 1px 0 rgba(255,255,255,0.72);
+      --card-shadow: 0 16px 36px rgba(22, 29, 43, 0.12), inset 0 1px 0 rgba(255,255,255,0.68);
+      --button-shadow: 0 14px 28px rgba(22, 29, 43, 0.12), inset 0 1px 0 rgba(255,255,255,0.72);
       --bracket-round-width: 218px;
       --slot-height: 56px;
       --seed-chip-width: 48px;
@@ -58,11 +60,11 @@
       --radius-panel: 24px;
       --radius-card: 18px;
       --radius-button: 14px;
-      --brand-track-background-image: url("./assets/track-background.png?v=91814eb68b7f");
-      --brand-watermark-image: url("./assets/prodigy-rc-logo-white-transparent.png?v=91814eb68b7f");
+      --brand-track-background-image: url("./assets/track-background.png?v=ecb9173a289d");
+      --brand-watermark-image: url("./assets/prodigy-rc-logo-white-transparent.png?v=ecb9173a289d");
       --font-graffiti: 'Ethnocentric', 'Orbitron', 'Inter', sans-serif;
       --font-sans: 'Inter', sans-serif;
-      --brand-home-hero-image: url("./assets/track-background.png?v=91814eb68b7f");
+      --brand-home-hero-image: url("./assets/track-background.png?v=ecb9173a289d");
       --accent-rgb: 44, 36, 29;
       --button-accent-rgb: 43, 36, 29;
       --button-accent-dark-rgb: 122, 99, 75;
@@ -116,7 +118,6 @@
 
     * { box-sizing: border-box; }
     html { color-scheme: light; scroll-behavior: smooth; }
-    html:has(body[data-theme="dark"]) { color-scheme: dark; }
     [hidden] { display: none !important; }
 
     body {
@@ -124,54 +125,6 @@
       min-height: 100vh;
       font-family: var(--font-sans);
       color: var(--text);
-      background-color: var(--bg);
-      background-image:
-        linear-gradient(180deg, rgba(17, 13, 10, 0.76), rgba(9, 7, 5, 0.92)),
-        radial-gradient(circle at 16% 12%, rgba(var(--accent-rgb), 0.18), transparent 24%),
-        radial-gradient(circle at 82% 18%, rgba(var(--accent-cyan-rgb), 0.14), transparent 26%),
-        linear-gradient(135deg, rgba(255,255,255,0.035), transparent 34%),
-        var(--brand-track-background-image);
-      background-size: cover, auto, auto, cover;
-      background-position: center center, top left, top left, center center;
-      background-repeat: no-repeat, no-repeat, no-repeat, no-repeat;
-      background-attachment: fixed;
-      transition: background-color 0.25s ease, color 0.25s ease, background-image 0.25s ease;
-    }
-
-    body:not([data-theme="dark"]) {
-      --bg: #f4f1eb;
-      --panel: rgba(255, 252, 248, 0.9);
-      --panel-strong: rgba(255, 255, 255, 0.96);
-      --panel-soft: rgba(35, 27, 21, 0.05);
-      --text: #221914;
-      --text-soft: #726559;
-      --line: rgba(59, 46, 36, 0.12);
-      --line-strong: rgba(59, 46, 36, 0.22);
-      --accent: #2c241d;
-      --accent-dark: #8a7358;
-      --button-accent: #2b241d;
-      --button-accent-dark: #7a634b;
-      --accent-cyan: #6e8792;
-      --accent-green: #6f7d62;
-      --accent-green-dark: #4d5847;
-      --panel-highlight: #b48b5a;
-      --accent-warm: #d3a36d;
-      /* Prodigy Gold, light/projector variant — deep champagne that stays AA
-         legible on white while the routine --accent goes neutral/black. */
-      --gold: #b3812f;
-      --gold-bright: #e7b667;
-      --gold-deep: #8a6122;
-      --gold-glow: 0 0 0 1px rgba(179, 129, 47, 0.30), 0 10px 26px rgba(179, 129, 47, 0.16);
-      --gold-ring-lo: rgba(179, 129, 47, 0.05);
-      --gold-ring-hi: rgba(231, 182, 103, 0.98);
-      --gold-ring-mid: rgba(179, 129, 47, 0.48);
-      --gold-pulse: rgba(179, 129, 47, 0.55);
-      --accent-glow: 0 0 0 1px rgba(44, 36, 29, 0.22), 0 12px 28px rgba(122, 99, 75, 0.16);
-      --button-glow: 0 0 0 1px rgba(43, 36, 29, 0.22), 0 12px 28px rgba(122, 99, 75, 0.18);
-      --accent-green-glow: 0 0 0 1px rgba(111, 125, 98, 0.24), 0 10px 22px rgba(111, 125, 98, 0.16);
-      --panel-shadow: 0 22px 48px rgba(22, 29, 43, 0.14), inset 0 1px 0 rgba(255,255,255,0.72);
-      --card-shadow: 0 16px 36px rgba(22, 29, 43, 0.12), inset 0 1px 0 rgba(255,255,255,0.68);
-      --button-shadow: 0 14px 28px rgba(22, 29, 43, 0.12), inset 0 1px 0 rgba(255,255,255,0.72);
       background-color: var(--bg);
       background-image:
         linear-gradient(180deg, rgba(248, 246, 242, 0.92), rgba(241, 238, 233, 0.92)),
@@ -182,598 +135,10 @@
       background-size: cover, auto, auto, cover;
       background-position: center center, top left, top left, center center;
       background-repeat: no-repeat, no-repeat, no-repeat, no-repeat;
-    }
-
-    body[data-theme="dark"] {
-      --bg: #090705;
-      --panel: rgba(17, 13, 10, 0.90);
-      --panel-strong: rgba(25, 19, 15, 0.96);
-      --panel-soft: rgba(255, 247, 238, 0.05);
-      --text: #f5eee6;
-      --text-soft: #b9ab9b;
-      --line: rgba(255, 244, 232, 0.15);
-      --line-strong: rgba(255, 244, 232, 0.30);
-      --accent: #d0a06b;
-      --accent-dark: #6f553c;
-      --button-accent: #b88a59;
-      --button-accent-dark: #5c4735;
-      --accent-cyan: #87a6b2;
-      --accent-green: #8fa083;
-      --accent-green-dark: #5b684f;
-      --panel-highlight: #d3a36d;
-      --accent-warm: #f3d3aa;
-      --button-glow: 0 0 0 1px rgba(184, 138, 89, 0.34), 0 0 24px rgba(184, 138, 89, 0.18), 0 0 52px rgba(92, 71, 53, 0.12);
-      --accent-green-glow: 0 0 0 1px rgba(143, 160, 131, 0.34), 0 0 20px rgba(143, 160, 131, 0.18);
-      --panel-shadow: 0 32px 78px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255,255,255,0.05);
-      --card-shadow: 0 20px 44px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.04);
-      --button-shadow: 0 16px 30px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255,255,255,0.08);
-      background-color: var(--bg);
-      background-image:
-        linear-gradient(180deg, rgba(17, 13, 10, 0.68), rgba(9, 7, 5, 0.92)),
-        radial-gradient(circle at 16% 12%, rgba(var(--accent-rgb), 0.16), transparent 24%),
-        radial-gradient(circle at 82% 18%, rgba(var(--accent-cyan-rgb), 0.12), transparent 26%),
-        linear-gradient(135deg, rgba(255,255,255,0.035), transparent 34%),
-        var(--brand-track-background-image);
-      background-size: cover, auto, auto, cover;
-      background-position: center center, top left, top left, center center;
-      background-repeat: no-repeat, no-repeat, no-repeat, no-repeat;
-    }
-
-    body[data-theme="dark"] .topbar,
-    body[data-theme="dark"] .hero,
-    body[data-theme="dark"] .panel,
-    body[data-theme="dark"] .hero-card,
-    body[data-theme="dark"] .table-wrap,
-    body[data-theme="dark"] .registration-card,
-    body[data-theme="dark"] .registration-driver-card,
-    body[data-theme="dark"] .registration-entry-panel,
-    body[data-theme="dark"] .registration-roster-panel,
-    body[data-theme="dark"] .mobile-driver-card,
-    body[data-theme="dark"] .qualifying-live-card,
-    body[data-theme="dark"] .battle-flow-card,
-    body[data-theme="dark"] .bracket-stage-card,
-    body[data-theme="dark"] .event-admin-panel,
-    body[data-theme="dark"] .modal-panel,
-    body[data-theme="dark"] .podium-card,
-    body[data-theme="dark"] .results-event-card,
-    body[data-theme="dark"] .website-admin-card,
-    body[data-theme="dark"] .event-card,
-    body[data-theme="dark"] .role-admin-toolbar,
-    body[data-theme="dark"] .role-admin-card,
-    body[data-theme="dark"] .invite-code-box,
-    body[data-theme="dark"] .admin-lock-note {
-      background:
-        linear-gradient(180deg, rgba(22, 26, 37, 0.78), rgba(11, 13, 22, 0.84)),
-        linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015));
-      color: var(--text);
-    }
-
-    body[data-theme="dark"] .button-secondary,
-    body[data-theme="dark"] .micro-button:not(.button-accent),
-    body[data-theme="dark"] .mode-tab,
-    body[data-theme="dark"] .hero-meta-pill,
-    body[data-theme="dark"] .search-field {
-      background: linear-gradient(180deg, rgba(27, 31, 44, 0.98), rgba(13, 16, 25, 0.96));
-      color: var(--text);
-      border-color: var(--line-strong);
-    }
-
-    body[data-theme="dark"] .mode-tab.is-active {
-      background: linear-gradient(135deg, var(--button-accent), var(--button-accent-dark));
-      color: #fff !important;
-      border-color: rgba(255,255,255,0.38);
-      box-shadow: var(--button-glow);
-    }
-
-    body[data-theme="dark"] input[type="text"],
-    body[data-theme="dark"] input[type="number"],
-    body[data-theme="dark"] input[type="search"],
-    body[data-theme="dark"] input[type="password"],
-    body[data-theme="dark"] input[type="date"],
-    body[data-theme="dark"] select,
-    body[data-theme="dark"] textarea {
-      background: rgba(7, 10, 18, 0.92);
-      color: var(--text);
-      border-color: var(--line);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
-    }
-
-    body[data-theme="dark"] input::placeholder,
-    body[data-theme="dark"] textarea::placeholder {
-      color: rgba(255, 255, 255, 0.40);
-    }
-
-    body[data-theme="dark"] .main-topbar .mode-tab.is-active,
-    body[data-theme="dark"] .sync-status.online,
-    body[data-theme="dark"] .micro-button.button-accent,
-    body[data-theme="dark"] .button-accent {
-      background: linear-gradient(135deg, var(--button-accent), var(--button-accent-dark));
-      color: var(--button-accent-text);
-      border-color: rgba(255,255,255,0.26);
-      box-shadow: var(--button-glow);
-    }
-
-    body[data-theme="dark"] .status-pill.active {
-      background: linear-gradient(135deg, rgba(39,213,108,0.26), rgba(12,107,60,0.32));
-      color: #fff;
-      border-color: rgba(39, 213, 108, 0.24);
-      box-shadow: var(--accent-green-glow);
-    }
-
-    body[data-theme="dark"] .status-pill.archived,
-    body[data-theme="dark"] .sync-status {
-      background: rgba(255,255,255,0.08);
-      color: var(--text-soft);
-      border-color: rgba(255,255,255,0.14);
-    }
-
-    body[data-theme="dark"] .hero-logo,
-    body[data-theme="dark"] .bracket-stage-logo,
-    body[data-theme="dark"] .bracket-header-logo,
-    body[data-theme="dark"] .topbar-brand-mark img,
-    body[data-theme="dark"] .streamer-topbar-mark img,
-    body[data-theme="dark"] .native-broadcast-brand img,
-    body[data-theme="dark"] .streamer-scene-brand img {
-      filter: var(--brand-logo-filter-dark);
-    }
-
-    body[data-theme="dark"] .main-bracket-panel::before {
-      opacity: 0.16;
-      filter: none;
-      mix-blend-mode: screen;
-    }
-
-    body[data-theme="dark"] .section-kicker,
-    body[data-theme="dark"] .eyebrow,
-    body[data-theme="dark"] .hero-copy p,
-    body[data-theme="dark"] .hero-copy-block p,
-    body[data-theme="dark"] .panel-header p,
-    body[data-theme="dark"] .driver-submeta,
-    body[data-theme="dark"] .qualifying-live-label,
-    body[data-theme="dark"] .meta-label,
-    body[data-theme="dark"] .registration-meta-label,
-    body[data-theme="dark"] .score-subtext {
-      color: var(--text-soft);
-    }
-
-    body[data-theme="dark"] th,
-    body[data-theme="dark"] td {
-      color: var(--text);
-      border-color: rgba(255, 255, 255, 0.12);
-    }
-
-    body[data-theme="dark"] thead {
-      background: rgba(255, 255, 255, 0.12);
-      border-bottom-color: rgba(255, 255, 255, 0.22);
-    }
-
-    body[data-theme="dark"] tbody tr:nth-child(even) {
-      background: rgba(255, 255, 255, 0.035);
-    }
-
-    body[data-theme="dark"] tr.is-current-driver {
-      background: rgba(255, 255, 255, 0.12) !important;
-      outline-color: rgba(255, 255, 255, 0.9);
-    }
-
-    body[data-theme="dark"] .mobile-driver-card.is-current-driver {
-      background: linear-gradient(180deg, rgba(40, 40, 44, 0.98), rgba(24, 24, 28, 0.96));
-    }
-
-    body[data-theme="dark"] .read-only-score,
-    body[data-theme="dark"] .best-score,
-    body[data-theme="dark"] .registration-card-title strong,
-    body[data-theme="dark"] .driver-meta strong,
-    body[data-theme="dark"] .mobile-driver-name,
-    body[data-theme="dark"] .modal-field strong,
-    body[data-theme="dark"] .event-card-head strong,
-    body[data-theme="dark"] .event-stat strong,
-    body[data-theme="dark"] .role-admin-title strong,
-    body[data-theme="dark"] .invite-code-value,
-    body[data-theme="dark"] .hero-stat strong {
-      color: var(--text);
-    }
-
-    body[data-theme="dark"] .registration-entry-panel .modal-field span,
-    body[data-theme="dark"] .registration-roster-panel .modal-field span,
-    body[data-theme="dark"] .registration-meta,
-    body[data-theme="dark"] .driver-meta small,
-    body[data-theme="dark"] .mobile-driver-subline,
-    body[data-theme="dark"] .mobile-driver-reg,
-    body[data-theme="dark"] .event-card-meta,
-    body[data-theme="dark"] .event-stat span,
-    body[data-theme="dark"] .role-admin-title small,
-    body[data-theme="dark"] .invite-code-label,
-    body[data-theme="dark"] .helper-text,
-    body[data-theme="dark"] .hero-stat-label {
-      color: var(--text-soft);
-    }
-
-    body[data-theme="dark"] .table-wrap,
-    body[data-theme="dark"] .registration-card,
-    body[data-theme="dark"] .mobile-driver-card,
-    body[data-theme="dark"] .event-card,
-    body[data-theme="dark"] .role-admin-toolbar,
-    body[data-theme="dark"] .role-admin-card,
-    body[data-theme="dark"] .invite-code-box,
-    body[data-theme="dark"] .admin-lock-note,
-    body[data-theme="dark"] .hero-stat {
-      background: linear-gradient(180deg, rgba(28, 28, 31, 0.98), rgba(16, 16, 18, 0.96));
-    }
-
-    body[data-theme="dark"] .event-card.is-active {
-      background: linear-gradient(180deg, rgba(36, 36, 40, 0.98), rgba(20, 20, 24, 0.96));
-    }
-
-    body[data-theme="dark"] .bracket-header-bar,
-    body[data-theme="dark"] .main-bracket-panel,
-    body[data-theme="dark"] .battle-flow-card,
-    body[data-theme="dark"] .final-battle-card,
-    body[data-theme="dark"] .champion-banner,
-    body[data-theme="dark"] .competition-subtabs,
-    body[data-theme="dark"] .page-handoff,
-    body[data-theme="dark"] .summary-card,
-    body[data-theme="dark"] .launch-chip,
-    body[data-theme="dark"] .pill,
-    body[data-theme="dark"] .cutoff-label {
-      background: linear-gradient(180deg, rgba(28, 28, 31, 0.98), rgba(16, 16, 18, 0.96));
-      color: var(--text);
-      border-color: rgba(255, 255, 255, 0.18);
-      box-shadow: 0 16px 34px rgba(0, 0, 0, 0.32), 0 1px 0 rgba(255, 255, 255, 0.1);
-    }
-
-    body[data-theme="dark"] .main-bracket-panel {
-      background:
-        linear-gradient(180deg, rgba(12, 14, 18, 0.52), rgba(6, 8, 12, 0.68)),
-        linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
-    }
-
-    body[data-theme="dark"] .bracket-workspace {
-      background:
-        linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.14)),
-        radial-gradient(circle at top right, rgba(255, 255, 255, 0.05), transparent 26%),
-        rgba(12, 12, 14, 0.92);
-    }
-
-    body[data-theme="dark"] .main-board-title,
-    body[data-theme="dark"] .main-board-label,
-    body[data-theme="dark"] .final-vs,
-    body[data-theme="dark"] .podium-card strong,
-    body[data-theme="dark"] .champion-banner strong,
-    body[data-theme="dark"] .battle-flow-title,
-    body[data-theme="dark"] .launch-title {
-      color: var(--text);
-    }
-
-    body[data-theme="dark"] .battle-flow-label,
-    body[data-theme="dark"] .podium-card span,
-    body[data-theme="dark"] .podium-card small,
-    body[data-theme="dark"] .champion-banner span,
-    body[data-theme="dark"] .battle-flow-meta,
-    body[data-theme="dark"] .summary-card span,
-    body[data-theme="dark"] .launch-chip span {
-      color: var(--text-soft);
-    }
-
-    body[data-theme="dark"] .battle-flow-option,
-    body[data-theme="dark"] .slot-button,
-    body[data-theme="dark"] .slot-button.empty,
-    body[data-theme="dark"] .main-battle-slot,
-    body[data-theme="dark"] .driver-button {
-      background: linear-gradient(180deg, rgba(34, 34, 38, 0.98), rgba(18, 18, 20, 0.96));
-      color: var(--text);
-      border-color: rgba(255, 255, 255, 0.22);
-      box-shadow: 0 10px 22px rgba(0, 0, 0, 0.28), 0 1px 0 rgba(255, 255, 255, 0.1);
-    }
-
-    body[data-theme="dark"] .battle-flow-option.preview {
-      background: linear-gradient(180deg, rgba(40, 40, 44, 0.98), rgba(22, 22, 26, 0.96));
-      color: var(--text);
-      border-color: rgba(255, 255, 255, 0.18);
-    }
-
-    body[data-theme="dark"] .battle-flow-empty {
-      background: rgba(255,255,255,0.04);
-      color: var(--text-soft);
-      border-color: rgba(255,255,255,0.18);
-    }
-
-    body[data-theme="dark"]:not([data-role="spectator"]) .slot-button:not(:disabled):hover,
-    body[data-theme="dark"]:not([data-role="spectator"]) .battle-flow-option.current:hover {
-      background: linear-gradient(180deg, rgba(52, 52, 58, 0.98), rgba(26, 26, 30, 0.96));
-      color: var(--text);
-    }
-
-    body[data-theme="dark"] .slot-button.selected,
-    body[data-theme="dark"] .battle-flow-option.current {
-      background: linear-gradient(135deg, var(--accent), var(--accent-dark));
-      color: #fff;
-      border-color: rgba(255,255,255,0.18);
-      box-shadow: var(--accent-glow);
-    }
-
-    body[data-theme="dark"] .battle-flow-option.current small,
-    body[data-theme="dark"] .slot-button.selected small {
-      color: rgba(11, 12, 16, 0.74);
-      opacity: 1;
-    }
-
-    body[data-theme="dark"] .slot-button.selected,
-    body[data-theme="dark"] .battle-flow-option.current {
-      color: #0b0c10;
-      text-shadow: none;
-    }
-
-    body[data-theme="dark"] .slot-button.loser,
-    body[data-theme="dark"] .driver-button.loser {
-      background: linear-gradient(180deg, rgba(72, 72, 78, 0.98), rgba(44, 44, 48, 0.96));
-      color: rgba(255, 255, 255, 0.55);
-      border-color: rgba(255, 255, 255, 0.14);
-    }
-
-    body[data-theme="dark"] .driver-button.loser small,
-    body[data-theme="dark"] .slot-button.loser .slot-team {
-      color: rgba(255, 255, 255, 0.4);
-      opacity: 1;
-    }
-
-    body[data-theme="dark"] .seed-chip,
-    body[data-theme="dark"] .final-battle-head,
-    body[data-theme="dark"] .cutoff-label.qualified {
-      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(218,218,218,0.98));
-      color: #080808;
-      border-color: rgba(255,255,255,0.72);
-    }
-
-    body[data-theme="dark"] .main-bracket-panel::before {
-      opacity: 0.1;
-      filter: grayscale(1) invert(1) contrast(1.02) brightness(1.05);
-      mix-blend-mode: screen;
-    }
-
-    body[data-theme="dark"] .event-stat {
-      background: rgba(255, 255, 255, 0.05);
-      border-color: rgba(255, 255, 255, 0.16);
-    }
-
-    body[data-theme="dark"] .role-admin-toolbar,
-    body[data-theme="dark"] .role-admin-card,
-    body[data-theme="dark"] .invite-code-box,
-    body[data-theme="dark"] .admin-lock-note,
-    body[data-theme="dark"] .event-card,
-    body[data-theme="dark"] .hero-stat {
-      border-color: rgba(255, 255, 255, 0.18);
-      box-shadow: 0 16px 34px rgba(0, 0, 0, 0.32), 0 1px 0 rgba(255, 255, 255, 0.1);
-    }
-
-    body[data-theme="dark"] .topbar,
-    body[data-theme="dark"] .hero,
-    body[data-theme="dark"] .panel,
-    body[data-theme="dark"] .hero-card,
-    body[data-theme="dark"] .table-wrap,
-    body[data-theme="dark"] .registration-card,
-    body[data-theme="dark"] .registration-driver-card,
-    body[data-theme="dark"] .registration-entry-panel,
-    body[data-theme="dark"] .registration-roster-panel,
-    body[data-theme="dark"] .mobile-driver-card,
-    body[data-theme="dark"] .qualifying-live-card,
-    body[data-theme="dark"] .battle-flow-card,
-    body[data-theme="dark"] .bracket-stage-card,
-    body[data-theme="dark"] .event-admin-panel,
-    body[data-theme="dark"] .modal-panel,
-    body[data-theme="dark"] .podium-card,
-    body[data-theme="dark"] .results-event-card,
-    body[data-theme="dark"] .website-admin-card,
-    body[data-theme="dark"] .search-field,
-    body[data-theme="dark"] .mode-tab,
-    body[data-theme="dark"] .hero-meta-pill {
-      border-color: rgba(255, 255, 255, 0.18);
-    }
-
-    body[data-theme="dark"] .result-item,
-    body[data-theme="dark"] .summary-card,
-    body[data-theme="dark"] .page-handoff,
-    body[data-theme="dark"] .event-stat,
-    body[data-theme="dark"] .event-card-overview,
-    body[data-theme="dark"] .event-card-podium,
-    body[data-theme="dark"] .status-pill:not(.active):not(.archived),
-    body[data-theme="dark"] .micro-button:not(.button-accent),
-    body[data-theme="dark"] .invite-code-value,
-    body[data-theme="dark"] .invite-code-input,
-    body[data-theme="dark"] .match-card,
-    body[data-theme="dark"] .driver-button,
-    body[data-theme="dark"] .driver-button.empty,
-    body[data-theme="dark"] .empty-state,
-    body[data-theme="dark"] .modal-content {
-      background: linear-gradient(180deg, rgba(30, 30, 33, 0.98), rgba(16, 16, 18, 0.96));
-      color: var(--text);
-      border-color: rgba(255, 255, 255, 0.22);
-      box-shadow: 0 16px 34px rgba(0, 0, 0, 0.32), 0 1px 0 rgba(255, 255, 255, 0.1);
-    }
-
-    body[data-theme="dark"] .event-card-overview-title,
-    body[data-theme="dark"] .event-card-podium-title,
-    body[data-theme="dark"] .event-card-podium-line span,
-    body[data-theme="dark"] .event-card-meta,
-    body[data-theme="dark"] .event-stat span {
-      color: rgba(255, 255, 255, 0.68);
-    }
-
-    body[data-theme="dark"] .event-card-format,
-    body[data-theme="dark"] .event-card-podium-line strong,
-    body[data-theme="dark"] .event-stat strong,
-    body[data-theme="dark"] .event-card-head strong {
-      color: #f4f4f4;
-    }
-
-    body[data-theme="dark"] .event-card-podium-line {
-      border-bottom-color: rgba(255, 255, 255, 0.12);
-    }
-
-    body[data-theme="dark"] .status-pill.archived,
-    body[data-theme="dark"] .driver-button.empty,
-    body[data-theme="dark"] .empty-state {
-      background: linear-gradient(180deg, rgba(42, 42, 46, 0.98), rgba(24, 24, 28, 0.96));
-      color: var(--text-soft);
-      border-color: rgba(255, 255, 255, 0.18);
-    }
-
-    body[data-theme="dark"] .match-label,
-    body[data-theme="dark"] .modal-content h3,
-    body[data-theme="dark"] .event-card-head strong,
-    body[data-theme="dark"] .driver-button strong,
-    body[data-theme="dark"] .champion-banner strong,
-    body[data-theme="dark"] .podium-card strong,
-    body[data-theme="dark"] .empty-state {
-      color: var(--text);
-    }
-
-    body[data-theme="dark"] .driver-button small,
-    body[data-theme="dark"] .event-card-meta,
-    body[data-theme="dark"] .event-stat span,
-    body[data-theme="dark"] .podium-card span,
-    body[data-theme="dark"] .podium-card small,
-    body[data-theme="dark"] .champion-banner span,
-    body[data-theme="dark"] .modal-copy,
-    body[data-theme="dark"] .modal-note {
-      color: var(--text-soft);
-    }
-
-    body[data-theme="dark"] .micro-button:not(.button-accent):disabled,
-    body[data-theme="dark"] .button:disabled,
-    body[data-theme="dark"] .driver-button:disabled {
-      opacity: 0.5;
-      box-shadow: none;
-    }
-
-    body[data-theme="dark"] .button[aria-busy="true"]:disabled,
-    body[data-theme="dark"] .micro-button[aria-busy="true"]:disabled {
-      opacity: 0.82;
-    }
-
-    body[data-theme="dark"] #view-website-admin > .hero .website-admin-signout-button {
-      background:
-        linear-gradient(180deg, rgba(36, 42, 58, 0.94), rgba(20, 24, 36, 0.96)),
-        linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
-      color: var(--text);
-      border-color: rgba(255,255,255,0.18);
-      box-shadow:
-        0 18px 34px rgba(0, 0, 0, 0.24),
-        inset 0 1px 0 rgba(255,255,255,0.12);
-      opacity: 1;
-    }
-
-    body[data-theme="dark"] #view-website-admin > .hero .website-admin-signout-button:hover:not(:disabled) {
-      background:
-        linear-gradient(180deg, rgba(48, 55, 74, 0.96), rgba(24, 28, 42, 0.98)),
-        linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.03));
-      border-color: rgba(255,255,255,0.24);
-    }
-
-    body[data-theme="dark"] #view-website-admin > .hero .website-admin-signout-button:disabled {
-      opacity: 0.78;
-      background:
-        linear-gradient(180deg, rgba(28, 34, 46, 0.7), rgba(16, 20, 31, 0.78)),
-        linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
-      color: rgba(247, 249, 255, 0.42);
-      border-color: rgba(255,255,255,0.12);
-      box-shadow:
-        0 10px 24px rgba(0, 0, 0, 0.16),
-        inset 0 1px 0 rgba(255,255,255,0.06);
-    }
-
-    body[data-theme="dark"] #qualifyingResults,
-    body[data-theme="dark"] .qualifying-results-simple,
-    body[data-theme="dark"] .qualifying-results-simple li,
-    body[data-theme="dark"] .qualifying-side-column > .panel,
-    body[data-theme="dark"] .qualifying-live-stat,
-    body[data-theme="dark"] .mobile-score-card,
-    body[data-theme="dark"] .read-only-text,
-    body[data-theme="dark"] .read-only-score,
-    body[data-theme="dark"] .best-score {
-      background: transparent;
-      color: var(--text);
-    }
-
-    body[data-theme="dark"] .qualifying-results-simple li {
-      padding: 6px 0;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    body[data-theme="dark"] .qualifying-results-simple li:last-child {
-      border-bottom: 0;
-    }
-
-    body[data-theme="dark"] .qualifying-live-driver {
-      color: #ffffff !important;
-      text-shadow:
-        0 2px 12px rgba(0, 0, 0, 0.88),
-        0 0 18px rgba(255, 255, 255, 0.14);
-    }
-
-    body[data-theme="dark"] .qualifying-live-stat {
-      background: linear-gradient(180deg, rgba(30, 30, 33, 0.98), rgba(16, 16, 18, 0.96));
-      border-color: rgba(255, 255, 255, 0.12);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
-    }
-
-    body[data-theme="dark"] .qualifying-live-stat span {
-      color: var(--text-soft);
-    }
-
-    body[data-theme="dark"] .qualifying-live-stat strong {
-      color: var(--text);
-    }
-
-    body[data-theme="dark"] .mobile-score-card {
-      background: linear-gradient(180deg, rgba(30, 30, 33, 0.98), rgba(16, 16, 18, 0.96)) !important;
-      border-color: rgba(255, 255, 255, 0.16) !important;
-      color: var(--text) !important;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
-    }
-
-    body[data-theme="dark"] .mobile-score-card span {
-      color: var(--text-soft) !important;
-    }
-
-    body[data-theme="dark"] .mobile-score-card strong {
-      color: var(--text) !important;
+      background-attachment: fixed;
     }
 
     @media (max-width: 960px) {
-      body[data-theme="dark"] .qualifying-live-card {
-        background: linear-gradient(180deg, rgba(24, 24, 28, 0.98), rgba(12, 12, 16, 0.96)) !important;
-        border-color: rgba(255, 255, 255, 0.18) !important;
-        color: var(--text) !important;
-      }
-
-      body[data-theme="dark"] .qualifying-live-stat {
-        background: linear-gradient(180deg, rgba(30, 30, 33, 0.98), rgba(16, 16, 18, 0.96)) !important;
-        border-color: rgba(255, 255, 255, 0.12) !important;
-        box-shadow: inset 0 1px 0 rgba(255,255,255,0.06) !important;
-        color: var(--text) !important;
-      }
-
-      body[data-theme="dark"] .qualifying-live-stat span,
-      body[data-theme="dark"] .qualifying-live-note,
-      body[data-theme="dark"] .qualifying-live-meta {
-        color: var(--text-soft) !important;
-      }
-
-      body[data-theme="dark"] .qualifying-live-stat strong,
-      body[data-theme="dark"] .qualifying-live-driver {
-        color: var(--text) !important;
-      }
-    }
-
-    body[data-theme="dark"] .qualifying-results-simple li.is-dimmed {
-      opacity: 0.62;
-      color: var(--text-soft);
-    }
-
-    body[data-theme="dark"] .read-only-score,
-    body[data-theme="dark"] .best-score {
-      color: var(--text);
     }
 
     button, input, select, a { font: inherit; }
@@ -835,8 +200,8 @@
       padding: 9px 16px;
       border: 1px solid var(--line-strong);
       border-radius: 999px;
-      background: rgba(10, 12, 20, 0.72);
-      color: var(--text);
+      background: rgba(10, 12, 20, 0.86);
+      color: #fff;
       box-shadow: 0 10px 24px rgba(0, 0, 0, 0.32);
       font-size: 0.82rem;
       letter-spacing: 0.04em;
@@ -851,7 +216,7 @@
       transform: translateY(-1px);
     }
 
-    body:not([data-theme="dark"])[data-role="spectator"] .spectator-shop-button {
+    body[data-role="spectator"] .spectator-shop-button{
       background: rgba(255, 255, 255, 0.86);
       color: var(--text);
       border-color: var(--line-strong);
@@ -999,11 +364,11 @@
       justify-content: center;
       min-height: 44px;
       padding: 10px 16px;
-      border: 2px solid rgba(255, 255, 255, 0.84);
+      border: 2px solid rgba(22, 29, 43, 0.18);
       border-radius: 999px;
-      background: rgba(12, 14, 18, 0.94);
-      color: #fff;
-      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+      background: rgba(255, 254, 251, 0.96);
+      color: var(--text);
+      box-shadow: 0 12px 30px rgba(22, 29, 43, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.9);
       font-size: 0.8rem;
       font-weight: 900;
       letter-spacing: 0.06em;
@@ -1016,9 +381,9 @@
     }
     .bracket-fullscreen-exit-control:hover,
     .bracket-fullscreen-exit-control:focus-visible {
-      border-color: var(--gold-bright);
-      background: rgba(31, 25, 18, 0.98);
-      box-shadow: 0 0 0 3px rgba(208, 160, 107, 0.28), 0 14px 32px rgba(0, 0, 0, 0.48);
+      border-color: var(--gold-deep);
+      background: #ffffff;
+      box-shadow: 0 0 0 3px rgba(208, 160, 107, 0.28), 0 14px 32px rgba(22, 29, 43, 0.2);
       outline: none;
     }
     body.bracket-fullscreen #view-bracket.is-active {
@@ -1064,7 +429,7 @@
       z-index: 0;
       pointer-events: none;
       overflow: hidden;
-      background: #05070d;
+      background: #f4f1eb;
     }
     body.bracket-fullscreen .fullscreen-arena-bg {
       display: block;
@@ -1074,13 +439,13 @@
       inset: 0;
     }
     .arena-layer-base {
-      background: radial-gradient(120% 90% at 50% 12%, #0d1220 0%, #070910 46%, #05060b 100%);
+      background: radial-gradient(120% 90% at 50% 12%, #ffffff 0%, #f6f3ee 46%, #ece8e0 100%);
     }
     .arena-layer-aurora {
       background:
-        radial-gradient(48% 32% at 22% 18%, rgba(60, 130, 200, 0.16), transparent 70%),
-        radial-gradient(40% 30% at 78% 10%, rgba(120, 90, 200, 0.13), transparent 70%),
-        radial-gradient(46% 34% at 55% 4%, rgba(60, 190, 200, 0.10), transparent 72%);
+        radial-gradient(48% 32% at 22% 18%, rgba(60, 130, 200, 0.10), transparent 70%),
+        radial-gradient(40% 30% at 78% 10%, rgba(120, 90, 200, 0.08), transparent 70%),
+        radial-gradient(46% 34% at 55% 4%, rgba(60, 190, 200, 0.07), transparent 72%);
       filter: blur(2px);
       animation: arenaAuroraDrift 26s ease-in-out infinite alternate;
       opacity: 0.85;
@@ -1092,8 +457,8 @@
     .arena-layer-grid {
       top: 55%;
       background-image:
-        repeating-linear-gradient(0deg, rgba(120,170,220,0.07) 0px, rgba(120,170,220,0.07) 1px, transparent 1px, transparent 46px),
-        repeating-linear-gradient(90deg, rgba(120,170,220,0.05) 0px, rgba(120,170,220,0.05) 1px, transparent 1px, transparent 64px);
+        repeating-linear-gradient(0deg, rgba(100,130,160,0.10) 0px, rgba(100,130,160,0.10) 1px, transparent 1px, transparent 46px),
+        repeating-linear-gradient(90deg, rgba(100,130,160,0.07) 0px, rgba(100,130,160,0.07) 1px, transparent 1px, transparent 64px);
       transform: perspective(500px) rotateX(62deg);
       transform-origin: top center;
       opacity: 0.5;
@@ -1102,34 +467,34 @@
     }
     .arena-layer-particles {
       background-image:
-        radial-gradient(2px 2px at 12% 22%, rgba(255,255,255,0.35), transparent 60%),
-        radial-gradient(2px 2px at 34% 64%, rgba(255,255,255,0.28), transparent 60%),
-        radial-gradient(1.5px 1.5px at 58% 30%, rgba(255,255,255,0.24), transparent 60%),
-        radial-gradient(2px 2px at 76% 58%, rgba(255,255,255,0.3), transparent 60%),
-        radial-gradient(1.5px 1.5px at 88% 20%, rgba(255,255,255,0.22), transparent 60%),
-        radial-gradient(1.5px 1.5px at 20% 80%, rgba(255,255,255,0.2), transparent 60%),
-        radial-gradient(2px 2px at 66% 84%, rgba(255,255,255,0.24), transparent 60%),
-        radial-gradient(1.5px 1.5px at 45% 12%, rgba(255,255,255,0.22), transparent 60%);
+        radial-gradient(2px 2px at 12% 22%, rgba(100,116,139,0.32), transparent 60%),
+        radial-gradient(2px 2px at 34% 64%, rgba(179,129,47,0.26), transparent 60%),
+        radial-gradient(1.5px 1.5px at 58% 30%, rgba(100,116,139,0.22), transparent 60%),
+        radial-gradient(2px 2px at 76% 58%, rgba(179,129,47,0.24), transparent 60%),
+        radial-gradient(1.5px 1.5px at 88% 20%, rgba(100,116,139,0.2), transparent 60%),
+        radial-gradient(1.5px 1.5px at 20% 80%, rgba(100,116,139,0.18), transparent 60%),
+        radial-gradient(2px 2px at 66% 84%, rgba(179,129,47,0.2), transparent 60%),
+        radial-gradient(1.5px 1.5px at 45% 12%, rgba(100,116,139,0.2), transparent 60%);
       animation: arenaParticleDrift 40s linear infinite;
-      opacity: 0.7;
+      opacity: 0.6;
     }
     @keyframes arenaParticleDrift {
       from { transform: translate3d(0, 0, 0); }
       to { transform: translate3d(0, -34px, 0); }
     }
     .arena-layer-spotlight {
-      background: radial-gradient(38% 42% at 50% 34%, rgba(160, 200, 230, 0.10), transparent 72%);
+      background: radial-gradient(38% 42% at 50% 34%, rgba(255, 255, 255, 0.55), transparent 72%);
       transition: background 900ms ease;
     }
     .arena-layer-vignette {
       background:
-        radial-gradient(120% 100% at 50% 40%, transparent 55%, rgba(0,0,0,0.55) 100%),
-        linear-gradient(180deg, rgba(0,0,0,0.28), transparent 18%, transparent 78%, rgba(0,0,0,0.32));
+        radial-gradient(120% 100% at 50% 40%, transparent 55%, rgba(60, 50, 40, 0.07) 100%),
+        linear-gradient(180deg, rgba(60, 50, 40, 0.05), transparent 18%, transparent 78%, rgba(60, 50, 40, 0.06));
     }
 
     /* Current battle: restrained spotlight bias, no strong effect. */
     body.bracket-fullscreen:has(.battle-flow-card.current) .arena-layer-spotlight {
-      background: radial-gradient(40% 44% at 50% 30%, rgba(208,160,107,0.09), rgba(160, 200, 230, 0.08) 55%, transparent 75%);
+      background: radial-gradient(40% 44% at 50% 30%, rgba(208,160,107,0.14), rgba(219, 234, 254, 0.4) 55%, transparent 75%);
     }
     /* Winner advancement: brief restrained gold wave, timed by the same
        momentary .incoming-winner marker the existing bracketWinnerLand
@@ -1139,26 +504,26 @@
       animation: arenaWinnerWave 900ms ease both;
     }
     @keyframes arenaWinnerWave {
-      0% { background: radial-gradient(38% 42% at 50% 34%, rgba(160, 200, 230, 0.10), transparent 72%); }
-      45% { background: radial-gradient(55% 55% at 50% 34%, rgba(208,160,107,0.22), transparent 75%); }
-      100% { background: radial-gradient(38% 42% at 50% 34%, rgba(160, 200, 230, 0.10), transparent 72%); }
+      0% { background: radial-gradient(38% 42% at 50% 34%, rgba(255, 255, 255, 0.55), transparent 72%); }
+      45% { background: radial-gradient(55% 55% at 50% 34%, rgba(208,160,107,0.28), transparent 75%); }
+      100% { background: radial-gradient(38% 42% at 50% 34%, rgba(255, 255, 255, 0.55), transparent 72%); }
     }
-    /* Podium / champion: darker background, gold spotlight, brief particle
-       brightening -- gated on the existing podium overlay visibility. */
+    /* Podium / champion: brighter, warmer background, gold spotlight, brief
+       particle brightening -- gated on the existing podium overlay visibility. */
     body.bracket-fullscreen:has(#fullscreenPodiumOverlay:not(.hidden)) .arena-layer-base {
-      background: radial-gradient(120% 90% at 50% 12%, #0a0d14 0%, #05060a 46%, #030408 100%);
+      background: radial-gradient(120% 90% at 50% 12%, #fffdf7 0%, #f9f2e2 46%, #f0e6cd 100%);
     }
     body.bracket-fullscreen:has(#fullscreenPodiumOverlay:not(.hidden)) .arena-layer-spotlight {
-      background: radial-gradient(46% 50% at 50% 28%, rgba(208,160,107,0.20), transparent 74%);
+      background: radial-gradient(46% 50% at 50% 28%, rgba(208,160,107,0.30), transparent 74%);
     }
     body.bracket-fullscreen:has(#fullscreenPodiumOverlay:not(.hidden)) .arena-layer-particles {
       animation-duration: 40s;
-      opacity: 0.95;
+      opacity: 0.85;
     }
-    /* Qualifying reveal: background darkens and quiets so the reveal card
-       reads as the brightest object on screen. */
+    /* Qualifying reveal: background dims and desaturates slightly and quiets
+       so the reveal card reads as the brightest, sharpest object on screen. */
     body:has(#qualifyingRevealOverlay:not(.hidden)) .fullscreen-arena-bg {
-      filter: brightness(0.55);
+      filter: brightness(0.94) saturate(0.7);
     }
     body:has(#qualifyingRevealOverlay:not(.hidden)) .arena-layer-aurora,
     body:has(#qualifyingRevealOverlay:not(.hidden)) .arena-layer-particles {
@@ -1329,7 +694,7 @@
        The track photo is kept as a barely-there texture and the ambient
        glow uses Prodigy Gold instead of off-brand pink/cyan. The dark theme
        keeps its cinematic dark backdrop (separate rule). */
-    body.scenic-page:not([data-theme="dark"]) {
+    body.scenic-page {
       background-color: #eceae4;
       background-image:
         linear-gradient(180deg, rgba(244, 242, 237, 0.90), rgba(233, 230, 223, 0.965)),
@@ -1858,12 +1223,6 @@
       backdrop-filter: blur(6px);
     }
 
-    body[data-theme="dark"] .build-label {
-      background: rgba(18, 18, 20, 0.78);
-      color: rgba(255, 255, 255, 0.62);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
     @supports selector(body:has(#broadcastTicker:not(.hidden))) {
       body:has(#broadcastTicker:not(.hidden)) .spectator-shop-button {
         bottom: calc(18px + 58px);
@@ -1968,9 +1327,10 @@
       overflow-y: auto;
       overflow-x: auto;
       padding: 24px clamp(12px, 2vw, 32px);
-      background:
-        linear-gradient(180deg, rgba(255,255,255,0.08), rgba(0,0,0,0.04)),
-        radial-gradient(circle at top right, rgba(255, 255, 255, 0.14), transparent 24%),
+      background-color: #eceae4;
+      background-image:
+        linear-gradient(180deg, rgba(244, 242, 237, 0.94), rgba(233, 230, 223, 0.97)),
+        radial-gradient(circle at top right, rgba(208, 160, 107, 0.1), transparent 24%),
         var(--brand-track-background-image);
       background-position: center center;
       background-size: cover;
@@ -2201,7 +1561,7 @@
       border-radius: 12px;
       box-shadow: var(--button-shadow);
       font-weight: 800;
-      background: rgba(8, 10, 18, 0.9);
+      background: rgba(255, 254, 251, 0.96);
       color: var(--text);
       cursor: pointer;
     }
@@ -2213,7 +1573,7 @@
       padding: 16px;
       border: 1px solid var(--line-strong);
       border-radius: var(--radius-card);
-      background: linear-gradient(180deg, rgba(16, 20, 31, 0.92), rgba(10, 12, 21, 0.95));
+      background: linear-gradient(180deg, rgba(255, 254, 251, 0.9), rgba(246, 242, 237, 0.94));
       box-shadow: var(--card-shadow);
     }
 
@@ -2235,8 +1595,8 @@
       padding: 10px 14px;
       border: 1px solid var(--line);
       border-radius: 18px;
-      background: rgba(255,255,255,0.06);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+      background: rgba(35, 27, 21, 0.04);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
     }
 
     .role-switcher label {
@@ -2250,7 +1610,7 @@
       width: 200px;
       padding: 10px 14px;
       font-size: 1rem;
-      background: rgba(8, 10, 18, 0.9);
+      background: rgba(255, 254, 251, 0.96);
       color: var(--text);
       border: 1px solid var(--line-strong);
       border-radius: 12px;
@@ -2261,8 +1621,8 @@
 
     .role-switcher select:focus {
       outline: none;
-      background: rgba(12, 15, 24, 0.98);
-      color: #fff;
+      background: #ffffff;
+      color: var(--text);
     }
 
     .sync-status {
@@ -2278,7 +1638,7 @@
       padding: 7px 12px;
       border: 1px solid var(--line-strong);
       border-radius: 999px;
-      background: rgba(10, 12, 20, 0.88);
+      background: rgba(255, 254, 251, 0.94);
       color: var(--text-soft);
       white-space: nowrap;
     }
@@ -2349,8 +1709,8 @@
       gap: 8px;
       padding: 6px;
       border: 1px solid var(--line-strong);
-      background: rgba(9, 11, 18, 0.84);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 12px 26px rgba(0,0,0,0.22);
+      background: rgba(35, 27, 21, 0.05);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 12px 26px rgba(22,29,43,0.1);
     }
 
     .mode-tab {
@@ -2372,8 +1732,8 @@
       gap: 6px;
       border: 1px solid var(--line);
       border-radius: 18px;
-      background: linear-gradient(180deg, rgba(13, 16, 23, 0.76), rgba(8, 10, 16, 0.62));
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 12px 24px rgba(0,0,0,0.18);
+      background: rgba(35, 27, 21, 0.05);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 12px 24px rgba(22,29,43,0.1);
     }
 
     .main-topbar .mode-tab,
@@ -2462,12 +1822,12 @@
       box-shadow: 0 0 0 3px rgba(208, 160, 107, 0.22), 0 8px 20px rgba(0,0,0,0.2);
     }
 
-    body:not([data-theme="dark"]) .page-shell {
+    .page-shell{
       background:
         linear-gradient(180deg, rgba(255,255,255,0.2), rgba(255,255,255,0));
     }
 
-    body:not([data-theme="dark"]) .main-topbar {
+    .main-topbar{
       background:
         linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(247, 243, 237, 0.92));
       border-bottom: 1px solid rgba(28, 33, 46, 0.1);
@@ -2475,233 +1835,213 @@
       backdrop-filter: blur(14px);
     }
 
-    body:not([data-theme="dark"]) .main-topbar .mode-tabs {
+    .main-topbar .mode-tabs{
       background: linear-gradient(180deg, rgba(255,255,255,0.88), rgba(242, 236, 228, 0.82));
       border-color: rgba(44, 36, 29, 0.14);
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.78), 0 10px 22px rgba(22, 29, 43, 0.1);
     }
 
-    body:not([data-theme="dark"]) .main-topbar .mode-tab,
-    body:not([data-theme="dark"]) .main-topbar .mode-tab:visited,
-    body:not([data-theme="dark"]) .main-topbar .mode-tab:active {
+    .main-topbar .mode-tab,
+    .main-topbar .mode-tab:visited,
+    .main-topbar .mode-tab:active{
       background: rgba(34, 25, 20, 0.06);
       border-color: rgba(44, 36, 29, 0.12);
       color: #221914;
     }
 
-    body:not([data-theme="dark"]) .main-topbar .mode-tab:hover {
+    .main-topbar .mode-tab:hover{
       background: rgba(var(--button-accent-dark-rgb), 0.12);
       border-color: rgba(var(--button-accent-dark-rgb), 0.22);
       color: #17130f;
     }
 
-    body:not([data-theme="dark"]) .main-topbar .mode-tab:focus-visible {
+    .main-topbar .mode-tab:focus-visible{
       background: rgba(var(--button-accent-dark-rgb), 0.14);
       border-color: rgba(var(--button-accent-dark-rgb), 0.24);
       color: #17130f;
       box-shadow: 0 0 0 3px rgba(122, 99, 75, 0.18), 0 8px 18px rgba(22, 29, 43, 0.12);
     }
 
-    body:not([data-theme="dark"]) .main-topbar .micro-button {
+    .main-topbar .micro-button{
       background: rgba(34, 25, 20, 0.06);
       border-color: rgba(44, 36, 29, 0.12);
       color: #221914;
     }
 
-    body:not([data-theme="dark"]) .main-topbar .micro-button:hover {
+    .main-topbar .micro-button:hover{
       background: rgba(var(--button-accent-dark-rgb), 0.12);
       border-color: rgba(var(--button-accent-dark-rgb), 0.22);
       color: #17130f;
     }
 
-    body:not([data-theme="dark"]) .main-topbar .micro-button:focus-visible {
+    .main-topbar .micro-button:focus-visible{
       box-shadow: 0 0 0 3px rgba(122, 99, 75, 0.18), 0 8px 18px rgba(22, 29, 43, 0.12);
     }
 
-    body[data-theme="dark"] .main-topbar .mode-tabs {
-      background: linear-gradient(180deg, rgba(18, 21, 29, 0.84), rgba(10, 12, 19, 0.74));
-      border-color: rgba(255,255,255,0.14);
-    }
-
-    body[data-theme="dark"] .main-topbar .mode-tab,
-    body[data-theme="dark"] .main-topbar .mode-tab:visited,
-    body[data-theme="dark"] .main-topbar .mode-tab:active {
-      background: rgba(255,255,255,0.08);
-      border-color: rgba(255,255,255,0.14);
-      color: rgba(245, 238, 230, 0.94);
-    }
-
-    body[data-theme="dark"] .main-topbar .mode-tab:hover,
-    body[data-theme="dark"] .main-topbar .mode-tab:focus-visible {
-      background: rgba(255,255,255,0.14);
-      border-color: rgba(255,255,255,0.24);
-      color: #fff;
-    }
-
-    body:not([data-theme="dark"]) .topbar,
-    body:not([data-theme="dark"]) .hero,
-    body:not([data-theme="dark"]) .panel,
-    body:not([data-theme="dark"]) .hero-card,
-    body:not([data-theme="dark"]) .table-wrap,
-    body:not([data-theme="dark"]) .registration-card,
-    body:not([data-theme="dark"]) .registration-driver-card,
-    body:not([data-theme="dark"]) .registration-entry-panel,
-    body:not([data-theme="dark"]) .registration-roster-panel,
-    body:not([data-theme="dark"]) .mobile-driver-card,
-    body:not([data-theme="dark"]) .qualifying-live-card,
-    body:not([data-theme="dark"]) .battle-flow-card,
-    body:not([data-theme="dark"]) .bracket-stage-card,
-    body:not([data-theme="dark"]) .event-admin-panel,
-    body:not([data-theme="dark"]) .modal-panel,
-    body:not([data-theme="dark"]) .podium-card,
-    body:not([data-theme="dark"]) .results-event-card,
-    body:not([data-theme="dark"]) .website-admin-card,
-    body:not([data-theme="dark"]) .event-card,
-    body:not([data-theme="dark"]) .role-admin-toolbar,
-    body:not([data-theme="dark"]) .role-admin-card,
-    body:not([data-theme="dark"]) .invite-code-box,
-    body:not([data-theme="dark"]) .admin-lock-note {
+    .topbar,
+    .hero,
+    .panel,
+    .hero-card,
+    .table-wrap,
+    .registration-card,
+    .registration-driver-card,
+    .registration-entry-panel,
+    .registration-roster-panel,
+    .mobile-driver-card,
+    .qualifying-live-card,
+    .battle-flow-card,
+    .bracket-stage-card,
+    .event-admin-panel,
+    .modal-panel,
+    .podium-card,
+    .results-event-card,
+    .website-admin-card,
+    .event-card,
+    .role-admin-toolbar,
+    .role-admin-card,
+    .invite-code-box,
+    .admin-lock-note{
       background:
         linear-gradient(180deg, rgba(255, 254, 251, 0.84), rgba(246, 242, 237, 0.88)),
         linear-gradient(135deg, rgba(255,255,255,0.18), rgba(255,255,255,0.06));
       color: var(--text);
     }
 
-    body:not([data-theme="dark"]) .hero,
-    body:not([data-theme="dark"]) #view-qualifying > .hero,
-    body:not([data-theme="dark"]) #view-registration > .hero,
-    body:not([data-theme="dark"]) #view-results > .hero {
+    .hero,
+    #view-qualifying > .hero,
+    #view-registration > .hero,
+    #view-results > .hero{
       background:
         radial-gradient(circle at top right, rgba(179, 129, 47, 0.14), transparent 22%),
         radial-gradient(circle at bottom left, rgba(211, 163, 109, 0.16), transparent 30%),
         linear-gradient(135deg, rgba(252, 250, 246, 0.84), rgba(246, 241, 235, 0.88) 44%, rgba(237, 232, 226, 0.90) 100%);
     }
 
-    body:not([data-theme="dark"]) .hero::before {
+    .hero::before{
       background:
         linear-gradient(120deg, rgba(179, 129, 47, 0.07), transparent 42%),
         radial-gradient(circle at bottom right, rgba(211, 163, 109, 0.08), transparent 24%);
     }
 
-    body:not([data-theme="dark"]) .hero-logo,
-    body:not([data-theme="dark"]) .bracket-stage-logo,
-    body:not([data-theme="dark"]) .bracket-header-logo,
-    body:not([data-theme="dark"]) .topbar-brand-mark img,
-    body:not([data-theme="dark"]) .streamer-topbar-mark img,
-    body:not([data-theme="dark"]) .native-broadcast-brand img,
-    body:not([data-theme="dark"]) .streamer-scene-brand img {
+    .hero-logo,
+    .bracket-stage-logo,
+    .bracket-header-logo,
+    .topbar-brand-mark img,
+    .streamer-topbar-mark img,
+    .native-broadcast-brand img,
+    .streamer-scene-brand img{
       filter: var(--brand-logo-filter-light);
       mix-blend-mode: normal;
       opacity: 1;
     }
 
-    body:not([data-theme="dark"]) .button-secondary,
-    body:not([data-theme="dark"]) .micro-button:not(.button-accent),
-    body:not([data-theme="dark"]) .mode-tab,
-    body:not([data-theme="dark"]) .hero-meta-pill,
-    body:not([data-theme="dark"]) .search-field,
-    body:not([data-theme="dark"]) .sync-status {
+    .button-secondary,
+    .micro-button:not(.button-accent),
+    .mode-tab,
+    .hero-meta-pill,
+    .search-field,
+    .sync-status{
       background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(243, 239, 233, 0.94));
       border-color: var(--line);
       color: var(--text);
     }
 
-    body:not([data-theme="dark"]) .button-accent,
-    body:not([data-theme="dark"]) .micro-button.button-accent,
-    body:not([data-theme="dark"]) .status-pill.active,
-    body:not([data-theme="dark"]) .main-topbar .mode-tab.is-active,
-    body:not([data-theme="dark"]) .sync-status.online {
+    .button-accent,
+    .micro-button.button-accent,
+    .status-pill.active,
+    .main-topbar .mode-tab.is-active,
+    .sync-status.online{
       background: linear-gradient(135deg, var(--button-accent), var(--button-accent-dark));
       color: var(--button-accent-text);
       border-color: rgba(255,255,255,0.16);
       box-shadow: var(--button-glow);
     }
 
-    body:not([data-theme="dark"]) input[type="text"],
-    body:not([data-theme="dark"]) input[type="number"],
-    body:not([data-theme="dark"]) input[type="search"],
-    body:not([data-theme="dark"]) input[type="password"],
-    body:not([data-theme="dark"]) input[type="date"],
-    body:not([data-theme="dark"]) input[type="datetime-local"],
-    body:not([data-theme="dark"]) select,
-    body:not([data-theme="dark"]) textarea {
+    input[type="text"],
+    input[type="number"],
+    input[type="search"],
+    input[type="password"],
+    input[type="date"],
+    input[type="datetime-local"],
+    select,
+    textarea{
       background: rgba(255, 254, 251, 0.99);
       border-color: rgba(71, 82, 89, 0.64);
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.9);
     }
 
-    body:not([data-theme="dark"]) input:focus,
-    body:not([data-theme="dark"]) select:focus,
-    body:not([data-theme="dark"]) textarea:focus {
+    input:focus,
+    select:focus,
+    textarea:focus{
       border-color: var(--accent-dark);
       box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.14), inset 0 1px 0 rgba(255,255,255,0.95);
     }
 
-    body:not([data-theme="dark"]) .qualifying-live-card,
-    body:not([data-theme="dark"]) .battle-flow-card,
-    body:not([data-theme="dark"]) .event-card,
-    body:not([data-theme="dark"]) .role-admin-card,
-    body:not([data-theme="dark"]) .registration-card,
-    body:not([data-theme="dark"]) .mobile-driver-card,
-    body:not([data-theme="dark"]) .podium-card {
+    .qualifying-live-card,
+    .battle-flow-card,
+    .event-card,
+    .role-admin-card,
+    .registration-card,
+    .mobile-driver-card,
+    .podium-card{
       background:
         linear-gradient(180deg, rgba(255,255,255,0.84), rgba(245, 241, 235, 0.88)),
         linear-gradient(135deg, rgba(255,255,255,0.16), rgba(255,255,255,0.04));
     }
 
-    body:not([data-theme="dark"]) .self-register-display-panel,
-    body:not([data-theme="dark"]) .qr-share-card,
-    body:not([data-theme="dark"]) .self-register-status,
-    body:not([data-theme="dark"]) .approval-toast {
+    .self-register-display-panel,
+    .qr-share-card,
+    .self-register-status,
+    .approval-toast{
       background:
         linear-gradient(180deg, rgba(255,252,248,0.985), rgba(242, 239, 233, 0.98));
       border-color: rgba(45, 52, 57, 0.82);
     }
 
-    body:not([data-theme="dark"]) .self-register-display-shell img,
-    body:not([data-theme="dark"]) .qr-share-preview img {
+    .self-register-display-shell img,
+    .qr-share-preview img{
       background: #fffdfa;
       box-shadow:
         0 20px 38px rgba(0, 0, 0, 0.15),
         6px 6px 0 rgba(36, 23, 14, 0.92);
     }
 
-    body:not([data-theme="dark"]) .broadcast-ticker {
+    .broadcast-ticker{
       border-top-color: rgba(45, 52, 57, 0.95);
       background:
         linear-gradient(90deg, #000000, #1a1a1a 20%, #3a3a3a 46%, #1a1a1a 70%, #000000 100%);
     }
 
-    body:not([data-theme="dark"]) .qualifying-live-card {
+    .qualifying-live-card{
       border-width: 3px;
       box-shadow: 0 24px 44px rgba(0, 0, 0, 0.14), 0 4px 0 rgba(36, 23, 14, 0.92);
     }
 
-    body:not([data-theme="dark"]) .table-wrap {
+    .table-wrap{
       background:
         linear-gradient(180deg, rgba(255,255,255,0.985), rgba(246, 243, 238, 0.98));
     }
 
-    body:not([data-theme="dark"]) .read-only-text,
-    body:not([data-theme="dark"]) .read-only-score,
-    body:not([data-theme="dark"]) .best-score,
-    body:not([data-theme="dark"]) .mobile-score-card,
-    body:not([data-theme="dark"]) .qualifying-results-simple li,
-    body:not([data-theme="dark"]) .qualifying-live-stat,
-    body:not([data-theme="dark"]) .qualifying-side-column > .panel {
+    .read-only-text,
+    .read-only-score,
+    .best-score,
+    .mobile-score-card,
+    .qualifying-results-simple li,
+    .qualifying-live-stat,
+    .qualifying-side-column > .panel{
       color: var(--text) !important;
     }
 
-    body:not([data-theme="dark"]) .read-only-score,
-    body:not([data-theme="dark"]) .best-score,
-    body:not([data-theme="dark"]) .mobile-score-card,
-    body:not([data-theme="dark"]) .qualifying-live-stat {
+    .read-only-score,
+    .best-score,
+    .mobile-score-card,
+    .qualifying-live-stat{
       background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(241, 236, 230, 0.98)) !important;
       border: 1px solid rgba(28, 33, 46, 0.14) !important;
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.9), 0 10px 24px rgba(22,29,43,0.08) !important;
     }
 
-    body:not([data-theme="dark"]) .qualifying-results-simple li {
+    .qualifying-results-simple li{
       background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(243, 239, 233, 0.96)) !important;
       border: 1px solid rgba(28, 33, 46, 0.12) !important;
       border-radius: 14px !important;
@@ -2709,20 +2049,20 @@
       box-shadow: 0 10px 24px rgba(22,29,43,0.06) !important;
     }
 
-    body:not([data-theme="dark"]) .qualifying-results-simple li.is-dimmed {
+    .qualifying-results-simple li.is-dimmed{
       opacity: 0.72;
     }
 
-    body:not([data-theme="dark"]) thead {
+    thead{
       background: linear-gradient(180deg, rgba(225, 225, 223, 0.94), rgba(209, 212, 214, 0.92));
       border-bottom-color: rgba(71, 82, 89, 0.20);
     }
 
-    body:not([data-theme="dark"]) tbody tr:nth-child(even) {
+    tbody tr:nth-child(even){
       background: rgba(78, 103, 116, 0.035);
     }
 
-    body:not([data-theme="dark"]) tr.is-current-driver {
+    tr.is-current-driver{
       background: rgba(95, 120, 133, 0.14) !important;
       outline-color: rgba(38, 57, 69, 0.92);
     }
@@ -2748,9 +2088,9 @@
       padding: 34px;
       overflow: hidden;
       background:
-        linear-gradient(180deg, rgba(16, 20, 31, 0.78), rgba(9, 12, 20, 0.84)),
+        linear-gradient(180deg, rgba(255, 254, 251, 0.9), rgba(246, 242, 237, 0.94)),
         radial-gradient(circle at 84% 18%, rgba(208, 160, 107, 0.12), transparent 22%),
-        radial-gradient(circle at 16% 80%, rgba(var(--button-accent-rgb), 0.18), transparent 26%);
+        radial-gradient(circle at 16% 80%, rgba(var(--button-accent-rgb), 0.1), transparent 26%);
     }
 
     .hero-copy-block { position: relative; z-index: 1; }
@@ -2964,42 +2304,6 @@
       text-shadow: 0 14px 28px rgba(0, 0, 0, 0.14);
     }
 
-    body[data-theme="dark"] .landing-brand-logo {
-      filter: none;
-    }
-
-    body[data-theme="dark"] .landing-brand-wordmark {
-      color: var(--landing-wordmark-color);
-    }
-
-    body[data-theme="dark"] #view-home > .hero {
-      background:
-        linear-gradient(180deg, rgba(10, 12, 16, 0.46), rgba(12, 14, 18, 0.74)),
-        radial-gradient(circle at 50% 18%, rgba(243, 211, 170, 0.16), transparent 30%),
-        linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015) 52%, rgba(0,0,0,0.08)),
-        var(--brand-home-hero-image) center center / cover no-repeat;
-    }
-
-    body[data-theme="dark"] #view-home > .hero::before {
-      background:
-        linear-gradient(120deg, rgba(255,255,255,0.06), transparent 42%),
-        radial-gradient(circle at center, rgba(243, 211, 170, 0.1), rgba(255,255,255,0.02) 42%, transparent 74%);
-      opacity: 0.84;
-    }
-
-    body[data-theme="dark"] .hero,
-    body[data-theme="dark"] .panel {
-      background:
-        linear-gradient(180deg, rgba(22, 24, 27, 0.76), rgba(14, 16, 18, 0.82)),
-        radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.04), transparent 22%);
-    }
-
-    body[data-theme="dark"] .hero::before {
-      background:
-        linear-gradient(120deg, rgba(255,255,255,0.03), transparent 45%),
-        radial-gradient(circle at bottom right, rgba(255, 255, 255, 0.05), transparent 26%);
-    }
-
     .page-shell,
     .panel,
     .hero,
@@ -3166,9 +2470,9 @@
       border: 1px solid var(--line);
       border-radius: var(--radius-card);
       background:
-        linear-gradient(180deg, rgba(22, 26, 37, 0.94), rgba(11, 13, 22, 0.92)),
-        linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 18px 34px rgba(0,0,0,0.18);
+        linear-gradient(180deg, rgba(255, 254, 251, 0.94), rgba(246, 242, 237, 0.92)),
+        linear-gradient(135deg, rgba(255,255,255,0.5), rgba(255,255,255,0.1));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.72), 0 18px 34px rgba(22,29,43,0.1);
     }
 
     .hero-card-grid { grid-template-columns: 1fr; }
@@ -3177,8 +2481,8 @@
       padding: 14px 16px;
       border: 1px solid var(--line);
       border-radius: 16px;
-      background: linear-gradient(180deg, rgba(18, 22, 33, 0.98), rgba(11, 13, 22, 0.95));
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 12px 22px rgba(0,0,0,0.16);
+      background: linear-gradient(180deg, rgba(255, 254, 251, 0.9), rgba(246, 242, 237, 0.94));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.72), 0 12px 22px rgba(22,29,43,0.1);
     }
 
     .hero-stat-emphasis {
@@ -3252,7 +2556,7 @@
       border: 1px solid var(--line-strong);
       border-radius: calc(var(--radius-panel) + 2px);
       background:
-        linear-gradient(180deg, rgba(17, 21, 32, 0.96), rgba(10, 12, 20, 0.96));
+        linear-gradient(180deg, rgba(255, 254, 251, 0.96), rgba(246, 242, 237, 0.96));
       box-shadow: var(--panel-shadow);
     }
 
@@ -3460,14 +2764,14 @@
       text-align: center;
     }
 
-    body:not([data-theme="dark"]) .panel,
-    body:not([data-theme="dark"]) .hero {
+    .panel,
+    .hero{
       position: relative;
       overflow: hidden;
     }
 
-    body:not([data-theme="dark"]) .panel::before,
-    body:not([data-theme="dark"]) .hero::after {
+    .panel::before,
+    .hero::after{
       content: "";
       position: absolute;
       left: 0;
@@ -3479,21 +2783,7 @@
       pointer-events: none;
     }
 
-    body[data-theme="dark"] .panel::before,
-    body[data-theme="dark"] .hero::after {
-      content: "";
-      position: absolute;
-      left: 0;
-      right: 0;
-      top: 0;
-      height: 8px;
-      background: var(--panel-highlight-band);
-      opacity: 0.88;
-      pointer-events: none;
-      box-shadow: var(--panel-highlight-shadow);
-    }
-
-    body:not([data-theme="dark"]) .panel::after {
+    .panel::after{
       content: "";
       position: absolute;
       inset: auto 18px 0 auto;
@@ -3503,88 +2793,88 @@
       pointer-events: none;
     }
 
-    body:not([data-theme="dark"]) .panel-header h2,
-    body:not([data-theme="dark"]) .competition-header h2,
-    body:not([data-theme="dark"]) .battle-flow-head h3 {
+    .panel-header h2,
+    .competition-header h2,
+    .battle-flow-head h3{
       color: #232b30;
       text-shadow: 1px 1px 0 rgba(255,255,255,0.36);
     }
 
-    body:not([data-theme="dark"]) .section-kicker,
-    body:not([data-theme="dark"]) .eyebrow {
+    .section-kicker,
+    .eyebrow{
       color: #555555;
     }
 
-    body:not([data-theme="dark"]) .registration-card,
-    body:not([data-theme="dark"]) .mobile-driver-card,
-    body:not([data-theme="dark"]) .event-card,
-    body:not([data-theme="dark"]) .role-admin-card,
-    body:not([data-theme="dark"]) .battle-flow-card,
-    body:not([data-theme="dark"]) .podium-card {
+    .registration-card,
+    .mobile-driver-card,
+    .event-card,
+    .role-admin-card,
+    .battle-flow-card,
+    .podium-card{
       border-width: 2px;
       box-shadow:
         0 18px 36px rgba(0, 0, 0, 0.12),
         0 3px 0 rgba(36, 23, 14, 0.92);
     }
 
-    body:not([data-theme="dark"]) .registration-card-title strong,
-    body:not([data-theme="dark"]) .mobile-driver-name,
-    body:not([data-theme="dark"]) .event-card-head strong,
-    body:not([data-theme="dark"]) .role-admin-title strong {
+    .registration-card-title strong,
+    .mobile-driver-name,
+    .event-card-head strong,
+    .role-admin-title strong{
       color: #232b30;
     }
 
-    body:not([data-theme="dark"]) .registration-roster-count,
-    body:not([data-theme="dark"]) .qualifying-live-progress,
-    body:not([data-theme="dark"]) .mobile-seed-index {
+    .registration-roster-count,
+    .qualifying-live-progress,
+    .mobile-seed-index{
       background: linear-gradient(135deg, #111111, #2a2a2a 74%, #000000);
       color: #fff;
       box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
     }
 
-    body:not([data-theme="dark"]) .qualifying-live-stat {
+    .qualifying-live-stat{
       background:
         linear-gradient(180deg, rgba(255,255,255,0.98), rgba(240, 241, 239, 0.97));
       border-color: rgba(0, 0, 0, 0.12);
     }
 
-    body:not([data-theme="dark"]) .qualifying-live-stat strong,
-    body:not([data-theme="dark"]) .best-score,
-    body:not([data-theme="dark"]) .read-only-score {
+    .qualifying-live-stat strong,
+    .best-score,
+    .read-only-score{
       color: #111111;
     }
 
-    body:not([data-theme="dark"]) .qualifying-results-simple li {
+    .qualifying-results-simple li{
       border-left: 4px solid rgba(0, 0, 0, 0.18);
       padding-left: 14px;
       background: linear-gradient(90deg, rgba(235, 235, 235, 0.64), rgba(255,255,255,0));
     }
 
-    body:not([data-theme="dark"]) .qualifying-results-simple li:nth-child(-n+3) {
+    .qualifying-results-simple li:nth-child(-n+3){
       border-left-color: #000000;
       background: linear-gradient(90deg, rgba(210, 210, 210, 0.28), rgba(255,255,255,0));
     }
 
-    body:not([data-theme="dark"]) .battle-flow-option {
+    .battle-flow-option{
       background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(236, 238, 239, 0.98));
       border-color: rgba(0, 0, 0, 0.9);
     }
 
-    body:not([data-theme="dark"]) .battle-flow-option.current,
-    body:not([data-theme="dark"]) .driver-button.selected {
+    .battle-flow-option.current,
+    .driver-button.selected{
       background: linear-gradient(135deg, var(--accent), var(--accent-dark));
       color: #fff;
       border-color: rgba(0, 0, 0, 0.3);
       box-shadow: var(--accent-glow);
     }
 
-    body:not([data-theme="dark"]) .battle-flow-option.current small,
-    body:not([data-theme="dark"]) .driver-button.selected small {
+    .battle-flow-option.current small,
+    .driver-button.selected small{
       color: rgba(255,255,255,0.92);
       opacity: 1;
     }
 
-    body:not([data-theme="dark"]) .champion-banner {
+    .champion-banner{
       background:
         radial-gradient(circle at top center, rgba(255, 255, 255, 0.18), transparent 26%),
         linear-gradient(135deg, #111111, #2a2a2a 60%, #000000);
@@ -3594,16 +2884,16 @@
         0 4px 0 rgba(36, 23, 14, 0.92);
     }
 
-    body:not([data-theme="dark"]) .hero-meta-pill {
+    .hero-meta-pill{
       border-width: 2px;
       box-shadow: 0 10px 22px rgba(104, 63, 21, 0.10);
     }
 
-    body:not([data-theme="dark"]) .hero-stat,
-    body:not([data-theme="dark"]) .slot-button,
-    body:not([data-theme="dark"]) .driver-button,
-    body:not([data-theme="dark"]) .final-battle-card,
-    body:not([data-theme="dark"]) .main-battle-slot {
+    .hero-stat,
+    .slot-button,
+    .driver-button,
+    .final-battle-card,
+    .main-battle-slot{
       background:
         linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(241, 240, 236, 0.97));
       color: #161c28;
@@ -3613,38 +2903,38 @@
         inset 0 1px 0 rgba(255,255,255,0.78);
     }
 
-    body:not([data-theme="dark"]) .hero-stat strong,
-    body:not([data-theme="dark"]) .slot-button,
-    body:not([data-theme="dark"]) .driver-button strong,
-    body:not([data-theme="dark"]) .final-battle-card strong,
-    body:not([data-theme="dark"]) .final-vs {
+    .hero-stat strong,
+    .slot-button,
+    .driver-button strong,
+    .final-battle-card strong,
+    .final-vs{
       color: #161c28;
     }
 
-    body:not([data-theme="dark"]) .hero-stat-label,
-    body:not([data-theme="dark"]) .slot-team,
-    body:not([data-theme="dark"]) .driver-button small,
-    body:not([data-theme="dark"]) .battle-flow-meta,
-    body:not([data-theme="dark"]) .battle-flow-label,
-    body:not([data-theme="dark"]) .summary-card span {
+    .hero-stat-label,
+    .slot-team,
+    .driver-button small,
+    .battle-flow-meta,
+    .battle-flow-label,
+    .summary-card span{
       color: #5e687d;
     }
 
-    body:not([data-theme="dark"]) .hero-stat-emphasis,
-    body:not([data-theme="dark"]) .hero-stat-emphasis strong,
-    body:not([data-theme="dark"]) .hero-stat-emphasis .hero-stat-label {
+    .hero-stat-emphasis,
+    .hero-stat-emphasis strong,
+    .hero-stat-emphasis .hero-stat-label{
       color: #fff;
     }
 
-    body:not([data-theme="dark"]) .slot-button.empty,
-    body:not([data-theme="dark"]) .driver-button.empty {
+    .slot-button.empty,
+    .driver-button.empty{
       background: linear-gradient(180deg, rgba(249, 247, 243, 0.98), rgba(236, 233, 226, 0.96));
       color: #6c7383;
       border-color: rgba(0, 0, 0, 0.14);
       box-shadow: none;
     }
 
-    body:not([data-theme="dark"]) .final-battle-head {
+    .final-battle-head{
       border-bottom-color: rgba(0, 0, 0, 0.12);
     }
 
@@ -3668,7 +2958,7 @@
       justify-content: center;
       min-height: 50px;
       padding: 12px 18px;
-      background: linear-gradient(180deg, rgba(20, 24, 35, 0.98), rgba(11, 14, 23, 0.98));
+      background: linear-gradient(180deg, rgba(255, 254, 251, 0.98), rgba(244, 241, 235, 0.98));
       color: var(--text);
       font-family: var(--font-sans);
       font-size: 0.92rem;
@@ -3746,7 +3036,7 @@
     }
 
     .button-secondary {
-      background: linear-gradient(180deg, rgba(24, 28, 40, 0.98), rgba(13, 16, 25, 0.98));
+      background: linear-gradient(180deg, rgba(255, 254, 251, 0.98), rgba(238, 234, 227, 0.98));
     }
 
     .button-accent {
@@ -3778,7 +3068,7 @@
       padding: 14px;
       border: 1px solid var(--line);
       border-radius: var(--radius-card);
-      background: linear-gradient(180deg, rgba(16, 20, 31, 0.9), rgba(10, 12, 21, 0.94));
+      background: linear-gradient(180deg, rgba(255, 254, 251, 0.9), rgba(246, 242, 237, 0.94));
       margin-bottom: 16px;
       box-shadow: var(--card-shadow);
     }
@@ -3800,17 +3090,17 @@
       border-radius: 14px;
       min-height: 48px;
       padding: 12px 14px;
-      background: rgba(8, 10, 18, 0.92);
+      background: rgba(255, 254, 251, 0.99);
       color: var(--text);
       font-family: var(--font-sans);
       font-size: 0.98rem;
       font-weight: 700;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.9);
     }
 
     input:focus, select:focus {
       outline: none;
-      background: rgba(10, 13, 22, 0.98);
+      background: #ffffff;
       color: var(--text);
       border-color: var(--accent-dark);
       box-shadow: 0 0 0 4px rgba(var(--button-accent-rgb), 0.16), 0 10px 22px rgba(0,0,0,0.12);
@@ -3829,7 +3119,7 @@
       overflow: auto;
       border: 1px solid var(--line);
       border-radius: var(--radius-panel);
-      background: linear-gradient(180deg, rgba(16, 20, 31, 0.92), rgba(10, 12, 21, 0.96));
+      background: linear-gradient(180deg, rgba(255, 254, 251, 0.92), rgba(246, 242, 237, 0.96));
       box-shadow: var(--panel-shadow);
       flex: 1;
       min-height: 0;
@@ -4013,24 +3303,6 @@
       line-height: 1.35;
     }
 
-    body[data-theme="dark"] .registration-team-member {
-      border-color: rgba(var(--accent-rgb), 0.34);
-      background:
-        linear-gradient(180deg, rgba(45, 34, 26, 0.96), rgba(24, 18, 13, 0.94)),
-        linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01));
-      box-shadow:
-        inset 0 1px 0 rgba(255,255,255,0.06),
-        0 10px 22px rgba(0, 0, 0, 0.22);
-    }
-
-    body[data-theme="dark"] .registration-team-member strong {
-      color: #f5e7d5;
-    }
-
-    body[data-theme="dark"] .registration-team-member small {
-      color: #d3b792;
-    }
-
     .venue-config-grid,
     .self-register-form-grid {
       display: grid;
@@ -4181,17 +3453,17 @@
       border-left: 4px solid #bb352b;
     }
 
-    body:not([data-theme="dark"]) .self-register-status.is-ready {
+    .self-register-status.is-ready{
       background: linear-gradient(180deg, rgba(233,255,240,0.98), rgba(220,245,229,0.96));
       border-left: 4px solid #2f7d46;
     }
 
-    body:not([data-theme="dark"]) .self-register-status.is-locked {
+    .self-register-status.is-locked{
       background: linear-gradient(180deg, rgba(255,247,223,0.98), rgba(247,237,202,0.96));
       border-left: 4px solid #a9701a;
     }
 
-    body:not([data-theme="dark"]) .self-register-status.is-error {
+    .self-register-status.is-error{
       background: linear-gradient(180deg, rgba(255,231,231,0.98), rgba(247,214,214,0.96));
       border-left: 4px solid #bb352b;
     }
@@ -4431,23 +3703,6 @@
     body[data-role="spectator"] #view-results .results-list .results-event-card {
       background:
         linear-gradient(180deg, rgba(255,255,255,0.98), rgba(244,240,231,0.97));
-    }
-
-    body[data-theme="dark"][data-role="spectator"] #view-qualifying > .hero,
-    body[data-theme="dark"][data-role="spectator"] #view-qualifying .qualifying-live-card,
-    body[data-theme="dark"][data-role="spectator"] #view-results > .hero,
-    body[data-theme="dark"][data-role="spectator"] #view-self-register-display > .hero,
-    body[data-theme="dark"][data-role="spectator"] #view-bracket .battle-flow-card,
-    body[data-theme="dark"][data-role="spectator"] #view-results .results-list .event-card,
-    body[data-theme="dark"][data-role="spectator"] #view-results .results-list .results-event-card {
-      background:
-        linear-gradient(180deg, rgba(24, 27, 30, 0.97), rgba(13, 15, 17, 0.97)) !important;
-      color: var(--text);
-    }
-
-    body[data-theme="dark"][data-role="spectator"] #view-qualifying .qualifying-live-kicker,
-    body[data-theme="dark"][data-role="spectator"] #view-qualifying .qualifying-live-meta {
-      color: rgba(255,255,255,0.72);
     }
 
     body[data-role="spectator"] .page-shell {
@@ -5153,9 +4408,9 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: rgba(6, 8, 14, 0.72);
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
+      background: rgba(226, 232, 240, 0.82);
+      backdrop-filter: blur(6px) saturate(0.85);
+      -webkit-backdrop-filter: blur(6px) saturate(0.85);
       opacity: 0;
       animation: qualifyingRevealBackdropIn 260ms ease both;
     }
@@ -5170,8 +4425,9 @@
       width: min(420px, 88vw);
       padding: 32px 28px 28px;
       border-radius: 20px;
-      background: #14171f;
-      color: #fff;
+      background: #ffffff;
+      color: var(--text);
+      box-shadow: 0 32px 64px rgba(22, 29, 43, 0.24);
       text-align: center;
       isolation: isolate;
       transform: scale(0.92);
@@ -5243,9 +4499,9 @@
       position: absolute;
       top: 12px;
       right: 12px;
-      background: rgba(255,255,255,0.1);
-      border: 1px solid rgba(255,255,255,0.24);
-      color: #fff;
+      background: rgba(35, 27, 21, 0.05);
+      border: 1px solid var(--line-strong);
+      color: var(--text);
       font-size: 0.7rem;
       font-weight: 800;
       text-transform: uppercase;
@@ -5280,7 +4536,7 @@
       margin: 2px 0 18px;
       font-size: 0.82rem;
       font-weight: 700;
-      color: rgba(255,255,255,0.6);
+      color: var(--text-soft);
       animation: qualifyingRevealItemIn 380ms ease 260ms both;
     }
     .qualifying-reveal-team.hidden { display: none; }
@@ -5288,7 +4544,7 @@
       display: block;
       font-size: 0.85rem;
       font-weight: 700;
-      color: rgba(255,255,255,0.6);
+      color: var(--text-soft);
       margin-bottom: 2px;
     }
     .qualifying-reveal-runs {
@@ -5309,15 +4565,16 @@
       font-weight: 800;
       text-transform: uppercase;
       letter-spacing: 0.06em;
-      color: rgba(255,255,255,0.55);
+      color: var(--text-soft);
     }
     .qualifying-reveal-run-value {
       font-size: 1.5rem;
       font-weight: 800;
       font-variant-numeric: tabular-nums;
+      color: var(--text);
     }
     .qualifying-reveal-final {
-      border-top: 1px solid rgba(255,255,255,0.16);
+      border-top: 1px solid var(--line);
       padding-top: 16px;
       display: flex;
       flex-direction: column;
@@ -5551,8 +4808,7 @@
       border-color: var(--state-error);
     }
 
-    body:not([data-theme="dark"]) .competition-vote-option.selected,
-    body[data-theme="dark"] .competition-vote-option.selected {
+    .competition-vote-option.selected{
       opacity: 1;
       box-shadow:
         0 0 0 1px rgba(208, 160, 107, 0.45),
@@ -5560,8 +4816,7 @@
         var(--bracket-advance-glow);
     }
 
-    body:not([data-theme="dark"]) .competition-vote-option[data-side="omt"],
-    body[data-theme="dark"] .competition-vote-option[data-side="omt"] {
+    .competition-vote-option[data-side="omt"]{
       border-style: dashed;
       border-color: var(--state-error);
     }
@@ -5871,15 +5126,6 @@
     @keyframes judgeFinalizedSpin {
       to { transform: rotate(360deg); }
     }
-    body[data-theme="dark"] .judge-lane-finalized-run {
-      background: rgba(47,125,70,0.16);
-      border-color: rgba(255,255,255,0.2);
-      color: var(--text);
-    }
-    body[data-theme="dark"] .judge-lane-finalized-run.is-submitting {
-      background: rgba(255,255,255,0.08);
-      color: rgba(255,255,255,0.72);
-    }
     @media (prefers-reduced-motion: reduce) {
       .judge-lane-finalized-run.is-accepted { animation: none; }
       .judge-lane-finalized-spinner { animation-duration: 1600ms; }
@@ -6049,11 +5295,6 @@
       padding: 4px 10px;
       white-space: nowrap;
     }
-    body[data-theme="dark"] .qp-status-compact {
-      color: rgba(255,255,255,0.72);
-      background: rgba(255,255,255,0.08);
-      border-color: rgba(255,255,255,0.16);
-    }
 
     .qp-status {
       display: flex;
@@ -6065,10 +5306,6 @@
       border: 1px solid var(--line);
       border-radius: 12px;
       background: rgba(0,0,0,0.03);
-    }
-    body[data-theme="dark"] .qp-status {
-      background: rgba(255,255,255,0.05);
-      border-color: rgba(255,255,255,0.14);
     }
     .qp-status-head {
       font-size: 0.72rem;
@@ -6106,16 +5343,11 @@
       color: #fff;
     }
     .qp-judge-row.is-done .qp-judge-state { color: #245c36; }
-    body[data-theme="dark"] .qp-judge-row.is-done .qp-judge-state { color: #6fd18c; }
     .qp-judge-row.is-waiting .qp-judge-mark {
       background: #d8d8d8;
       color: #6b6b6b;
     }
     .qp-judge-row.is-waiting .qp-judge-state { color: #6b6b6b; }
-    body[data-theme="dark"] .qp-judge-row.is-waiting .qp-judge-mark {
-      background: rgba(255,255,255,0.16);
-      color: rgba(255,255,255,0.6);
-    }
     .qp-status-waiting {
       font-size: 0.72rem;
       font-weight: 700;
@@ -6146,10 +5378,6 @@
       background: rgba(0,0,0,0.04);
       border-radius: 999px;
       padding: 2px 8px;
-    }
-    body[data-theme="dark"] .qp-judge-chip {
-      color: rgba(255,255,255,0.68);
-      background: rgba(255,255,255,0.07);
     }
     .qp-judge-chip-name { opacity: 0.75; }
     .qp-judge-chip-value { color: var(--text); font-variant-numeric: tabular-nums; }
@@ -6275,18 +5503,11 @@
       color: var(--gold);
     }
 
-    body:not([data-theme="dark"]) #qualifyingResults .qualifying-results-simple > li.is-cut-line {
+    #qualifyingResults .qualifying-results-simple > li.is-cut-line{
       border-bottom-color: var(--gold-deep) !important;
       box-shadow:
         inset 0 -3px 0 var(--gold-deep),
         inset 0 1px 0 rgba(255,255,255,0.78) !important;
-    }
-
-    body[data-theme="dark"] #qualifyingResults .qualifying-results-simple > li.is-cut-line {
-      border-bottom-color: var(--gold) !important;
-      box-shadow:
-        inset 0 -3px 0 var(--gold),
-        inset 0 1px 0 rgba(255,255,255,0.05) !important;
     }
 
     .twin-comp-standings li {
@@ -6438,19 +5659,6 @@
       text-align: center;
     }
 
-    body[data-theme="dark"] .website-admin-banner-tools {
-      border-color: rgba(255,255,255,0.16);
-      background:
-        linear-gradient(180deg, rgba(31,35,42,0.94), rgba(14,16,20,0.96)),
-        var(--panel);
-      box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.28);
-    }
-
-    body[data-theme="dark"] .website-admin-banner-preview {
-      border-color: rgba(255,255,255,0.16);
-      background: rgba(10,12,18,0.8);
-    }
-
     .event-stat {
       padding: 14px 14px 12px;
       border: 2px solid #000;
@@ -6584,7 +5792,7 @@
       min-height: 38px;
       padding: 8px 12px;
       border: 1px solid var(--line-strong);
-      background: linear-gradient(180deg, rgba(19, 23, 34, 0.98), rgba(11, 14, 22, 0.98));
+      background: linear-gradient(180deg, rgba(255, 254, 251, 0.98), rgba(244, 241, 235, 0.98));
       color: var(--text);
       font-family: var(--font-sans);
       font-size: 0.78rem;
@@ -7002,7 +6210,7 @@
       border: 1px solid var(--line);
       border-radius: var(--radius-card);
       background:
-        linear-gradient(180deg, rgba(17, 21, 32, 0.98), rgba(10, 12, 20, 0.94));
+        linear-gradient(180deg, rgba(255, 254, 251, 0.98), rgba(246, 242, 237, 0.94));
       padding: 12px;
       display: grid;
       gap: 8px;
@@ -7011,8 +6219,8 @@
 
     .battle-flow-card.current {
       background:
-        linear-gradient(180deg, rgba(24, 29, 42, 0.98), rgba(12, 15, 24, 0.96));
-      border-color: var(--line-strong);
+        linear-gradient(180deg, rgba(219, 234, 254, 0.6), rgba(219, 234, 254, 0.32));
+      border-color: #1d4ed8;
       box-shadow: var(--accent-glow);
     }
 
@@ -7135,8 +6343,8 @@
       50% { box-shadow: var(--accent-glow), 0 0 26px 2px rgba(208,160,107,0.16); }
     }
     .battle-flow-card.current .battle-flow-title {
-      color: #fff;
-      text-shadow: 0 0 10px rgba(255,255,255,0.18);
+      color: var(--text);
+      text-shadow: none;
     }
     .battle-flow-card.flow-slot-next:not(.current) {
       animation: battleFlowUpNextPulse 6s ease-in-out infinite;
@@ -7407,20 +6615,6 @@
       letter-spacing: 0.08em;
     }
 
-    body[data-theme="dark"] .bracket-alert-banner {
-      background: linear-gradient(180deg, rgba(28, 28, 31, 0.98), rgba(16, 16, 18, 0.96));
-      border-color: rgba(255, 255, 255, 0.18);
-      box-shadow: 0 16px 34px rgba(0, 0, 0, 0.32), 0 1px 0 rgba(255, 255, 255, 0.08);
-    }
-
-    body[data-theme="dark"] .bracket-alert-banner strong {
-      color: var(--text);
-    }
-
-    body[data-theme="dark"] .bracket-alert-banner small {
-      color: var(--text-soft);
-    }
-
     .bracket-stage-logo { display: none; }
 
     .main-board-title {
@@ -7652,7 +6846,7 @@
       align-items: center;
       justify-content: flex-start;
       padding: 0 var(--slot-padding-x, 12px);
-      background: linear-gradient(180deg, rgba(18, 22, 33, 0.98), rgba(11, 13, 22, 0.95));
+      background: linear-gradient(180deg, rgba(255, 254, 251, 0.98), rgba(244, 241, 235, 0.95));
       color: var(--text);
       font-size: var(--slot-font-size, 1rem);
       font-weight: 800;
@@ -7896,8 +7090,8 @@
       width: var(--final-card-width, 250px);
       border: 1px solid var(--line-strong);
       border-radius: 24px;
-      background: linear-gradient(180deg, rgba(18, 22, 33, 0.99), rgba(10, 12, 20, 0.96));
-      box-shadow: 0 24px 52px rgba(0, 0, 0, 0.34);
+      background: linear-gradient(180deg, rgba(255, 254, 251, 0.99), rgba(246, 242, 237, 0.98));
+      box-shadow: 0 24px 52px rgba(22, 29, 43, 0.18);
       overflow: hidden;
     }
 
@@ -7966,7 +7160,7 @@
       letter-spacing: 0.08em;
     }
 
-    .match-card { padding: 14px; background: linear-gradient(180deg, rgba(17, 21, 32, 0.96), rgba(10, 12, 20, 0.94)); }
+    .match-card { padding: 14px; background: linear-gradient(180deg, rgba(255, 254, 251, 0.96), rgba(246, 242, 237, 0.94)); }
     .match-card.pending { opacity: 0.6; }
 
     .match-label {
@@ -7984,11 +7178,11 @@
       gap: 4px;
       text-align: left;
       padding: 12px;
-      background: linear-gradient(180deg, rgba(18, 22, 33, 0.98), rgba(10, 12, 20, 0.95));
+      background: linear-gradient(180deg, rgba(255, 254, 251, 0.98), rgba(244, 241, 235, 0.95));
       color: var(--text);
       border: 1px solid var(--line-strong);
       border-radius: 16px;
-      box-shadow: 0 12px 26px rgba(0, 0, 0, 0.22);
+      box-shadow: 0 12px 26px rgba(22, 29, 43, 0.12);
     }
 
     .driver-button strong {
@@ -8007,13 +7201,6 @@
       box-shadow: var(--bracket-advance-glow);
     }
     .driver-button.selected small { color: rgba(255, 250, 244, 0.9); }
-    body[data-theme="dark"] .driver-button.selected {
-      color: #0b0c10;
-      text-shadow: none;
-    }
-    body[data-theme="dark"] .driver-button.selected small {
-      color: rgba(11, 12, 16, 0.74);
-    }
     .driver-button.winner-just-selected {
       animation: bracketWinnerPop var(--motion-reveal) var(--ease-snap);
     }
@@ -8108,8 +7295,7 @@
       0%, 74% { left: -40%; }
       90%, 100% { left: 135%; }
     }
-    body[data-theme="dark"] .champion-banner span,
-    body:not([data-theme="dark"]) .champion-banner span {
+    .champion-banner span{
       color: var(--gold-bright);
     }
     @media (prefers-reduced-motion: reduce) {
@@ -8229,10 +7415,10 @@
       border: 1px solid var(--gold-ring-mid, rgba(208, 160, 107, 0.5));
       border-radius: 26px;
       background:
-        radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.05), transparent 40%),
-        linear-gradient(180deg, rgba(20, 23, 32, 0.95), rgba(10, 12, 19, 0.97));
-      color: #f5eee6;
-      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.48), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        radial-gradient(circle at 50% 0%, rgba(208, 160, 107, 0.06), transparent 40%),
+        linear-gradient(180deg, rgba(255, 254, 251, 0.97), rgba(246, 242, 237, 0.98));
+      color: var(--text);
+      box-shadow: 0 30px 80px rgba(22, 29, 43, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.9);
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
     }
@@ -8268,24 +7454,24 @@
       gap: 6px;
       padding: 14px 18px;
       border-radius: 18px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--line-strong);
+      background: rgba(255, 254, 251, 0.7);
       min-width: 180px;
     }
 
     .fullscreen-podium-slot-champion {
       padding: 18px 24px;
       border-color: var(--gold-ring-mid, rgba(208, 160, 107, 0.5));
-      background: linear-gradient(180deg, rgba(208, 160, 107, 0.14), rgba(208, 160, 107, 0.02));
+      background: linear-gradient(180deg, rgba(208, 160, 107, 0.14), rgba(208, 160, 107, 0.03));
       box-shadow: 0 0 40px rgba(208, 160, 107, 0.14);
     }
 
     .fullscreen-podium-slot-runnerup {
-      border-color: rgba(198, 202, 210, 0.4);
+      border-color: rgba(100, 116, 139, 0.4);
     }
 
     .fullscreen-podium-slot-third {
-      border-color: rgba(178, 122, 74, 0.45);
+      border-color: rgba(154, 91, 46, 0.4);
     }
 
     .fullscreen-podium-medal {
@@ -8303,7 +7489,7 @@
       font-weight: 800;
       letter-spacing: 0.14em;
       text-transform: uppercase;
-      color: rgba(245, 238, 230, 0.62);
+      color: var(--text-soft);
     }
 
     .fullscreen-podium-slot-champion .fullscreen-podium-label {
@@ -8343,7 +7529,7 @@
       font-family: var(--font-graffiti);
       font-size: clamp(1.1rem, 2.4vw, 1.7rem);
       line-height: 1.05;
-      color: #fff;
+      color: var(--text);
     }
 
     .fullscreen-podium-slot-champion .fullscreen-podium-name {
@@ -8380,7 +7566,7 @@
     .fullscreen-podium-fourth {
       margin: 0;
       font-size: 0.78rem;
-      color: rgba(245, 238, 230, 0.6);
+      color: var(--text-soft);
       display: flex;
       align-items: center;
       gap: 8px;
@@ -8397,7 +7583,7 @@
     .fullscreen-podium-fourth .fullscreen-podium-name {
       font-size: 0.82rem;
       font-family: inherit;
-      color: rgba(245, 238, 230, 0.86);
+      color: var(--text);
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -8711,17 +7897,12 @@
       margin-bottom: 18px;
       position: relative;
     }
-    body[data-theme="dark"] .qa-tools-panel {
-      border-color: rgba(230, 170, 60, 0.5);
-      background: rgba(230, 170, 60, 0.06);
-    }
     .qa-tools-kicker {
       display: flex;
       align-items: center;
       gap: 6px;
       color: #a5670f;
     }
-    body[data-theme="dark"] .qa-tools-kicker { color: #e6aa3c; }
     .qa-tools-caution-icon { font-size: 0.95em; }
     .qa-tools-warning {
       border-left: 3px solid #d68f14;
@@ -8732,10 +7913,6 @@
     .qa-tools-btn-scored {
       border-color: #d68f14 !important;
       color: #a5670f !important;
-    }
-    body[data-theme="dark"] .qa-tools-btn-scored {
-      border-color: #e6aa3c !important;
-      color: #e6aa3c !important;
     }
     .qa-tools-row .button small {
       display: block;
@@ -8785,11 +7962,6 @@
       border: 2px solid rgba(0, 0, 0, 0.14);
       border-radius: 18px;
       background: #fff;
-    }
-
-    body[data-theme="dark"] .pdf-preview-frame {
-      background: #111;
-      border-color: rgba(255, 255, 255, 0.18);
     }
 
     .admin-lock-note {
@@ -9066,56 +8238,6 @@
       text-align: right;
     }
 
-    body[data-theme="dark"] .landing-podium-card {
-      background: rgba(255, 255, 255, 0.05);
-      border-color: rgba(255,255,255,0.16);
-    }
-
-    body[data-theme="dark"] .landing-statline {
-      border-bottom-color: rgba(255, 255, 255, 0.1);
-    }
-
-    body[data-theme="dark"] #view-home .panel {
-      border-color: rgba(255,255,255,0.18);
-      background:
-        linear-gradient(180deg, rgba(24, 30, 40, 0.5), rgba(10, 14, 22, 0.58)),
-        linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.04) 44%, rgba(255,255,255,0.01)),
-        rgba(10, 12, 18, 0.24);
-      box-shadow:
-        0 28px 54px rgba(0, 0, 0, 0.34),
-        inset 0 1px 0 rgba(255,255,255,0.22),
-        inset 0 -1px 0 rgba(255,255,255,0.06);
-    }
-
-    body[data-theme="dark"] #view-home .panel::before {
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.46), transparent);
-    }
-
-    body[data-theme="dark"] #view-home .panel::after {
-      background:
-        radial-gradient(circle, rgba(208, 160, 107, 0.16), transparent 68%),
-        radial-gradient(circle at 34% 34%, rgba(243, 211, 170, 0.10), transparent 56%);
-      opacity: 0.9;
-    }
-
-    body[data-theme="dark"] #view-home .command-center-card,
-    body[data-theme="dark"] #view-home .landing-podium-card,
-    body[data-theme="dark"] #view-home .landing-statline {
-      border-color: rgba(255,255,255,0.18);
-      background:
-        linear-gradient(180deg, rgba(28, 34, 46, 0.46), rgba(12, 16, 24, 0.58)),
-        linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.03));
-      box-shadow:
-        0 18px 30px rgba(0, 0, 0, 0.24),
-        inset 0 1px 0 rgba(255,255,255,0.16);
-    }
-
-    body[data-theme="dark"] .landing-upcoming-banner-card {
-      border: none;
-      background: none;
-      box-shadow: none;
-    }
-
     .hidden { display: none !important; }
 
     @media (prefers-reduced-motion: reduce) {
@@ -9293,14 +8415,14 @@
     }
 
     @media (max-width: 720px) {
-      body:not([data-theme="dark"]) .main-topbar .mode-tab,
-      body:not([data-theme="dark"]) .main-topbar .mode-tab:visited,
-      body:not([data-theme="dark"]) .main-topbar .mode-tab:active {
+      .main-topbar .mode-tab,
+      .main-topbar .mode-tab:visited,
+      .main-topbar .mode-tab:active{
         color: #1f2428 !important;
       }
-      body:not([data-theme="dark"]) .main-topbar .mode-tab.is-active,
-      body:not([data-theme="dark"]) .main-topbar .mode-tab.is-active:visited,
-      body:not([data-theme="dark"]) .main-topbar .mode-tab.is-active:active {
+      .main-topbar .mode-tab.is-active,
+      .main-topbar .mode-tab.is-active:visited,
+      .main-topbar .mode-tab.is-active:active{
         color: #ffffff !important;
       }
       .modal-content.modal-pdf {
@@ -9396,10 +8518,6 @@
         color: #000 !important;
         background: rgba(255,255,255,0.96);
         border-color: #000;
-      }
-      body[data-theme="dark"] .main-topbar .mode-tab.is-active {
-        color: #080808 !important;
-        background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(218,218,218,0.98));
       }
       .topbar-brand-copy strong,
       .topbar-brand-copy small {
@@ -10251,11 +9369,6 @@
       overflow-wrap: anywhere;
     }
 
-    body[data-theme="dark"] .simulation-qr-preview img {
-      background: #ffffff;
-      box-shadow: 10px 10px 0 rgba(0, 0, 0, 0.28);
-    }
-
     .demo-sandbox-bar {
       position: sticky;
       top: 10px;
@@ -10385,28 +9498,6 @@
       justify-content: center;
     }
 
-    body[data-theme="dark"] .demo-qualifying-qr-panel {
-      background:
-        linear-gradient(135deg, rgba(17,17,17,0.96), rgba(27,27,27,0.94)),
-        var(--panel);
-      box-shadow: 0 18px 36px rgba(0, 0, 0, 0.4);
-    }
-
-    body[data-theme="dark"] .demo-judge-picker {
-      background: rgba(22,22,22,0.9);
-      color: rgba(255,255,255,0.7);
-      border-color: rgba(255,255,255,0.14);
-    }
-
-    body[data-theme="dark"] .demo-judge-picker select {
-      color: #ffffff;
-    }
-
-    body[data-theme="dark"] .demo-qualifying-qr-panel img {
-      background: #fff;
-      box-shadow: 10px 10px 0 rgba(0, 0, 0, 0.28);
-    }
-
     .simulation-scoreboard {
       display: grid;
       gap: 10px;
@@ -10454,266 +9545,6 @@
 
     .simulation-action-card .button {
       margin-top: 14px;
-    }
-
-    body[data-theme="dark"] .simulation-stage-card,
-    body[data-theme="dark"] .simulation-summary-card,
-    body[data-theme="dark"] .simulation-action-card {
-      background:
-        linear-gradient(180deg, rgba(31,35,42,0.94), rgba(14,16,20,0.96)),
-        var(--panel);
-      box-shadow: 10px 10px 0 rgba(0, 0, 0, 0.28);
-    }
-
-    body[data-theme="dark"] .simulation-score-row,
-    body[data-theme="dark"] .simulation-chip,
-    body[data-theme="dark"] .simulation-status-pill {
-      background: rgba(255,255,255,0.06);
-      border-color: rgba(255,255,255,0.12);
-    }
-
-    body[data-theme="dark"] .demo-sandbox-bar {
-      background:
-        linear-gradient(135deg, rgba(17,17,17,0.96), rgba(27,27,27,0.94)),
-        var(--panel);
-      box-shadow: 0 18px 36px rgba(0, 0, 0, 0.4);
-    }
-
-    body[data-theme="dark"] .demo-sandbox-copy span {
-      color: rgba(255,255,255,0.74);
-    }
-
-    body[data-theme="dark"] .self-register-status {
-      background: linear-gradient(180deg, rgba(28, 31, 39, 0.96), rgba(15, 18, 24, 0.98));
-      color: var(--text);
-      border-color: rgba(255, 255, 255, 0.18);
-      box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.42);
-    }
-
-    body[data-theme="dark"] .self-register-status.is-ready {
-      background: linear-gradient(135deg, rgba(39, 213, 108, 0.22), rgba(13, 107, 60, 0.28));
-      border-color: rgba(39, 213, 108, 0.34);
-      border-left: 4px solid #46b86a;
-    }
-
-    body[data-theme="dark"] .self-register-status.is-locked {
-      background: linear-gradient(180deg, rgba(52, 41, 18, 0.92), rgba(28, 23, 11, 0.96));
-      border-color: rgba(255, 179, 67, 0.3);
-      border-left: 4px solid #d8a24a;
-    }
-
-    body[data-theme="dark"] .self-register-status.is-error {
-      background: linear-gradient(180deg, rgba(73, 25, 33, 0.94), rgba(40, 14, 20, 0.98));
-      border-color: rgba(255, 125, 125, 0.28);
-      border-left: 4px solid #e46a6a;
-    }
-
-    body[data-theme="dark"] .topbar-inline-pill {
-      background: rgba(255,255,255,0.08);
-      color: rgba(245, 238, 230, 0.92);
-      border-color: rgba(255,255,255,0.12);
-    }
-
-    body[data-theme="dark"] .topbar-inline-pill.active {
-      background: linear-gradient(135deg, var(--button-accent), var(--button-accent-dark));
-      color: var(--button-accent-text);
-      border-color: rgba(255,255,255,0.2);
-      box-shadow: var(--button-glow);
-    }
-
-    body[data-theme="dark"] .topbar-inline-pill.role {
-      background: rgba(255,255,255,0.1);
-      color: #fff;
-    }
-
-    body[data-theme="dark"] thead {
-      background: rgba(20, 24, 35, 0.94);
-      border-bottom-color: rgba(255,255,255,0.1);
-    }
-
-    body[data-theme="dark"] th,
-    body[data-theme="dark"] td {
-      border-bottom-color: rgba(255,255,255,0.08);
-    }
-
-    body[data-theme="dark"] tbody tr:nth-child(even) {
-      background: rgba(255,255,255,0.03);
-    }
-
-    body[data-theme="dark"] tbody tr:hover {
-      background: rgba(var(--accent-cyan-rgb), 0.08);
-    }
-
-    body[data-theme="dark"] .judge-lane-submitbar,
-    body[data-theme="dark"] .competition-decision-card,
-    body[data-theme="dark"] .competition-review-banner {
-      background:
-        linear-gradient(180deg, rgba(22, 26, 37, 0.94), rgba(11, 13, 22, 0.94)),
-        linear-gradient(135deg, rgba(var(--button-accent-rgb), 0.12), rgba(var(--accent-cyan-rgb), 0.08));
-      color: var(--text);
-      border-color: rgba(255,255,255,0.12);
-    }
-
-    body[data-theme="dark"] .empty-state {
-      background: rgba(255,255,255,0.04);
-      border-color: rgba(255,255,255,0.14);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
-    }
-
-    body[data-theme="dark"] .admin-alert-pill {
-      background: linear-gradient(180deg, rgba(31, 35, 42, 0.96), rgba(15, 18, 24, 0.98));
-      color: var(--text);
-      border-color: rgba(255, 255, 255, 0.18);
-      box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.42);
-    }
-
-    body[data-theme="dark"] .admin-alert-pill.is-warning {
-      background: linear-gradient(180deg, rgba(61, 48, 20, 0.94), rgba(32, 25, 10, 0.98));
-      color: #ffe2a2;
-      border-color: rgba(255, 179, 67, 0.28);
-    }
-
-    body[data-theme="dark"] .admin-alert-pill.is-success {
-      color: #dfffea;
-    }
-
-    body[data-theme="dark"] .admin-alert-pill.is-muted {
-      background: linear-gradient(180deg, rgba(38, 42, 49, 0.94), rgba(18, 21, 28, 0.98));
-      color: var(--text-soft);
-      border-color: rgba(255, 255, 255, 0.14);
-    }
-
-    body[data-theme="dark"] .approval-toast {
-      background: linear-gradient(180deg, rgba(52, 41, 18, 0.96), rgba(28, 23, 11, 0.98));
-      color: #fff6de;
-      border-color: rgba(255, 179, 67, 0.32);
-      box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.42);
-    }
-
-    body[data-theme="dark"] .approval-toast strong {
-      color: #ffffff;
-    }
-
-    body[data-theme="dark"] .judge-lane-toolbar {
-      background: linear-gradient(180deg, rgba(28, 31, 39, 0.96), rgba(15, 18, 24, 0.98));
-      color: var(--text);
-      border-color: rgba(255, 255, 255, 0.18);
-      box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.42);
-    }
-
-    body[data-theme="dark"] .judge-score-card {
-      background: linear-gradient(180deg, rgba(31, 35, 42, 0.96), rgba(16, 19, 25, 0.98));
-      color: var(--text);
-      border-color: rgba(255, 255, 255, 0.16);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
-    }
-
-    body[data-theme="dark"] .judge-score-card.runoff-card {
-      background: linear-gradient(180deg, rgba(25, 29, 35, 0.96), rgba(13, 16, 21, 0.98));
-    }
-
-    body[data-theme="dark"] .judge-role-picker {
-      background: linear-gradient(180deg, rgba(31, 35, 42, 0.96), rgba(16, 19, 25, 0.98));
-      color: var(--text);
-      border-color: rgba(255, 255, 255, 0.16);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
-    }
-
-    body[data-theme="dark"] .judge-role-picker select {
-      background: rgba(8, 10, 18, 0.94);
-      color: var(--text);
-      border-color: rgba(255, 255, 255, 0.16);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
-    }
-
-    body[data-theme="dark"] .judge-role-picker-status {
-      background: rgba(255, 255, 255, 0.08);
-      color: var(--text);
-      border-color: rgba(255, 255, 255, 0.16);
-    }
-
-    body[data-theme="dark"] .judge-score-live {
-      background: rgba(255, 255, 255, 0.08);
-      color: var(--text);
-      border-color: rgba(255, 255, 255, 0.16);
-    }
-
-    body[data-theme="dark"] .judge-score-card input {
-      background: rgba(8, 10, 18, 0.94);
-      color: var(--text);
-      border-color: rgba(255, 255, 255, 0.16);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
-    }
-
-    body[data-theme="dark"] .score-deduction-btn {
-      background: rgba(255, 255, 255, 0.08);
-      color: var(--text);
-      border-color: rgba(255, 255, 255, 0.16);
-    }
-
-    body[data-theme="dark"] .judge-lane-status-pill.is-pending {
-      background: rgba(255, 255, 255, 0.08);
-      color: var(--text-soft);
-      border-color: rgba(255, 255, 255, 0.14);
-    }
-
-    body[data-theme="dark"] .competition-review-banner,
-    body[data-theme="dark"] .competition-decision-card {
-      background:
-        linear-gradient(180deg, rgba(24, 28, 36, 0.86), rgba(12, 15, 21, 0.92)),
-        linear-gradient(135deg, rgba(208, 160, 107, 0.09), rgba(208, 160, 107, 0.04));
-      color: var(--text);
-      border-color: rgba(255, 255, 255, 0.14);
-      box-shadow:
-        0 24px 54px rgba(0, 0, 0, 0.34),
-        inset 0 1px 0 rgba(255, 255, 255, 0.04);
-    }
-
-    body[data-theme="dark"] .competition-review-banner small,
-    body[data-theme="dark"] .competition-decision-copy {
-      color: var(--text-soft);
-    }
-
-    body[data-theme="dark"] .competition-vote-pill {
-      background: rgba(255, 255, 255, 0.08);
-      color: var(--text);
-      border-color: rgba(255, 255, 255, 0.14);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-    }
-
-    body[data-theme="dark"] .competition-score-stage-card,
-    body[data-theme="dark"] .competition-score-lock-card {
-      background: linear-gradient(180deg, rgba(31, 35, 42, 0.96), rgba(16, 19, 25, 0.98));
-      color: var(--text);
-      border-color: rgba(255, 255, 255, 0.16);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
-    }
-
-    body[data-theme="dark"] .competition-score-lock-card.is-live {
-      border-color: rgba(143, 160, 131, 0.38);
-      box-shadow: var(--accent-green-glow);
-    }
-
-    body[data-theme="dark"] .public-event-queue-card {
-      background:
-        linear-gradient(180deg, rgba(28, 31, 39, 0.74), rgba(14, 17, 23, 0.82)),
-        linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015));
-      border-color: rgba(255, 255, 255, 0.16);
-      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255,255,255,0.04);
-    }
-
-    body[data-theme="dark"] .public-event-queue-card-head,
-    body[data-theme="dark"] .public-event-queue-card-copy {
-      color: var(--text-soft);
-    }
-
-    body[data-theme="dark"] .public-event-queue-card-title {
-      color: var(--text);
-    }
-
-    body[data-theme="dark"] .queue-roster-detail {
-      background: rgba(255,255,255,0.06);
-      border-color: rgba(255,255,255,0.14);
     }
 
     .sync-status.offline-protected {
@@ -10767,23 +9598,6 @@
       color: var(--text-soft);
     }
 
-    body[data-theme="dark"] .driver-status-chip {
-      background: rgba(255,255,255,0.07);
-      border-color: rgba(255,255,255,0.18);
-      color: var(--text);
-    }
-
-    body[data-theme="dark"] .driver-status-chip.live,
-    body[data-theme="dark"] .driver-status-chip.champion {
-      background: linear-gradient(135deg, #f2f2f2, #bdbdbd);
-      color: #111;
-    }
-
-    body[data-theme="dark"] .driver-status-chip.ready {
-      background: rgba(255,255,255,0.16);
-      color: #fff;
-    }
-
     .command-center {
       margin: 22px 0 24px;
     }
@@ -10801,10 +9615,6 @@
 
     #eventCommandCenter .section-kicker {
       color: var(--gold-deep);
-    }
-
-    body[data-theme="dark"] #eventCommandCenter .section-kicker {
-      color: var(--gold);
     }
 
     @media (min-width: 720px) {
@@ -10826,10 +9636,6 @@
       color: var(--gold-deep);
     }
 
-    body[data-theme="dark"] .command-center-card.cc-now span {
-      color: var(--gold);
-    }
-
     .command-center-card.cc-now.is-live::before {
       background: linear-gradient(90deg, var(--gold-deep), var(--gold) 42%, var(--gold-bright));
     }
@@ -10837,11 +9643,6 @@
     .command-center-card.cc-now.is-live {
       border-color: var(--gold-ring-mid);
       box-shadow: 0 18px 34px rgba(36, 23, 14, 0.12), var(--gold-glow);
-    }
-
-    body[data-theme="dark"] .command-center-card.cc-now.is-live {
-      border-color: var(--gold-ring-mid);
-      box-shadow: 0 20px 38px rgba(0, 0, 0, 0.26), var(--gold-glow);
     }
 
     .command-center-card.cc-now.is-live span::before {
@@ -10861,8 +9662,6 @@
 
     .command-center-card.is-waiting strong { color: #a9701a; }
     .command-center-card.is-ready strong { color: #2f7d46; }
-    body[data-theme="dark"] .command-center-card.is-waiting strong { color: #e8b45f; }
-    body[data-theme="dark"] .command-center-card.is-ready strong { color: #6fd08e; }
 
     .command-center-card.cc-tool::before {
       height: 3px;
@@ -10901,17 +9700,6 @@
       overflow: hidden;
     }
 
-    body[data-theme="dark"] .command-center-card,
-    body[data-theme="dark"] .public-event-card,
-    body[data-theme="dark"] .public-event-spotlight,
-    body[data-theme="dark"] .public-event-statline,
-    body[data-theme="dark"] .self-register-profile-card {
-      background:
-        linear-gradient(180deg, rgba(31,35,42,0.94), rgba(14,16,20,0.96)),
-        var(--panel);
-      box-shadow: 0 20px 38px rgba(0, 0, 0, 0.26), inset 0 1px 0 rgba(255,255,255,0.05);
-    }
-
     .command-center-card::before,
     .public-event-card::before,
     .public-event-spotlight::before,
@@ -10922,15 +9710,6 @@
       inset: 0 0 auto 0;
       height: 5px;
       background: linear-gradient(90deg, #000000, #777777, #efefef);
-    }
-
-    body[data-theme="dark"] .command-center-card::before,
-    body[data-theme="dark"] .public-event-card::before,
-    body[data-theme="dark"] .public-event-spotlight::before,
-    body[data-theme="dark"] .public-event-statline::before,
-    body[data-theme="dark"] .self-register-profile-card::before {
-      background: var(--panel-highlight-band);
-      box-shadow: var(--panel-highlight-shadow);
     }
 
     .command-center-card span,
@@ -11003,25 +9782,6 @@
       background: rgba(185, 40, 40, 0.12);
       border-left: 4px solid #bb352b;
       font-weight: 700;
-    }
-
-    body[data-theme="dark"] .command-center-note {
-      background: rgba(255,255,255,0.06);
-      border-color: rgba(255,255,255,0.16);
-    }
-
-    /* Keep the attention tint in dark theme — the generic dark note rule above
-       would otherwise flatten WAITING/ISSUE to the same neutral grey. */
-    body[data-theme="dark"] .command-center-note.warning {
-      background: rgba(255, 191, 94, 0.14);
-      border-color: rgba(255, 191, 94, 0.34);
-      border-left: 4px solid #d8a24a;
-    }
-
-    body[data-theme="dark"] .command-center-note.issue {
-      background: rgba(214, 74, 74, 0.16);
-      border-color: rgba(214, 74, 74, 0.34);
-      border-left: 4px solid #e46a6a;
     }
 
     .public-event-layout {
@@ -11607,11 +10367,6 @@
       background: linear-gradient(90deg, #000000, #666666, #efefef);
     }
 
-    body[data-theme="dark"] .broadcast-match-card::before {
-      background: var(--panel-highlight-band);
-      box-shadow: var(--panel-highlight-shadow);
-    }
-
     .broadcast-match-card > * {
       position: relative;
       z-index: 1;
@@ -11755,11 +10510,6 @@
       letter-spacing: 0.08em;
     }
 
-    body[data-theme="dark"] .public-event-standing {
-      background: rgba(255,255,255,0.05);
-      border-color: rgba(255,255,255,0.14);
-    }
-
     .queue-roster-card {
       display: grid;
       gap: 10px;
@@ -11812,11 +10562,6 @@
       line-height: 1.45;
     }
 
-    body[data-theme="dark"] .queue-roster-detail {
-      background: rgba(255,255,255,0.05);
-      border-color: rgba(255,255,255,0.12);
-    }
-
     #view-queue .hero-card-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -11848,14 +10593,6 @@
         radial-gradient(circle at 88% 18%, rgba(0,0,0,0.08), transparent 22%);
     }
 
-    body[data-theme="dark"][data-role="spectator"] #view-qualifying > .hero,
-    body[data-theme="dark"][data-role="spectator"] #view-results > .hero,
-    body[data-theme="dark"][data-role="spectator"] #view-simulation > .hero {
-      background:
-        linear-gradient(180deg, rgba(18,20,22,0.94), rgba(10,12,14,0.97)),
-        radial-gradient(circle at 88% 18%, rgba(255,255,255,0.05), transparent 22%);
-    }
-
     body[data-role="spectator"] #view-queue > .hero {
       position: relative;
       overflow: hidden;
@@ -11883,7 +10620,7 @@
       z-index: 1;
     }
 
-    body.scenic-page:not([data-theme="dark"])[data-role="spectator"] #view-queue > .hero {
+    body.scenic-page[data-role="spectator"] #view-queue > .hero {
       background:
         linear-gradient(180deg, rgba(255,255,255,0.74), rgba(236,236,236,0.66)),
         radial-gradient(circle at 88% 18%, rgba(0,0,0,0.08), transparent 22%),
@@ -11893,84 +10630,26 @@
       box-shadow: var(--panel-shadow);
     }
 
-    body.scenic-page:not([data-theme="dark"])[data-role="spectator"] #view-queue > .hero::before {
+    body.scenic-page[data-role="spectator"] #view-queue > .hero::before {
       background:
         linear-gradient(120deg, rgba(179, 129, 47, 0.05), transparent 42%),
         radial-gradient(circle at bottom right, rgba(211, 163, 109, 0.06), transparent 24%);
     }
 
-    body.scenic-page:not([data-theme="dark"])[data-role="spectator"] .public-event-announcer {
+    body.scenic-page[data-role="spectator"] .public-event-announcer {
       background:
         linear-gradient(120deg, rgba(255,255,255,0.80), rgba(247,247,247,0.62)),
         linear-gradient(180deg, rgba(255,255,255,0.12), rgba(0,0,0,0.10));
     }
 
-    body.scenic-page:not([data-theme="dark"])[data-role="spectator"] .public-event-track-panel,
-    body.scenic-page:not([data-theme="dark"])[data-role="spectator"] .public-event-finals-stage,
-    body.scenic-page:not([data-theme="dark"])[data-role="spectator"] .broadcast-match-card {
+    body.scenic-page[data-role="spectator"] .public-event-track-panel,
+    body.scenic-page[data-role="spectator"] .public-event-finals-stage,
+    body.scenic-page[data-role="spectator"] .broadcast-match-card {
       background:
         linear-gradient(180deg, rgba(255,255,255,0.78), rgba(241,241,241,0.64)),
         linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.04));
       border-color: rgba(0, 0, 0, 0.12);
       box-shadow: var(--panel-shadow);
-    }
-
-    body[data-theme="dark"] .public-event-announcer {
-      background:
-        linear-gradient(118deg, rgba(8,10,12,0.74), rgba(8,10,12,0.56)),
-        linear-gradient(180deg, rgba(255,255,255,0.03), rgba(0,0,0,0.18));
-    }
-
-    body[data-theme="dark"] .public-event-track-panel,
-    body[data-theme="dark"] .public-event-finals-stage,
-    body[data-theme="dark"] .broadcast-match-card {
-      background:
-        linear-gradient(180deg, rgba(22,24,28,0.74), rgba(10,12,14,0.84)),
-        linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015));
-      border-color: rgba(255,255,255,0.16);
-      box-shadow: 0 18px 36px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.04);
-    }
-
-    body[data-theme="dark"] .public-event-announcer-head strong,
-    body[data-theme="dark"] .public-event-stage-head strong,
-    body[data-theme="dark"] .broadcast-chip,
-    body[data-theme="dark"] .broadcast-match-pill,
-    body[data-theme="dark"] .public-event-spotlight-stat {
-      border-color: rgba(255,255,255,0.16);
-      background: rgba(255,255,255,0.06);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
-    }
-
-    body[data-theme="dark"] .broadcast-chip.tone-ready,
-    body[data-theme="dark"] .broadcast-match-pill.tone-ready {
-      background: rgba(255,255,255,0.08);
-    }
-
-    body[data-theme="dark"] .broadcast-chip.tone-muted,
-    body[data-theme="dark"] .broadcast-match-pill.tone-muted {
-      background: rgba(255,255,255,0.04);
-    }
-
-    body[data-theme="dark"] .public-event-spotlight-copy,
-    body[data-theme="dark"] .broadcast-match-copy,
-    body[data-theme="dark"] .public-event-announcer-copy {
-      color: var(--text);
-    }
-
-    body[data-theme="dark"][data-role="spectator"] #view-queue > .hero {
-      background:
-        linear-gradient(118deg, rgba(8,10,12,0.9), rgba(8,10,12,0.68)),
-        linear-gradient(180deg, rgba(255,255,255,0.04), rgba(0,0,0,0.16)),
-        var(--brand-track-background-image);
-      background-size: cover;
-      background-position: center 48%;
-      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
-    }
-
-    body[data-theme="dark"][data-role="spectator"] #view-queue > .hero::before {
-      background:
-        radial-gradient(circle at 18% 20%, rgba(255,255,255,0.08), transparent 26%),
-        linear-gradient(90deg, rgba(255,255,255,0.04), rgba(255,255,255,0));
     }
 
     @media (max-width: 960px) {
@@ -14393,7 +13072,7 @@
         -webkit-overflow-scrolling: touch;
       }
 
-      body:not([data-theme="dark"]) .main-topbar .topbar-right {
+      .main-topbar .topbar-right {
         background:
           linear-gradient(180deg, rgba(255, 252, 248, 0.96), rgba(239, 234, 226, 0.96)),
           rgba(255, 252, 248, 0.96);
@@ -14430,11 +13109,6 @@
         color: #fff !important;
         background: linear-gradient(135deg, var(--button-accent), var(--button-accent-dark));
         border-color: rgba(255,255,255,0.28);
-      }
-
-      body[data-theme="dark"] .main-topbar .mode-tab.is-active {
-        color: #fff !important;
-        background: linear-gradient(135deg, var(--button-accent), var(--button-accent-dark));
       }
 
       h1,
@@ -15264,7 +13938,7 @@
     }
   </style>
 </head>
-  <body data-role="spectator" data-site-admin="false" data-theme="dark">
+  <body data-role="spectator" data-site-admin="false">
   <div class="page-shell">
     <a class="spectator-shop-button spectator-only" href="#" target="_blank" rel="noopener noreferrer">Visit Track Store</a>
 
@@ -15273,7 +13947,7 @@
       <div class="topbar-left">
         <div class="topbar-brand">
           <div class="topbar-brand-mark">
-            <img src="./assets/prodigy-rc-logo-transparent.png?v=91814eb68b7f" alt="Prodigy RC logo" />
+            <img src="./assets/prodigy-rc-logo-transparent.png?v=ecb9173a289d" alt="Prodigy RC logo" />
           </div>
           <div class="topbar-brand-copy">
             <span class="topbar-brand-kicker">Prodigy RC Comp</span>
@@ -15300,7 +13974,6 @@
             </select>
           </div>
           <div class="topbar-utility-actions">
-            <button id="themeToggleBtn" class="micro-button" type="button">Light Mode</button>
             <button id="websiteAdminBtn" class="micro-button" type="button">Website Admin</button>
           </div>
         </div>
@@ -15330,7 +14003,7 @@
       <div class="streamer-topbar-main">
         <div class="streamer-topbar-brandline">
           <div class="streamer-topbar-mark">
-            <img src="./assets/prodigy-rc-logo-transparent.png?v=91814eb68b7f" alt="Prodigy RC logo" />
+            <img src="./assets/prodigy-rc-logo-transparent.png?v=ecb9173a289d" alt="Prodigy RC logo" />
           </div>
           <div class="streamer-topbar-copy">
             <span class="streamer-topbar-kicker">Prodigy Stream Studio</span>
@@ -15529,7 +14202,7 @@
     <div id="view-registration" class="view-section is-active">
       <header class="hero">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=91814eb68b7f" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=ecb9173a289d" alt="Prodigy RC logo" /></div>
           <p class="eyebrow">Registration</p>
           <h1>Driver Sign-Up</h1>
           <div class="hero-actions">
@@ -15577,7 +14250,7 @@
               <h2>Register Driver</h2>
             </div>
           </div>
-          <div class="registration-intro" id="registrationEntryIntro">Submit one driver at a time. After each submit, a fresh form appears automatically for the next registration number.</div>
+          <div class="registration-intro" id="registrationEntryIntro">Submit one driver at a time. The form resets after each entry.</div>
           <form id="registrationEntryForm" class="registration-draft-form">
             <div id="registrationSoloFields" class="registration-form-grid single-column">
               <label class="modal-field">
@@ -15668,10 +14341,10 @@
     <div id="view-home" class="view-section">
       <header class="hero hero-simple spectator-only">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=91814eb68b7f" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=ecb9173a289d" alt="Prodigy RC logo" /></div>
           <p class="eyebrow" id="landingHeroEyebrow">Prodigy RC Drift Arena</p>
           <h1 id="landingHeroTitle"><span class="landing-brand-wordmark" aria-label="Live Drift Event Hub">Live Drift Event Hub</span></h1>
-          <p id="landingHeroCopy" class="hero-copy">Check in, follow standings, and keep Prodigy RC Drift Arena event days moving from one live event home.</p>
+          <p id="landingHeroCopy" class="hero-copy">Check in, follow qualifying, and see results as they happen.</p>
           <div class="public-event-actions">
             <button class="button button-accent" type="button" data-landing-jump="live">Live</button>
             <button class="button button-accent" type="button" data-landing-jump="self-register">Register</button>
@@ -15701,7 +14374,7 @@
                   <h2>Drivers To Watch</h2>
                 </div>
               </div>
-              <p class="landing-section-copy">Spotlight the strongest live seeds, current roster standouts, and the drivers spectators should keep an eye on before the next runs begin.</p>
+              <p class="landing-section-copy">Top seeds and drivers to watch before the next runs.</p>
               <div id="landingFeaturedDrivers" class="landing-feature-grid"></div>
             </section>
 
@@ -15724,7 +14397,7 @@
                   <h2>Built For Live RC Drift Events</h2>
                 </div>
               </div>
-               <p class="landing-section-copy" id="landingWhySectionCopy">Prodigy RC Drift Arena uses Prodigy Event Control to keep check-in, live scoring, bracket control, and results connected in one smoother event-day flow.</p>
+               <p class="landing-section-copy" id="landingWhySectionCopy">One place for check-in, live scoring, brackets, and results.</p>
               <div id="landingWhyFeatures" class="landing-benefit-grid"></div>
             </section>
 
@@ -15745,7 +14418,7 @@
     <div id="view-live" class="view-section">
       <header class="hero hero-simple spectator-only">
         <div class="hero-copy-block">
-          <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=91814eb68b7f" alt="Prodigy RC logo" /></div>
+          <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=ecb9173a289d" alt="Prodigy RC logo" /></div>
           <p class="eyebrow">Live Broadcast</p>
           <h1><span class="landing-brand-wordmark">LIVE</span></h1>
           <p class="hero-copy">Watch the active event stream with a layout that follows qualifying, battles, brackets, standings, and results automatically.</p>
@@ -15781,7 +14454,7 @@
     <div id="view-self-register" class="view-section">
       <header class="hero">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=91814eb68b7f" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=ecb9173a289d" alt="Prodigy RC logo" /></div>
           <p class="eyebrow">Driver Check-In</p>
           <h1>Self Registration</h1>
           <p class="hero-copy">Pre-register from home, then verify your location at the venue to complete check-in before event admin moves you into the live roster.</p>
@@ -15920,7 +14593,7 @@
     <div id="view-qualifying" class="view-section">
       <header class="hero hero-simple">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=91814eb68b7f" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=ecb9173a289d" alt="Prodigy RC logo" /></div>
           <div class="spectator-qualifying-title spectator-only">
             <p class="eyebrow">Live Event</p>
             <h1>Qualifying Standings</h1>
@@ -15931,10 +14604,10 @@
           <h1 class="judge-only" id="judgeHeroTitle">Judge Input</h1>
 
           <p id="qualifyingBoardCopy" class="hero-copy admin-only">
-            Manage the driver list, monitor live qualifying scores, and launch the competition bracket when qualifying is complete.
+            Launch the bracket when qualifying is complete.
           </p>
           <p id="judgeBoardCopy" class="hero-copy judge-only">
-            Enter your personal scores for each driver. The live board updates as judges submit each run.
+            Enter your score for each driver.
           </p>
 
         <div class="hero-actions spectator-admin-only">
@@ -15966,7 +14639,7 @@
           </div>
         </div>
         <div class="helper-text qa-tools-warning" role="note">
-          <strong>Adds sample drivers to the currently selected event.</strong> This is not a separate test environment: it writes through the same event you have open, using the normal registration data format, and real drivers are never removed automatically.
+          <strong>Adds sample drivers to this event.</strong> Existing real drivers are preserved.
         </div>
         <div class="qa-tools-row">
           <label class="search-field" style="max-width:140px;">
@@ -16043,7 +14716,7 @@
     <div id="view-results" class="view-section">
       <header class="hero hero-simple">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=91814eb68b7f" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=ecb9173a289d" alt="Prodigy RC logo" /></div>
           <p class="eyebrow">Results</p>
           <h1>Past Events</h1>
           <p class="hero-copy">
@@ -16077,11 +14750,11 @@
     <div id="view-website-admin" class="view-section">
       <header class="hero">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=91814eb68b7f" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=ecb9173a289d" alt="Prodigy RC logo" /></div>
           <p class="eyebrow">Website Admin</p>
           <h1>Website Admin</h1>
           <p class="hero-copy">
-            Create events, choose the live event, manage invites, and maintain the archive from one control room.
+            Create events, choose the live event, and manage invites and the archive.
           </p>
           <div class="hero-actions">
             <button id="websiteAdminNewEventBtn" class="button button-accent" type="button">Create Event</button>
@@ -16115,7 +14788,7 @@
           <h2>Unlock Website Admin</h2>
         </div>
         <div class="helper-text">
-          This route stays protected until the website admin password is entered. Unlock to manage events, routes, passwords, recovery tools, and sync diagnostics.
+          Enter the website admin password to manage events, passwords, and recovery tools.
         </div>
         <div class="website-admin-gate-actions">
           <button id="websiteAdminUnlockBtn" class="button button-accent" type="button">Unlock Website Admin</button>
@@ -16132,7 +14805,7 @@
                 <h2>Current Event</h2>
               </div>
             </div>
-            <div class="helper-text" style="margin-bottom: 14px;">Open an event to manage its roster, scoring access, and competition state. New events are created here so the main workflow stays clean.</div>
+            <div class="helper-text" style="margin-bottom: 14px;">Open an event to manage its roster, scoring access, and competition state.</div>
             <div class="event-admin-panel">
               <div class="event-switcher">
                 <label for="eventSelect">Event:</label>
@@ -16140,11 +14813,11 @@
                 <button id="newEventBtn" class="micro-button button-accent" type="button">New Event</button>
                 <button id="editCurrentEventBtn" class="micro-button" type="button">Edit Event</button>
               </div>
-              <div class="helper-text" style="margin-top: 14px;">Recovery tools are only enabled for the matching historical event so we can avoid accidental restores.</div>
+              <div class="helper-text" style="margin-top: 14px;">Recovery tools only enable for the matching historical event, to prevent accidental restores.</div>
               <div class="website-admin-banner-tools">
                 <div>
                   <div class="helper-text" style="margin-bottom: 8px;">Upcoming Event Banner</div>
-                  <div class="helper-text">Upload one banner image for the selected event and the home page will show it in the Upcoming Event section instead of the old informational cards.</div>
+                  <div class="helper-text">Upload a banner for the selected event to feature it on the home page.</div>
                 </div>
                 <div id="websiteAdminUpcomingBannerPreview" class="website-admin-banner-preview">
                   <div class="website-admin-banner-empty">Upload a banner to feature the next event on the home page.</div>
@@ -16183,7 +14856,7 @@
                 <h2>Invites And Password Claims</h2>
               </div>
             </div>
-            <div class="helper-text" style="margin-bottom: 14px;">Each event keeps its own invite codes, claimed statuses, and judge names. Reset access here without exposing any of it to spectators.</div>
+            <div class="helper-text" style="margin-bottom: 14px;">Each event keeps its own invite codes and judge names. Reset access here — spectators never see it.</div>
             <div id="roleAdminPanel" class="role-admin-grid empty-state">
               Sign in as the website admin to manage role invites.
             </div>
@@ -16214,7 +14887,7 @@
       <!-- Fixed Fullscreen Toolbar -->
       <div class="bracket-header-bar">
         <div id="bracketHeaderLogoSlot">
-              <img class="bracket-header-logo" src="./assets/prodigy-rc-logo-transparent.png?v=91814eb68b7f" alt="Prodigy RC logo" />
+              <img class="bracket-header-logo" src="./assets/prodigy-rc-logo-transparent.png?v=ecb9173a289d" alt="Prodigy RC logo" />
         </div>
         <div class="button-row bracket-header-actions">
           <button id="fullscreenBracketBtn" class="button button-secondary bracket-header-icon-button" type="button" aria-label="Toggle fullscreen bracket" title="Toggle fullscreen">⛶<span class="icon-label">Fullscreen</span></button>
@@ -16284,7 +14957,7 @@
               <div class="bracket-header-center">
                 <p class="section-kicker">Play-In</p>
                 <h2 class="main-board-title">Lower Bracket</h2>
-                <img class="bracket-stage-logo" src="./assets/prodigy-rc-logo-transparent.png?v=91814eb68b7f" alt="Prodigy RC logo" />
+                <img class="bracket-stage-logo" src="./assets/prodigy-rc-logo-transparent.png?v=ecb9173a289d" alt="Prodigy RC logo" />
               </div>
               <div id="lowerBracketNextBattle" class="bracket-flow-slot right"></div>
             </div>
@@ -16303,7 +14976,7 @@
               <div class="bracket-header-center">
                 <p class="section-kicker">Main Event</p>
                 <h2 id="mainBracketTitle" class="main-board-title">Main Competition</h2>
-                <img class="bracket-stage-logo" src="./assets/prodigy-rc-logo-transparent.png?v=91814eb68b7f" alt="Prodigy RC logo" />
+                <img class="bracket-stage-logo" src="./assets/prodigy-rc-logo-transparent.png?v=ecb9173a289d" alt="Prodigy RC logo" />
               </div>
               <div id="mainBracketNextBattle" class="bracket-flow-slot right"></div>
             </div>
@@ -16374,13 +15047,13 @@
         <div class="modal-hero">
           <p class="modal-kicker">Website Admin</p>
           <h3>Create Competition</h3>
-          <p class="modal-copy">Create a fresh event, assign judging structure, and configure venue check-in without leaving this workspace. Role passwords and links stay editable after the event is created.</p>
+          <p class="modal-copy">Set judging structure and venue check-in. Passwords and links stay editable afterward.</p>
         </div>
 
         <section class="modal-section">
           <div class="modal-section-header">
             <h4>Event Basics</h4>
-            <p>Set the event identity and the live competition format that the rest of the app should follow.</p>
+            <p>Set the event name and competition format.</p>
           </div>
           <div class="modal-grid">
             <label class="modal-field full-span" for="eventNameInput">
@@ -16405,7 +15078,7 @@
         <section class="modal-section">
           <div class="modal-section-header">
             <h4>Judging & Access</h4>
-            <p>Control score structure and staff access in one place so live event setup is easier to verify before the first driver goes up.</p>
+            <p>Set judge count, scoring style, and staff access.</p>
           </div>
           <div class="modal-grid">
             <label class="modal-field" for="judgeCountInput">
@@ -16461,7 +15134,7 @@
         <section class="modal-section">
           <div class="modal-section-header">
             <h4>Venue Check-In Settings</h4>
-            <p>Configure self-registration, QR arrival, and the geofence center. Current-location capture is the primary flow, with manual coordinates kept as a backup.</p>
+            <p>Configure self-registration, QR arrival, and the geofence center.</p>
           </div>
 
           <div id="createEventVenueProfileBar" class="venue-profile-bar">
@@ -16516,7 +15189,7 @@
                 <input id="venueLocationPasteInput" type="text" placeholder="Paste Google Maps, Apple Maps, or 45.523064, -122.676483" />
                 <button id="applyVenueLocationPasteBtn" class="button button-secondary" type="button">Use Pasted Location</button>
               </div>
-              <div class="helper-text">Supports map share links and raw latitude/longitude pairs. Paste, apply, or use the device GPS below.</div>
+              <div class="helper-text">Paste a map link or coordinates, or use the device GPS below.</div>
             </label>
             <div class="modal-field full-span">
               <span>Geofence Center</span>
@@ -16525,12 +15198,12 @@
               </div>
               <div id="venueCurrentLocationStatus" class="venue-location-feedback" data-tone="info" aria-live="polite">
                 <strong>Recommended</strong>
-                <div>Capture the current device position at the venue to set the geofence center, or open the manual backup fields if GPS permission is unavailable.</div>
+                <div>Capture your device position at the venue, or use manual coordinates below.</div>
               </div>
             </div>
             <details class="venue-manual-backup full-span">
               <summary></summary>
-              <div class="helper-text">Manual entry stays available as a backup if location permission is denied or if you need to fine-tune the saved center.</div>
+              <div class="helper-text">Use this if location permission is denied or you need to fine-tune the center.</div>
               <div class="venue-config-grid">
                 <label class="modal-field">
                   <span>Latitude</span>
@@ -16626,17 +15299,17 @@
   </div>
 
   <!-- APP LOGIC -->
-  <script src="./client-config.js?v=91814eb68b7f"></script>
+  <script src="./client-config.js?v=ecb9173a289d"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script type="module">
-    import { parseVoiceCommandsWithFallback, sendResultsSummaryEmail } from "./assets/js/legacy-client-features.js?v=91814eb68b7f";
-    import { isHistoricalBracketUnavailable, resolveRecoveredBracket, shouldPreserveUnavailableHistoricalBracket } from "./assets/js/historical-bracket.js?v=91814eb68b7f";
+    import { parseVoiceCommandsWithFallback, sendResultsSummaryEmail } from "./assets/js/legacy-client-features.js?v=ecb9173a289d";
+    import { isHistoricalBracketUnavailable, resolveRecoveredBracket, shouldPreserveUnavailableHistoricalBracket } from "./assets/js/historical-bracket.js?v=ecb9173a289d";
     import {
       createSelectedEventSubscriptionController,
       resolveSelectionEventMeta,
       shouldReplaceCachedSelection,
       getLiveJudgeSelectionMismatch,
-    } from "./assets/js/event-selection-sync.js?v=91814eb68b7f";
+    } from "./assets/js/event-selection-sync.js?v=ecb9173a289d";
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, connectAuthEmulator } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, collection, doc, setDoc, onSnapshot, deleteDoc, deleteField, getDoc, runTransaction, connectFirestoreEmulator } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -16652,15 +15325,15 @@
         venueName: "Prodigy RC Drift Arena",
         venueLabelPlaceholder: "Prodigy RC Drift Arena",
         eventNamePlaceholder: "Prodigy RC Drift Arena",
-        logoPrimary: "./assets/prodigy-rc-logo-transparent.png?v=91814eb68b7f",
-        logoInverted: "./assets/prodigy-rc-logo-white-transparent.png?v=91814eb68b7f",
+        logoPrimary: "./assets/prodigy-rc-logo-transparent.png?v=ecb9173a289d",
+        logoInverted: "./assets/prodigy-rc-logo-white-transparent.png?v=ecb9173a289d",
         logoTreatment: {
           invertLight: false,
           invertDark: false,
         },
         logoAlt: "Prodigy RC logo",
-        backgroundImage: "./assets/track-background.png?v=91814eb68b7f",
-        homeHeroImage: "./assets/track-background.png?v=91814eb68b7f",
+        backgroundImage: "./assets/track-background.png?v=ecb9173a289d",
+        homeHeroImage: "./assets/track-background.png?v=ecb9173a289d",
         shopUrl: "https://www.prodigydrift.com/",
         shopLabel: "Shop Prodigy RC Here",
         pdfHeaderTitle: "PRODIGY RC",
@@ -16880,7 +15553,6 @@
     const JUDGE_ROLE_DEVICE_ID_KEY = `rc-drift-judge-device-v${EVENT_STORAGE_VERSION}`;
     const SELF_REGISTER_DEVICE_ID_KEY = `rc-drift-self-register-device-v${EVENT_STORAGE_VERSION}`;
     const SELF_REGISTER_LAST_SUBMIT_KEY = `rc-drift-self-register-last-submit-v${EVENT_STORAGE_VERSION}`;
-    const THEME_STORAGE_KEY = `rc-drift-theme-v${EVENT_STORAGE_VERSION}`;
     const SELF_REGISTER_PROFILE_STORAGE_KEY = `rc-drift-self-register-profile-v${EVENT_STORAGE_VERSION}`;
     const SELF_REGISTER_PROFILES_STORAGE_KEY = `rc-drift-self-register-profiles-v${EVENT_STORAGE_VERSION}`;
     const JUDGE_ROLE_CLAIM_TTL_MS = 1000 * 60 * 5;
@@ -17423,7 +16095,7 @@
       if (usesCategoryJudging(eventMeta)) {
         return "Manage the driver list, monitor the combined Line, Angle, and Style totals, and launch the competition bracket when qualifying is complete.";
       }
-      return `Manage the driver list, monitor the ${judgeCount === 1 ? "live score" : "averaged scores"} from ${judgeCount} judge${judgeCount === 1 ? "" : "s"}, and launch the competition bracket when qualifying is complete.`;
+      return `Scores from ${judgeCount} judge${judgeCount === 1 ? "" : "s"}. Launch the bracket when qualifying is complete.`;
     }
 
     function getJudgeBoardCopy(role = currentRole, eventMeta = activeEventMeta) {
@@ -17440,8 +16112,8 @@
       }
       const judgeCount = getEventJudgeCount(eventMeta);
       return judgeCount === 1
-        ? "Enter the official run score for each driver. That score becomes the driver's final run score immediately."
-        : `Enter your personal scores for each driver. Your score will be averaged dynamically with the other ${judgeCount - 1} judge${judgeCount === 2 ? "" : "s"} to form the driver's final run score.`;
+        ? "Enter the official run score for each driver."
+        : `Enter your score for each driver. Averaged with the other ${judgeCount - 1} judge${judgeCount === 2 ? "" : "s"}.`;
     }
 
     function isBracketReadyToFinalize(state = tournamentState) {
@@ -18114,7 +16786,7 @@
         return;
       }
       if (db && (!auth?.currentUser || !activeEventServerReady || !hasLoadedRemoteDirectory)) {
-        window.alert("PDF recovery is waiting for authoritative cloud data. Nothing was changed; wait for Sync Online and try again.");
+        window.alert("PDF recovery is waiting for sync. Nothing was changed; wait for Sync Online and try again.");
         return;
       }
       const confirmed = window.confirm("Restore SDC Round 3 from the exported PDF? This will replace the current roster, qualifying scores, and saved podium summary. Because no historical battle ledger is available, no bracket will be generated.");
@@ -23903,7 +22575,7 @@
         window.alert("Round 3 now preserves its verified results without displaying a fabricated historical bracket.");
       } catch (error) {
         console.error("Round 3 historical bracket repair failed:", error);
-        window.alert("The guarded Round 3 repair stopped without changing the event. Refresh authoritative data and review the failure before retrying.");
+        window.alert("The Round 3 repair stopped without changing the event. Refresh and review the error before retrying.");
       } finally {
         button.disabled = !isWebsiteAdmin || activeEventId !== "sdc-round-3-las-vegas";
       }
@@ -24115,7 +22787,7 @@
       };
     }
 
-    function getThemeAwareLogoSource(primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=91814eb68b7f", invertedLogo = CLIENT_BRANDING.logoInverted || primaryLogo) {
+    function getThemeAwareLogoSource(primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=ecb9173a289d", invertedLogo = CLIENT_BRANDING.logoInverted || primaryLogo) {
       return document.body?.dataset.theme === "dark" ? invertedLogo : primaryLogo;
     }
 
@@ -24803,7 +23475,6 @@
     const newEventBtn = document.getElementById("newEventBtn");
     const editCurrentEventBtn = document.getElementById("editCurrentEventBtn");
     const buildLabel = document.getElementById("buildLabel");
-    const themeToggleBtn = document.getElementById("themeToggleBtn");
     const websiteAdminBtn = document.getElementById("websiteAdminBtn");
     const globalRoleSelect = document.getElementById("globalRoleSelect");
     const registrationHeroEventName = document.getElementById("registrationHeroEventName");
@@ -25219,27 +23890,21 @@
       };
     }
 
-    function buildAccentGlow(accentHex, accentDarkHex, isDarkMode) {
+    function buildAccentGlow(accentHex, accentDarkHex) {
       const accentRgb = hexToRgbChannels(accentHex);
       const accentDarkRgb = hexToRgbChannels(accentDarkHex);
-      return isDarkMode
-        ? `0 0 0 1px rgba(${accentRgb}, 0.36), 0 0 24px rgba(${accentRgb}, 0.20), 0 0 52px rgba(${accentDarkRgb}, 0.12)`
-        : `0 0 0 1px rgba(${accentRgb}, 0.24), 0 12px 28px rgba(${accentDarkRgb}, 0.18)`;
+      return `0 0 0 1px rgba(${accentRgb}, 0.24), 0 12px 28px rgba(${accentDarkRgb}, 0.18)`;
     }
 
-    function buildAccentGreenGlow(accentGreenHex, isDarkMode) {
+    function buildAccentGreenGlow(accentGreenHex) {
       const accentGreenRgb = hexToRgbChannels(accentGreenHex);
-      return isDarkMode
-        ? `0 0 0 1px rgba(${accentGreenRgb}, 0.34), 0 0 20px rgba(${accentGreenRgb}, 0.18)`
-        : `0 0 0 1px rgba(${accentGreenRgb}, 0.24), 0 10px 22px rgba(${accentGreenRgb}, 0.16)`;
+      return `0 0 0 1px rgba(${accentGreenRgb}, 0.24), 0 10px 22px rgba(${accentGreenRgb}, 0.16)`;
     }
 
-    function buildButtonGlow(buttonAccentHex, buttonAccentDarkHex, isDarkMode) {
+    function buildButtonGlow(buttonAccentHex, buttonAccentDarkHex) {
       const buttonAccentRgb = hexToRgbChannels(buttonAccentHex);
       const buttonAccentDarkRgb = hexToRgbChannels(buttonAccentDarkHex);
-      return isDarkMode
-        ? `0 0 0 1px rgba(${buttonAccentRgb}, 0.36), 0 0 24px rgba(${buttonAccentRgb}, 0.20), 0 0 52px rgba(${buttonAccentDarkRgb}, 0.12)`
-        : `0 0 0 1px rgba(${buttonAccentRgb}, 0.24), 0 12px 28px rgba(${buttonAccentDarkRgb}, 0.18)`;
+      return `0 0 0 1px rgba(${buttonAccentRgb}, 0.24), 0 12px 28px rgba(${buttonAccentDarkRgb}, 0.18)`;
     }
 
     function buildBracketAdvanceGlow(accentGreenHex) {
@@ -25259,8 +23924,7 @@
 
     function syncClientThemeTokens() {
       const target = document.body || document.documentElement;
-      const themeName = document.body?.dataset?.theme === "dark" ? "dark" : "light";
-      const palette = getClientThemePalette(themeName);
+      const palette = getClientThemePalette("light");
       target.style.setProperty("--accent", palette.accent);
       target.style.setProperty("--accent-dark", palette.accentDark);
       target.style.setProperty("--button-accent", palette.buttonAccent);
@@ -25368,11 +24032,11 @@
 
     function applyClientBranding() {
       const root = document.documentElement;
-      const primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=91814eb68b7f";
+      const primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=ecb9173a289d";
       const invertedLogo = CLIENT_BRANDING.logoInverted || primaryLogo;
       const logoTreatment = isPlainObject(CLIENT_BRANDING.logoTreatment) ? CLIENT_BRANDING.logoTreatment : {};
       const logoAlt = CLIENT_BRANDING.logoAlt || CLIENT_BRANDING.venueName || "Track logo";
-      const backgroundImage = CLIENT_BRANDING.backgroundImage || "./assets/track-background.png?v=91814eb68b7f";
+      const backgroundImage = CLIENT_BRANDING.backgroundImage || "./assets/track-background.png?v=ecb9173a289d";
       const homeHeroImage = CLIENT_BRANDING.homeHeroImage || backgroundImage;
       const browserTitle = CLIENT_PLATFORM.browserTitle || CLIENT_PLATFORM.productName || "Prodigy Event Control";
 
@@ -25537,16 +24201,6 @@
     let websiteAdminTapCount = 0;
     let websiteAdminTapResetTimer = null;
 
-    function applyTheme(theme = "light") {
-      const normalizedTheme = theme === "dark" ? "dark" : "light";
-      localStorage.setItem(THEME_STORAGE_KEY, normalizedTheme);
-      syncThemeState();
-    }
-
-    function isJudgeThemeLocked() {
-      return typeof currentRole === "string" && currentRole.startsWith("j");
-    }
-
     function syncWebsiteAdminButtonVisibility() {
       if (!websiteAdminBtn) return;
       if (forcedHostContext) {
@@ -25562,28 +24216,6 @@
       websiteAdminBtn.classList.toggle("button-accent", isWebsiteAdmin);
     }
 
-    function syncThemeState() {
-      const storedTheme = localStorage.getItem(THEME_STORAGE_KEY);
-      const preferredTheme = storedTheme === "light" ? "light" : "dark";
-      const effectiveTheme = isJudgeThemeLocked() ? "light" : preferredTheme;
-      document.body.dataset.theme = effectiveTheme;
-      syncClientThemeTokens();
-      syncBrandLogoAssetsForTheme();
-      if (themeToggleBtn) {
-        themeToggleBtn.textContent = preferredTheme === "dark" ? "Light Mode" : "Dark Mode";
-        themeToggleBtn.setAttribute("aria-pressed", preferredTheme === "dark" ? "true" : "false");
-        themeToggleBtn.classList.toggle("hidden", isJudgeThemeLocked());
-        themeToggleBtn.disabled = isJudgeThemeLocked();
-      }
-      syncWebsiteAdminButtonVisibility();
-    }
-
-    function initializeTheme() {
-      if (!localStorage.getItem(THEME_STORAGE_KEY)) {
-        localStorage.setItem(THEME_STORAGE_KEY, "dark");
-      }
-      syncThemeState();
-    }
 
     if (buildLabel) {
       buildLabel.textContent = APP_BUILD_LABEL;
@@ -25650,7 +24282,7 @@
       syncWebsiteAdminUpcomingBannerUi();
     }
 
-    function syncBrandLogoAssetsForTheme(primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=91814eb68b7f", invertedLogo = CLIENT_BRANDING.logoInverted || primaryLogo, logoAlt = CLIENT_BRANDING.logoAlt || "Prodigy RC logo") {
+    function syncBrandLogoAssetsForTheme(primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=ecb9173a289d", invertedLogo = CLIENT_BRANDING.logoInverted || primaryLogo, logoAlt = CLIENT_BRANDING.logoAlt || "Prodigy RC logo") {
       const themedLogo = getThemeAwareLogoSource(primaryLogo, invertedLogo);
       document.querySelectorAll(".hero-logo, .bracket-stage-logo, .bracket-header-logo, .topbar-brand-mark img, .streamer-topbar-mark img, .native-broadcast-brand img").forEach((logoEl) => {
         logoEl.setAttribute("src", themedLogo);
@@ -26438,7 +25070,6 @@
       }
       if (searchInput) searchInput.value = "";
       setJudgeLaneIndexState(0);
-      syncThemeState();
       const judgeHeroTitle = document.getElementById("judgeHeroTitle");
       if (judgeHeroTitle) {
         judgeHeroTitle.textContent = `${shouldUseJudgeRoleClaims(activeEventMeta) ? buildJudgeRoleClaimLabel(currentRole, activeEventMeta) : getRoleDisplayName(currentRole)} Input`;
@@ -27667,7 +26298,7 @@
       if (registrationEntryIntro) {
         registrationEntryIntro.textContent = teamMode
           ? `${twinTripleMode ? "Twin Comp" : "Team Tandem"} registers one team at a time. Team name is required, Driver 1 and Driver 2 are required, and Driver 3 is optional.`
-          : "Submit one driver at a time. After each submit, a fresh form appears automatically for the next registration number.";
+          : "Submit one driver at a time. The form resets after each entry.";
       }
       if (registrationModeNote) {
         registrationModeNote.textContent = teamMode
@@ -28929,7 +27560,7 @@
           ? `#${rankedDrivers[0].seed} ${rankedDrivers[0].name}`
           : "Waiting";
       const queueLabel = nextDriver?.name || queuedBattleTitle || "Queue loading";
-      const cameraSource = escapeAttributeValue(CLIENT_BRANDING.backgroundImage || "./assets/track-background.png?v=91814eb68b7f");
+      const cameraSource = escapeAttributeValue(CLIENT_BRANDING.backgroundImage || "./assets/track-background.png?v=ecb9173a289d");
       const venueLabel = activeEventMeta?.name || CLIENT_BRANDING.venueName || "Prodigy RC Drift Arena";
 
       return `
@@ -30781,7 +29412,7 @@
       const sceneHeader = `
         <header class="streamer-scene-header">
           <div class="streamer-scene-brand">
-            <img src="./assets/prodigy-rc-logo-transparent.png?v=91814eb68b7f" alt="Prodigy RC logo" />
+            <img src="./assets/prodigy-rc-logo-transparent.png?v=ecb9173a289d" alt="Prodigy RC logo" />
             <div class="streamer-scene-title">
               <span class="streamer-scene-kicker">${escapeHtml(meta.label)} • ${route.demo ? "Demo Data" : "Live Event"}</span>
               <h1>${escapeHtml(context.eventName)}</h1>
@@ -31649,7 +30280,7 @@
     async function submitDirectRosterRegistrationToCloud(candidateDrivers) {
       if (registrationSubmissionInFlight) return false;
       if (!auth?.currentUser || !activeEventServerReady) {
-        window.alert("Driver registration is waiting for authoritative cloud data. Wait for Sync Online and submit again.");
+        window.alert("Driver registration is waiting for sync. Wait for Sync Online and submit again.");
         return false;
       }
 
@@ -31913,7 +30544,7 @@
       if (!entryGroup.length) return false;
       if (db) {
         if (!auth?.currentUser || !activeEventServerReady) {
-          window.alert("This registration update is waiting for authoritative cloud data. Wait for Sync Online and try again.");
+          window.alert("This registration update is waiting for sync. Wait for Sync Online and try again.");
           return false;
         }
         try {
@@ -32981,7 +31612,7 @@
 
       if (db) {
         if (!auth?.currentUser || !activeEventServerReady) {
-          window.alert("Roster approval is waiting for authoritative cloud data. Wait for Sync Online and try again.");
+          window.alert("Roster approval is waiting for sync. Wait for Sync Online and try again.");
           return false;
         }
         try {
@@ -33042,7 +31673,7 @@
 
       if (db) {
         if (!auth?.currentUser || !activeEventServerReady) {
-          window.alert("Payment approval is waiting for authoritative cloud data. Wait for Sync Online and try again.");
+          window.alert("Payment approval is waiting for sync. Wait for Sync Online and try again.");
           return false;
         }
         try {
@@ -33087,7 +31718,7 @@
       }
       if (db) {
         if (!auth?.currentUser || !activeEventServerReady) {
-          window.alert("Registration removal is waiting for authoritative cloud data. Wait for Sync Online and try again.");
+          window.alert("Registration removal is waiting for sync. Wait for Sync Online and try again.");
           return false;
         }
         try {
@@ -34014,7 +32645,7 @@
       try {
         if (db) {
           if (!auth?.currentUser || !activeEventServerReady || !hasLoadedRemoteDirectory) {
-            window.alert("Event deletion is waiting for authoritative cloud data. Nothing was removed; wait for Sync Online and try again.");
+            window.alert("Event deletion is waiting for sync. Nothing was removed; wait for Sync Online and try again.");
             return;
           }
           cloudDeletionResult = await commitEventDeletion(eventId, preferredReplacementId);
@@ -34099,7 +32730,7 @@
         console.error("Event delete sync failed:", error);
         if (deletionCommitted) {
           showSyncRecoveryNotice();
-          window.alert("The event was deleted from the cloud, but this browser could not finish refreshing. Reload Event Admin to continue from authoritative server data.");
+          window.alert("The event was deleted from the cloud, but this browser could not finish refreshing. Reload Event Admin to continue.");
         } else {
           window.alert("Event deletion could not reach the cloud. Nothing was removed; check the connection and try again.");
         }
@@ -34142,7 +32773,6 @@
       saveRoleForEvent(activeEventId, currentRole);
       globalRoleSelect.value = currentRole;
       document.body.dataset.role = currentRole;
-      syncThemeState();
 
       if (currentRole.startsWith("j")) {
          if (searchInput) searchInput.value = "";
@@ -34430,9 +33060,6 @@
       if (forcedHostContext?.kind === "website-admin") return;
       applyRoleChange("spectator");
       switchView("qualifying");
-    });
-    themeToggleBtn?.addEventListener("click", () => {
-      applyTheme(document.body.dataset.theme === "dark" ? "light" : "dark");
     });
     websiteAdminNewEventBtn.addEventListener("click", () => {
       if (!isWebsiteAdmin) return;
@@ -37385,7 +36012,7 @@
         const resultLabel = isOmt ? "One More Time" : "Winner";
         const copy = isOmt
           ? "The judges called One More Time. Continue now or let the contest window expire to reset this same battle for a clean rerun."
-          : `${winnerDriver?.name || "The winning competitor"} holds the authoritative result. Continue now or let the contest window expire to advance the bracket.`;
+          : `${winnerDriver?.name || "The winning competitor"} wins. Continue now or wait for the timer to advance the bracket.`;
         competitionDecisionPanel.innerHTML = `
           <article class="competition-result-reveal ${isOmt ? "is-omt" : "is-winner"}${resultName.length > 32 ? " is-long-name" : ""}">
             <div class="competition-result-reveal-glow" aria-hidden="true"></div>
@@ -39157,7 +37784,7 @@
       applyClientBranding();
       syncBracketFullscreenSizing();
       syncForcedHostContext();
-      initializeTheme();
+      syncWebsiteAdminButtonVisibility();
       if (auth) {
         await ensureCloudAuthReady();
         await refreshCloudClaims().catch((error) => console.error("Initial claim refresh failed:", error));

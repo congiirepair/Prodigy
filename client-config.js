@@ -10,15 +10,15 @@ window.RC_DRIFT_CLIENT_CONFIG = {
     venueName: "Prodigy RC Drift Arena",
     venueLabelPlaceholder: "Prodigy RC Drift Arena",
     eventNamePlaceholder: "Prodigy RC Drift Arena",
-    logoPrimary: "./assets/prodigy-rc-logo-transparent.png?v=91814eb68b7f",
-    logoInverted: "./assets/prodigy-rc-logo-white-transparent.png?v=91814eb68b7f",
+    logoPrimary: "./assets/prodigy-rc-logo-transparent.png?v=ecb9173a289d",
+    logoInverted: "./assets/prodigy-rc-logo-white-transparent.png?v=ecb9173a289d",
     logoTreatment: {
       invertLight: false,
       invertDark: false
     },
     logoAlt: "Prodigy RC logo",
-    backgroundImage: "./assets/track-background.png?v=91814eb68b7f",
-    homeHeroImage: "./assets/track-background.png?v=91814eb68b7f",
+    backgroundImage: "./assets/track-background.png?v=ecb9173a289d",
+    homeHeroImage: "./assets/track-background.png?v=ecb9173a289d",
     shopUrl: "https://www.prodigydrift.com/",
     shopLabel: "Shop Prodigy RC Here",
     pdfHeaderTitle: "PRODIGY RC",
@@ -58,7 +58,7 @@ window.RC_DRIFT_CLIENT_CONFIG = {
     }
   },
   layout: {
-    centerAllText: false
+    centerAllText: true
   },
   streaming: {
     iceServers: [
@@ -80,9 +80,9 @@ window.RC_DRIFT_CLIENT_CONFIG = {
   },
   landing: {
     whySectionKicker: "Why Prodigy",
-    heroCopy: "Follow {eventName} live with qualifying, competition brackets, and results from one Prodigy event hub.",
-    emptyHeroCopy: "Follow the next event, jump into qualifying and competition, and see why Prodigy is built for real live RC drift events.",
-    whySectionCopy: "Prodigy keeps check-in, live scoring, bracket control, and results connected in one smoother event-day flow.",
+    heroCopy: "Live qualifying, brackets, and results for {eventName}.",
+    emptyHeroCopy: "Check in, follow qualifying, and see results as they happen.",
+    whySectionCopy: "One place for check-in, live scoring, brackets, and results.",
     benefits: [
       [
         "3-Judge Cloud Sync",
