@@ -154,6 +154,11 @@ function testShowRunCardLogicInSource() {
     /run2SubmittedByMe \? `[\s\S]*?Run 2 submitted:/,
     "a finalized Run 2 must render a locked, non-editable confirmation instead of the raw editable form",
   );
+  assert.doesNotMatch(
+    cardSrc,
+    /\bshowRun2\b(?!Editable)/,
+    "renderJudgeLaneCard must never reference a bare 'showRun2' identifier (only 'showRun2Editable' is declared) -- a stray reference throws ReferenceError and crashes the entire judge card render",
+  );
   console.log("ok - renderJudgeLaneCard never re-shows an editable/submit-enabled card for an already-finalized run");
 }
 
