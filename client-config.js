@@ -10,15 +10,15 @@ window.RC_DRIFT_CLIENT_CONFIG = {
     venueName: "Prodigy RC Drift Arena",
     venueLabelPlaceholder: "Prodigy RC Drift Arena",
     eventNamePlaceholder: "Prodigy RC Drift Arena",
-    logoPrimary: "./assets/prodigy-rc-logo-transparent.png?v=ecb9173a289d",
-    logoInverted: "./assets/prodigy-rc-logo-white-transparent.png?v=ecb9173a289d",
+    logoPrimary: "./assets/prodigy-rc-logo-transparent.png?v=f40c66519882",
+    logoInverted: "./assets/prodigy-rc-logo-white-transparent.png?v=f40c66519882",
     logoTreatment: {
       invertLight: false,
       invertDark: false
     },
     logoAlt: "Prodigy RC logo",
-    backgroundImage: "./assets/track-background.png?v=ecb9173a289d",
-    homeHeroImage: "./assets/track-background.png?v=ecb9173a289d",
+    backgroundImage: "./assets/track-background.png?v=f40c66519882",
+    homeHeroImage: "./assets/track-background.png?v=f40c66519882",
     shopUrl: "https://www.prodigydrift.com/",
     shopLabel: "Shop Prodigy RC Here",
     pdfHeaderTitle: "PRODIGY RC",
@@ -31,6 +31,8 @@ window.RC_DRIFT_CLIENT_CONFIG = {
     fontImports: [],
     customFonts: {}
   },
+  // The app is light-only; this key stays named "light" because index.html
+  // reads CLIENT_THEME.light directly (no per-mode branching exists).
   theme: {
     light: {
       accent: "#000000",
@@ -43,18 +45,6 @@ window.RC_DRIFT_CLIENT_CONFIG = {
       panelHighlight: "#ffffff",
       accentWarm: "#d9d9d9",
       wordmarkColor: "#111111"
-    },
-    dark: {
-      accent: "#ffffff",
-      accentDark: "#bfbfbf",
-      buttonAccent: "#f3f3f3",
-      buttonAccentDark: "#bcbcbc",
-      accentCyan: "#93a7b5",
-      accentGreen: "#b0b0b0",
-      accentGreenDark: "#858585",
-      panelHighlight: "#ffffff",
-      accentWarm: "#f5f5f5",
-      wordmarkColor: "#ffffff"
     }
   },
   layout: {
