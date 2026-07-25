@@ -11,7 +11,7 @@
   <style>
     @font-face {
       font-family: 'Ethnocentric';
-      src: url('./assets/fonts/Ethnocentric-Regular.otf?v=200f91748cef') format('opentype');
+      src: url('./assets/fonts/Ethnocentric-Regular.otf?v=abff5b14b76e') format('opentype');
       font-weight: 400;
       font-style: normal;
       font-display: swap;
@@ -60,11 +60,11 @@
       --radius-panel: 24px;
       --radius-card: 18px;
       --radius-button: 14px;
-      --brand-track-background-image: url("./assets/track-background.png?v=200f91748cef");
-      --brand-watermark-image: url("./assets/prodigy-rc-logo-white-transparent.png?v=200f91748cef");
+      --brand-track-background-image: url("./assets/track-background.png?v=abff5b14b76e");
+      --brand-watermark-image: url("./assets/prodigy-rc-logo-white-transparent.png?v=abff5b14b76e");
       --font-graffiti: 'Ethnocentric', 'Orbitron', 'Inter', sans-serif;
       --font-sans: 'Inter', sans-serif;
-      --brand-home-hero-image: url("./assets/track-background.png?v=200f91748cef");
+      --brand-home-hero-image: url("./assets/track-background.png?v=abff5b14b76e");
       --accent-rgb: 44, 36, 29;
       --button-accent-rgb: 43, 36, 29;
       --button-accent-dark-rgb: 122, 99, 75;
@@ -114,6 +114,34 @@
       --state-error: var(--ds-color-danger, #ef4444);
       --state-complete: #8b8f97;
       --state-locked: #8b8f97;
+      /* ==== Bracket presentation depth & material system ====
+         Self-defined graphite/steel tokens (independent of --accent and of
+         --bracket-advance-glow's client-accentGreen derivation, same reasoning
+         as Prodigy Gold) so the bracket reads as one warm-light material --
+         layered shadows instead of flat cards, charcoal/steel instead of pure
+         black-on-white, and a Current Battle card that shares the same card
+         shape/shadow language as every other match card. */
+      --bracket-ink: #241b14;
+      --bracket-line: rgba(43, 33, 25, 0.34);
+      --bracket-line-soft: rgba(43, 33, 25, 0.16);
+      --bracket-shadow-1: 0 8px 18px rgba(36, 27, 20, 0.10), inset 0 1px 0 rgba(255,255,255,0.65);
+      --bracket-shadow-2: 0 14px 28px rgba(36, 27, 20, 0.14), inset 0 1px 0 rgba(255,255,255,0.68);
+      --bracket-shadow-3: 0 20px 38px rgba(36, 27, 20, 0.17), inset 0 1px 0 rgba(255,255,255,0.70);
+      --bracket-shadow-4: 0 28px 50px rgba(36, 27, 20, 0.20), inset 0 1px 0 rgba(255,255,255,0.72);
+      --bracket-shadow-stage: 0 32px 64px rgba(30, 24, 18, 0.24), 0 2px 0 rgba(30, 24, 18, 0.30), inset 0 1px 0 rgba(255,255,255,0.75);
+      --bracket-winner-glow: 0 0 0 1px rgba(179, 129, 47, 0.55), 0 0 14px rgba(179, 129, 47, 0.30), 0 0 30px rgba(179, 129, 47, 0.16);
+      --bracket-steel: #55707d;
+      --bracket-steel-deep: #2c3f48;
+      --bracket-steel-ink: #1f323b;
+      --bracket-current-surface: linear-gradient(180deg, rgba(255,255,255,0.99), rgba(228, 236, 240, 0.94));
+      --bracket-current-trace-a: #bfe3ee;
+      --bracket-current-trace-b: #3d7690;
+      --bracket-current-trace-gold: #d7a768;
+      --bracket-upnext-surface: linear-gradient(180deg, rgba(224, 231, 234, 0.6), rgba(224, 231, 234, 0.3));
+      --bracket-upnext-line: rgba(61, 84, 94, 0.4);
+      --bracket-upnext-ink: #37505a;
+      --bracket-eliminated-surface: linear-gradient(180deg, rgba(244, 241, 235, 0.92), rgba(233, 227, 217, 0.88));
+      --bracket-eliminated-ink: rgba(52, 42, 34, 0.58);
     }
 
     * { box-sizing: border-box; }
@@ -492,9 +520,12 @@
         linear-gradient(180deg, rgba(60, 50, 40, 0.05), transparent 18%, transparent 78%, rgba(60, 50, 40, 0.06));
     }
 
-    /* Current battle: restrained spotlight bias, no strong effect. */
+    /* Current battle: restrained spotlight bias, no strong effect. Tinted to
+       match the bracket's steel-blue Current Battle material (not a raw
+       saturated blue) so the fullscreen ambience and the match card read as
+       one coherent moment. */
     body.bracket-fullscreen:has(.main-battle[data-battle-state="current"]) .arena-layer-spotlight {
-      background: radial-gradient(40% 44% at 50% 30%, rgba(60,130,200,0.16), rgba(219, 234, 254, 0.4) 55%, transparent 75%);
+      background: radial-gradient(40% 44% at 50% 30%, rgba(85, 112, 125, 0.16), rgba(228, 236, 240, 0.4) 55%, transparent 75%);
     }
     /* Winner advancement: brief restrained gold wave, timed by the same
        momentary .incoming-winner marker the existing bracketWinnerLand
@@ -6160,9 +6191,9 @@
       to { --current-trace-angle: 360deg; }
     }
     @keyframes currentBattlePulseDot {
-      0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.55); }
-      70% { box-shadow: 0 0 0 6px rgba(37, 99, 235, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+      0% { box-shadow: 0 0 0 0 rgba(61, 118, 144, 0.55); }
+      70% { box-shadow: 0 0 0 6px rgba(61, 118, 144, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(61, 118, 144, 0); }
     }
     @keyframes upNextPulse {
       0%, 100% { opacity: 0.9; }
@@ -6193,22 +6224,22 @@
     }
     .battle-state-badge.is-current {
       color: #fff;
-      background: linear-gradient(135deg, #1d4ed8, #0ea5c4);
-      box-shadow: 0 4px 12px rgba(29, 78, 216, 0.4);
+      background: linear-gradient(135deg, var(--bracket-steel-deep), var(--bracket-steel));
+      box-shadow: 0 4px 12px rgba(44, 63, 72, 0.4);
     }
     .battle-state-badge.is-current::before {
       content: "";
       width: 6px;
       height: 6px;
       border-radius: 50%;
-      background: #bae6fd;
-      box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.55);
+      background: #cfeaf2;
+      box-shadow: 0 0 0 0 rgba(61, 118, 144, 0.55);
       animation: currentBattlePulseDot 1.8s ease-out infinite;
     }
     .battle-state-badge.is-next {
-      color: #2c4a68;
-      background: rgba(219, 234, 254, 0.92);
-      border: 1px solid rgba(44, 74, 104, 0.3);
+      color: var(--bracket-upnext-ink);
+      background: rgba(224, 231, 234, 0.92);
+      border: 1px solid var(--bracket-upnext-line);
     }
 
     .main-battle[data-battle-state] {
@@ -6235,7 +6266,7 @@
       position: absolute;
       inset: -5px;
       border-radius: 18px;
-      background: #123a63;
+      background: var(--bracket-steel-deep);
       z-index: -2;
     }
     .main-battle[data-battle-state="current"]::after {
@@ -6247,10 +6278,10 @@
       background: conic-gradient(
         from var(--current-trace-angle, 0deg),
         transparent 0deg,
-        #7dd3fc 16deg,
-        #2563eb 42deg,
-        #facc15 58deg,
-        #2563eb 74deg,
+        var(--bracket-current-trace-a) 16deg,
+        var(--bracket-current-trace-b) 42deg,
+        var(--bracket-current-trace-gold) 58deg,
+        var(--bracket-current-trace-b) 74deg,
         transparent 100deg,
         transparent 360deg
       );
@@ -6263,19 +6294,19 @@
     }
 
     .main-battle[data-battle-state="current"] .main-battle-slot {
-      box-shadow: 0 16px 32px rgba(16, 46, 84, 0.24);
+      box-shadow: var(--bracket-shadow-2), 0 0 0 1px rgba(44, 63, 72, 0.35);
     }
     .main-battle[data-battle-state="current"] .slot-button {
-      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(224, 240, 255, 0.92));
-      color: #0b2f52;
+      background: var(--bracket-current-surface);
+      color: var(--bracket-steel-ink);
     }
     .main-battle[data-battle-state="current"] .slot-name {
       font-size: clamp(1rem, 1.5vw, 1.22rem);
       font-weight: 900;
     }
     .main-battle[data-battle-state="current"] .final-battle-card {
-      box-shadow: 0 26px 50px rgba(16, 46, 84, 0.24), 0 4px 0 rgba(16, 46, 84, 0.4);
-      border-color: #1d4ed8;
+      box-shadow: var(--bracket-shadow-stage), 0 4px 0 rgba(44, 63, 72, 0.4);
+      border-color: var(--bracket-steel);
     }
 
     /* Compact Lead/Chase separation on the two rows of the current match --
@@ -6287,7 +6318,7 @@
       font-size: 0.6rem;
       font-weight: 800;
       letter-spacing: 0.1em;
-      color: #2563eb;
+      color: var(--bracket-steel-deep);
       opacity: 0.85;
     }
     .main-battle[data-battle-state="current"] .main-battle-stack > .main-battle-slot:last-child .slot-button::before,
@@ -6297,7 +6328,7 @@
       font-size: 0.6rem;
       font-weight: 800;
       letter-spacing: 0.1em;
-      color: #2c4a68;
+      color: var(--text-soft);
       opacity: 0.72;
     }
 
@@ -6311,7 +6342,7 @@
       height: 2px;
       transform: translateY(-50%);
       border-radius: 2px;
-      background: linear-gradient(90deg, transparent, #2563eb, transparent);
+      background: linear-gradient(90deg, transparent, var(--bracket-steel), transparent);
       background-size: 200% 100%;
       animation: currentDividerEnergy 2.6s ease-in-out infinite;
       pointer-events: none;
@@ -6319,7 +6350,7 @@
     }
     .main-battle[data-battle-state="current"] .final-vs {
       position: relative;
-      color: #0b2f52;
+      color: var(--bracket-steel-ink);
     }
     .main-battle[data-battle-state="current"] .final-vs::after {
       content: "";
@@ -6328,7 +6359,7 @@
       right: 18%;
       bottom: -2px;
       height: 2px;
-      background: linear-gradient(90deg, transparent, #2563eb, transparent);
+      background: linear-gradient(90deg, transparent, var(--bracket-steel), transparent);
       background-size: 200% 100%;
       animation: currentDividerEnergy 2.6s ease-in-out infinite;
       pointer-events: none;
@@ -6338,12 +6369,12 @@
        than Current Battle -- no traveling trace. */
     .main-battle[data-battle-state="next"] .main-battle-slot,
     .main-battle[data-battle-state="next"] .final-battle-card {
-      background: linear-gradient(180deg, rgba(219, 234, 254, 0.55), rgba(219, 234, 254, 0.26));
-      border-color: rgba(44, 74, 104, 0.4);
+      background: var(--bracket-upnext-surface);
+      border-color: var(--bracket-upnext-line);
       animation: upNextPulse 5.5s ease-in-out infinite;
     }
     .main-battle[data-battle-state="next"] .slot-button {
-      color: #24405c;
+      color: var(--bracket-upnext-ink);
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -6459,9 +6490,11 @@
       margin-top: 12px;
       position: relative;
       padding: 26px 28px 34px;
-      border: 2px solid #000;
+      border: 2px solid var(--bracket-ink);
       border-radius: calc(var(--radius-panel) + 2px);
       background:
+        radial-gradient(120% 90% at 50% 0%, rgba(255,255,255,0.6), transparent 60%),
+        radial-gradient(90% 70% at 50% 100%, rgba(85, 112, 125, 0.06), transparent 70%),
         linear-gradient(180deg, rgba(255,255,255,0.24), rgba(228,232,236,0.34)),
         linear-gradient(135deg, rgba(255,255,255,0.10), rgba(255,255,255,0.02));
       box-shadow: var(--panel-shadow);
@@ -6493,7 +6526,7 @@
       margin: 16px auto 0;
       width: min(100%, 620px);
       padding: 14px 18px;
-      border: 2px solid #000;
+      border: 2px solid var(--bracket-ink);
       border-radius: 18px;
       background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(240,240,240,0.96));
       box-shadow: 0 12px 26px rgba(0, 0, 0, 0.12);
@@ -6506,7 +6539,7 @@
       font-size: clamp(1.2rem, 2vw, 1.7rem);
       line-height: 1.02;
       letter-spacing: 0.03em;
-      color: #000;
+      color: var(--text);
     }
 
     .bracket-alert-banner small {
@@ -6527,7 +6560,7 @@
       line-height: 0.94;
       text-wrap: balance;
       overflow-wrap: anywhere;
-      color: #000;
+      color: var(--text);
     }
 
     .main-bracket-board {
@@ -6577,23 +6610,25 @@
       stroke: color-mix(in srgb, var(--line-strong) 82%, transparent);
       stroke-linecap: round;
       stroke-linejoin: round;
-      stroke-width: 2.75;
+      stroke-width: 3.1;
       opacity: 0.8;
+      filter: drop-shadow(0 1px 1px rgba(36, 27, 20, 0.10));
     }
 
     .bracket-connector-path.is-decided {
       stroke: color-mix(in srgb, var(--gold-bright) 78%, var(--line-strong));
-      stroke-width: 3.25;
+      stroke-width: 3.5;
       opacity: 0.98;
       filter: drop-shadow(0 0 3px color-mix(in srgb, var(--gold-bright) 50%, transparent));
     }
 
     /* Current Battle's outgoing path: gentle continuous energy flow toward
        the next-round junction. Same color regardless of side -- never
-       implies which driver will win. */
+       implies which driver will win. Steel-blue to match the re-themed
+       Current Battle card material instead of a raw saturated blue. */
     .bracket-connector-path.is-current-outgoing {
-      stroke: #2563eb;
-      stroke-width: 3;
+      stroke: var(--bracket-steel);
+      stroke-width: 3.3;
       stroke-dasharray: 7 9;
       opacity: 0.88;
       animation: connectorEnergyFlow 1.6s linear infinite;
@@ -6602,11 +6637,11 @@
       to { stroke-dashoffset: -32; }
     }
 
-    /* Up Next's incoming path: restrained pale-blue emphasis, static --
+    /* Up Next's incoming path: restrained steel-gray emphasis, static --
        lower visual priority than the Current Battle path above. */
     .bracket-connector-path.is-up-next-incoming {
-      stroke: color-mix(in srgb, #60a5fa 55%, var(--line-strong));
-      stroke-width: 2.75;
+      stroke: color-mix(in srgb, var(--bracket-steel) 55%, var(--bracket-line));
+      stroke-width: 3;
       opacity: 0.78;
     }
 
@@ -6618,12 +6653,12 @@
        refresh/hydration/event-switch/routine snapshot rerender, since that
        state is not persisted. */
     .bracket-connector-path.is-just-advanced {
-      stroke: #facc15;
-      stroke-width: 3.5;
+      stroke: var(--gold-deep);
+      stroke-width: 3.8;
       stroke-dasharray: 14 999;
       stroke-dashoffset: 14;
       opacity: 1;
-      filter: drop-shadow(0 0 4px rgba(250, 204, 21, 0.6));
+      filter: drop-shadow(0 0 4px rgba(179, 129, 47, 0.5));
       animation: connectorJustAdvanced 900ms ease-out both;
     }
     @keyframes connectorJustAdvanced {
@@ -6682,14 +6717,14 @@
       font-family: var(--font-graffiti);
       font-size: 1.2rem;
       letter-spacing: 0.06em;
-      color: #000;
+      color: var(--text);
       padding-bottom: 8px;
       border-bottom: 1px solid var(--line-strong);
     }
 
     .main-board-label[data-round-status="active"] {
-      color: #123a63;
-      border-bottom-color: #2563eb;
+      color: var(--bracket-steel-deep);
+      border-bottom-color: var(--bracket-steel);
       border-bottom-width: 2px;
     }
     .main-board-label[data-round-status="active"]::after {
@@ -6699,7 +6734,7 @@
       right: 0;
       bottom: -2px;
       height: 2px;
-      background: linear-gradient(90deg, transparent, #38bdf8, transparent);
+      background: linear-gradient(90deg, transparent, var(--bracket-steel), transparent);
       background-size: 200% 100%;
       animation: roundHeadingSweep 2.6s ease-in-out infinite;
       pointer-events: none;
@@ -6709,12 +6744,12 @@
       50% { background-position: -200% 0; }
     }
     .main-board-label[data-round-status="completed"] {
-      color: #4b5563;
+      color: var(--text-soft);
       opacity: 0.86;
     }
     .main-board-label[data-round-status="future"] {
-      color: #33404d;
-      opacity: 0.74;
+      color: var(--bracket-steel);
+      opacity: 0.65;
     }
     @media (prefers-reduced-motion: reduce) {
       .main-board-label[data-round-status="active"]::after { animation: none; opacity: 0.8; }
@@ -6815,15 +6850,29 @@
       min-height: var(--slot-height, 40px);
       height: var(--slot-height, 40px);
       background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(244,244,244,0.94));
-      border: 2px solid #000;
+      border: 2px solid var(--bracket-line);
       border-radius: 16px;
-      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+      box-shadow: var(--bracket-shadow-1);
       overflow: hidden;
     }
 
     .main-battle-slot.empty-slot {
       grid-template-columns: 1fr;
     }
+
+    /* Slight elevation increase per round -- rounds further from Top-32/16
+       (closer to the center stage) sit a touch higher than earlier rounds,
+       giving the board a sense of depth instead of every round looking
+       identically flat. Driven by the data-round-index the render function
+       already stamps on .main-battle for connector geometry -- no new
+       markup or state. Excludes the current-battle state so its own
+       steel-tinted shadow (declared earlier, same specificity) is never
+       clobbered by this later, otherwise-equal-specificity rule. */
+    .main-battle[data-round-index="1"]:not([data-battle-state="current"]) .main-battle-slot { box-shadow: var(--bracket-shadow-2); }
+    .main-battle[data-round-index="2"]:not([data-battle-state="current"]) .main-battle-slot { box-shadow: var(--bracket-shadow-3); }
+    .main-battle[data-round-index="3"]:not([data-battle-state="current"]) .main-battle-slot,
+    .main-battle[data-round-index="4"]:not([data-battle-state="current"]) .main-battle-slot,
+    .main-battle[data-round-index="5"]:not([data-battle-state="current"]) .main-battle-slot { box-shadow: var(--bracket-shadow-4); }
 
     .main-battle.right .main-battle-slot { grid-template-columns: 1fr var(--seed-chip-width, 42px); }
     .main-battle.center .main-battle-slot {
@@ -6841,15 +6890,15 @@
       color: white;
       font-family: var(--font-graffiti);
       font-size: var(--seed-font-size, 1.2rem);
-      border-right: 2px solid rgba(0, 0, 0, 0.82);
+      border-right: 2px solid rgba(36, 27, 20, 0.78);
     }
-    .main-battle.right .seed-chip { border-right: none; border-left: 2px solid rgba(0, 0, 0, 0.82); }
+    .main-battle.right .seed-chip { border-right: none; border-left: 2px solid rgba(36, 27, 20, 0.78); }
     .main-battle.center .seed-chip {
       width: 100%;
       min-height: 24px;
       padding: 2px 8px 0;
       border-right: none;
-      border-bottom: 2px solid rgba(0, 0, 0, 0.82);
+      border-bottom: 2px solid rgba(36, 27, 20, 0.78);
     }
 
     .slot-button {
@@ -6963,20 +7012,21 @@
 
     /* ADVANCED slot: the driver who won this match reads as a solid, confident
        fill in the theme's neutral accent (black-on-light / white-on-dark) — the
-       old pink/purple neon is gone. Gold is deliberately NOT used here: a full
-       bracket has many advanced slots, so gold stays rationed for CURRENT, the
-       CHAMPION, and the top qualifier. The warm advance-glow marks the live/next
-       main slot without shouting. */
+       old pink/purple neon is gone. A restrained, self-defined gold ring (not
+       derived from client accent config, same reasoning as Prodigy Gold) marks
+       the resolved/advanced state so it never reads as merely gray or disabled,
+       while staying quieter than the CURRENT and CHAMPION moments. */
     .slot-button.selected {
       background: linear-gradient(135deg, var(--accent), var(--accent-dark));
       color: #fff;
       box-shadow:
         inset 0 0 0 1px rgba(255, 246, 236, 0.28),
+        var(--bracket-shadow-2),
         var(--accent-glow);
     }
     .main-battle-slot.selected-slot {
       border-color: var(--gold-ring-mid);
-      box-shadow: var(--bracket-advance-glow);
+      box-shadow: var(--bracket-shadow-2), var(--bracket-winner-glow);
     }
     .main-battle-slot.selected-slot .seed-chip {
       box-shadow: inset 0 0 14px var(--gold-ring-lo);
@@ -6991,18 +7041,22 @@
     .main-battle-slot.incoming-winner .slot-button {
       animation: bracketWinnerLand var(--motion-reveal) var(--ease-snap);
     }
+    /* ELIMINATED slot: quieter than every other state but still a warm-paper
+       surface with legible charcoal ink -- not a dark disabled-looking chip
+       floating oddly inside an otherwise light card. */
     .slot-button.loser {
-      background: linear-gradient(180deg, rgba(86, 93, 110, 0.64), rgba(59, 65, 81, 0.66));
-      color: rgba(241, 244, 249, 0.52);
-      filter: saturate(0.7);
-      transition: filter var(--motion-state) ease, color var(--motion-state) ease, background var(--motion-state) ease;
+      background: var(--bracket-eliminated-surface);
+      color: var(--bracket-eliminated-ink);
+      transition: color var(--motion-state) ease, background var(--motion-state) ease;
     }
     .slot-button.loser .slot-team {
-      opacity: 0.5;
+      opacity: 0.6;
     }
+    /* WAITING/unresolved slot: clean neutral surface, readable dark text --
+       quieter than active or completed matches, never invisible. */
     .slot-button.empty {
-      color: rgba(255,255,255,0.54);
-      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.03));
+      color: var(--bracket-eliminated-ink);
+      background: linear-gradient(180deg, rgba(244, 241, 235, 0.5), rgba(234, 229, 220, 0.34));
       font-weight: 600;
       align-items: center !important;
       justify-content: center !important;
@@ -7041,7 +7095,7 @@
       }
       100% {
         transform: scale(1);
-        box-shadow: var(--bracket-advance-glow);
+        box-shadow: var(--bracket-winner-glow);
       }
     }
 
@@ -7058,7 +7112,7 @@
       100% {
         opacity: 1;
         transform: translateY(0) scale(1);
-        box-shadow: var(--bracket-advance-glow);
+        box-shadow: var(--bracket-winner-glow);
       }
     }
 
@@ -7089,30 +7143,33 @@
     @keyframes winnerMorphLandFlash {
       0% { box-shadow: 0 0 0 rgba(208,160,107,0); }
       35% { box-shadow: var(--gold-glow); }
-      100% { box-shadow: var(--bracket-advance-glow); }
+      100% { box-shadow: var(--bracket-winner-glow); }
     }
     @media (prefers-reduced-motion: reduce) {
       .winner-morph-landed-flash { animation: winnerMorphLandFlashReduced 500ms ease both; }
     }
     @keyframes winnerMorphLandFlashReduced {
       0% { box-shadow: 0 0 0 rgba(208,160,107,0); }
-      100% { box-shadow: var(--bracket-advance-glow); }
+      100% { box-shadow: var(--bracket-winner-glow); }
     }
 
     .main-battle.center { display: grid; align-self: center; }
 
+    /* Final Battle / Third Place: strongest elevation on the board -- these
+       are the bracket's center-stage moments, so they sit visibly above the
+       side rounds rather than matching their flat card depth. */
     .final-battle-card {
       width: var(--final-card-width, 250px);
-      border: 1px solid var(--line-strong);
+      border: 1px solid var(--bracket-line-soft);
       border-radius: 24px;
       background: linear-gradient(180deg, rgba(255, 254, 251, 0.99), rgba(246, 242, 237, 0.98));
-      box-shadow: 0 24px 52px rgba(22, 29, 43, 0.18);
+      box-shadow: var(--bracket-shadow-stage);
       overflow: hidden;
     }
 
     .third-place-card {
       width: var(--third-card-width, 230px);
-      box-shadow: 0 18px 38px rgba(0, 0, 0, 0.2);
+      box-shadow: var(--bracket-shadow-4);
     }
 
     .final-battle-head {
@@ -7242,9 +7299,9 @@
     .champion-banner {
       margin-top: 24px;
       padding: 22px;
-      border: 4px solid #000;
+      border: 4px solid var(--bracket-ink);
       background: #fff;
-      box-shadow: 8px 8px 0px #000;
+      box-shadow: 8px 8px 0px var(--bracket-ink);
       text-align: center;
     }
 
@@ -7256,7 +7313,7 @@
     .champion-banner strong { display: block; }
 
     .champion-banner span {
-      color: #555;
+      color: var(--text-soft);
       font-size: 1rem;
       font-weight: 800;
       text-transform: uppercase;
@@ -7268,7 +7325,7 @@
       font-family: var(--font-graffiti);
       font-size: clamp(2.4rem, 5vw, 4rem);
       line-height: 1;
-      color: #000;
+      color: var(--text);
     }
 
     /* CHAMPION = the broadcast winner moment. Both themes render this banner as
@@ -8914,10 +8971,10 @@
         font-size: 0.9rem;
       }
       .final-battle-card {
-        box-shadow: 5px 5px 0 #000;
+        box-shadow: 5px 5px 0 var(--bracket-ink);
       }
       .third-place-card {
-        box-shadow: 4px 4px 0 #000;
+        box-shadow: 4px 4px 0 var(--bracket-ink);
       }
       .judge-lane-toolbar {
         top: 4px;
@@ -10733,10 +10790,10 @@
         font-size: 0.82rem;
       }
       .final-battle-card {
-        box-shadow: 4px 4px 0 #000;
+        box-shadow: 4px 4px 0 var(--bracket-ink);
       }
       .third-place-card {
-        box-shadow: 3px 3px 0 #000;
+        box-shadow: 3px 3px 0 var(--bracket-ink);
       }
     }
 
@@ -13928,7 +13985,7 @@
       <div class="topbar-left">
         <div class="topbar-brand">
           <div class="topbar-brand-mark">
-            <img src="./assets/prodigy-rc-logo-transparent.png?v=200f91748cef" alt="Prodigy RC logo" />
+            <img src="./assets/prodigy-rc-logo-transparent.png?v=abff5b14b76e" alt="Prodigy RC logo" />
           </div>
           <div class="topbar-brand-copy">
             <span class="topbar-brand-kicker">Prodigy RC Comp</span>
@@ -13984,7 +14041,7 @@
       <div class="streamer-topbar-main">
         <div class="streamer-topbar-brandline">
           <div class="streamer-topbar-mark">
-            <img src="./assets/prodigy-rc-logo-transparent.png?v=200f91748cef" alt="Prodigy RC logo" />
+            <img src="./assets/prodigy-rc-logo-transparent.png?v=abff5b14b76e" alt="Prodigy RC logo" />
           </div>
           <div class="streamer-topbar-copy">
             <span class="streamer-topbar-kicker">Prodigy Stream Studio</span>
@@ -14183,7 +14240,7 @@
     <div id="view-registration" class="view-section is-active">
       <header class="hero">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=200f91748cef" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=abff5b14b76e" alt="Prodigy RC logo" /></div>
           <p class="eyebrow">Registration</p>
           <h1>Driver Sign-Up</h1>
           <div class="hero-actions">
@@ -14322,7 +14379,7 @@
     <div id="view-home" class="view-section">
       <header class="hero hero-simple spectator-only">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=200f91748cef" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=abff5b14b76e" alt="Prodigy RC logo" /></div>
           <p class="eyebrow" id="landingHeroEyebrow">Prodigy RC Drift Arena</p>
           <h1 id="landingHeroTitle"><span class="landing-brand-wordmark" aria-label="Live Drift Event Hub">Live Drift Event Hub</span></h1>
           <p id="landingHeroCopy" class="hero-copy">Check in, follow qualifying, and see results as they happen.</p>
@@ -14399,7 +14456,7 @@
     <div id="view-live" class="view-section">
       <header class="hero hero-simple spectator-only">
         <div class="hero-copy-block">
-          <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=200f91748cef" alt="Prodigy RC logo" /></div>
+          <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=abff5b14b76e" alt="Prodigy RC logo" /></div>
           <p class="eyebrow">Live Broadcast</p>
           <h1><span class="landing-brand-wordmark">LIVE</span></h1>
           <p class="hero-copy">Watch the active event stream with a layout that follows qualifying, battles, brackets, standings, and results automatically.</p>
@@ -14435,7 +14492,7 @@
     <div id="view-self-register" class="view-section">
       <header class="hero">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=200f91748cef" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=abff5b14b76e" alt="Prodigy RC logo" /></div>
           <p class="eyebrow">Driver Check-In</p>
           <h1>Self Registration</h1>
           <p class="hero-copy">Pre-register now, then verify your location at the venue to check in.</p>
@@ -14574,7 +14631,7 @@
     <div id="view-qualifying" class="view-section">
       <header class="hero hero-simple">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=200f91748cef" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=abff5b14b76e" alt="Prodigy RC logo" /></div>
           <div class="spectator-qualifying-title spectator-only">
             <p class="eyebrow">Live Event</p>
             <h1>Qualifying Standings</h1>
@@ -14697,7 +14754,7 @@
     <div id="view-results" class="view-section">
       <header class="hero hero-simple">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=200f91748cef" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=abff5b14b76e" alt="Prodigy RC logo" /></div>
           <p class="eyebrow">Results</p>
           <h1>Past Events</h1>
           <p class="hero-copy">
@@ -14731,7 +14788,7 @@
     <div id="view-website-admin" class="view-section">
       <header class="hero">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=200f91748cef" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=abff5b14b76e" alt="Prodigy RC logo" /></div>
           <p class="eyebrow">Website Admin</p>
           <h1>Website Admin</h1>
           <p class="hero-copy">
@@ -14868,7 +14925,7 @@
       <!-- Fixed Fullscreen Toolbar -->
       <div class="bracket-header-bar">
         <div id="bracketHeaderLogoSlot">
-              <img class="bracket-header-logo" src="./assets/prodigy-rc-logo-transparent.png?v=200f91748cef" alt="Prodigy RC logo" />
+              <img class="bracket-header-logo" src="./assets/prodigy-rc-logo-transparent.png?v=abff5b14b76e" alt="Prodigy RC logo" />
         </div>
         <div class="button-row bracket-header-actions">
           <button id="fullscreenBracketBtn" class="button button-secondary bracket-header-icon-button" type="button" aria-label="Toggle fullscreen bracket" title="Toggle fullscreen">⛶<span class="icon-label">Fullscreen</span></button>
@@ -14926,7 +14983,7 @@
             <div class="bracket-header-center">
               <p class="section-kicker">Play-In</p>
               <h2 class="main-board-title">Lower Bracket</h2>
-              <img class="bracket-stage-logo" src="./assets/prodigy-rc-logo-transparent.png?v=200f91748cef" alt="Prodigy RC logo" />
+              <img class="bracket-stage-logo" src="./assets/prodigy-rc-logo-transparent.png?v=abff5b14b76e" alt="Prodigy RC logo" />
             </div>
             <div id="lowerBracketRuleAlert" class="bracket-alert-banner hidden">
               <strong>FIRST TO CRASH IN PLAY</strong>
@@ -14941,7 +14998,7 @@
             <div class="bracket-header-center">
               <p class="section-kicker">Main Event</p>
               <h2 id="mainBracketTitle" class="main-board-title">Main Competition</h2>
-              <img class="bracket-stage-logo" src="./assets/prodigy-rc-logo-transparent.png?v=200f91748cef" alt="Prodigy RC logo" />
+              <img class="bracket-stage-logo" src="./assets/prodigy-rc-logo-transparent.png?v=abff5b14b76e" alt="Prodigy RC logo" />
             </div>
           </div>
           <div id="bracketBoard" class="main-bracket-board"></div>
@@ -15262,17 +15319,17 @@
   </div>
 
   <!-- APP LOGIC -->
-  <script src="./client-config.js?v=200f91748cef"></script>
+  <script src="./client-config.js?v=abff5b14b76e"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script type="module">
-    import { parseVoiceCommandsWithFallback, sendResultsSummaryEmail } from "./assets/js/legacy-client-features.js?v=200f91748cef";
-    import { isHistoricalBracketUnavailable, resolveRecoveredBracket, shouldPreserveUnavailableHistoricalBracket } from "./assets/js/historical-bracket.js?v=200f91748cef";
+    import { parseVoiceCommandsWithFallback, sendResultsSummaryEmail } from "./assets/js/legacy-client-features.js?v=abff5b14b76e";
+    import { isHistoricalBracketUnavailable, resolveRecoveredBracket, shouldPreserveUnavailableHistoricalBracket } from "./assets/js/historical-bracket.js?v=abff5b14b76e";
     import {
       createSelectedEventSubscriptionController,
       resolveSelectionEventMeta,
       shouldReplaceCachedSelection,
       getLiveJudgeSelectionMismatch,
-    } from "./assets/js/event-selection-sync.js?v=200f91748cef";
+    } from "./assets/js/event-selection-sync.js?v=abff5b14b76e";
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, connectAuthEmulator } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, collection, doc, setDoc, onSnapshot, deleteDoc, deleteField, getDoc, runTransaction, connectFirestoreEmulator } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -15288,15 +15345,15 @@
         venueName: "Prodigy RC Drift Arena",
         venueLabelPlaceholder: "Prodigy RC Drift Arena",
         eventNamePlaceholder: "Prodigy RC Drift Arena",
-        logoPrimary: "./assets/prodigy-rc-logo-transparent.png?v=200f91748cef",
-        logoInverted: "./assets/prodigy-rc-logo-white-transparent.png?v=200f91748cef",
+        logoPrimary: "./assets/prodigy-rc-logo-transparent.png?v=abff5b14b76e",
+        logoInverted: "./assets/prodigy-rc-logo-white-transparent.png?v=abff5b14b76e",
         logoTreatment: {
           invertLight: false,
           invertDark: false,
         },
         logoAlt: "Prodigy RC logo",
-        backgroundImage: "./assets/track-background.png?v=200f91748cef",
-        homeHeroImage: "./assets/track-background.png?v=200f91748cef",
+        backgroundImage: "./assets/track-background.png?v=abff5b14b76e",
+        homeHeroImage: "./assets/track-background.png?v=abff5b14b76e",
         shopUrl: "https://www.prodigydrift.com/",
         shopLabel: "Shop Prodigy RC Here",
         pdfHeaderTitle: "PRODIGY RC",
@@ -22837,7 +22894,7 @@
       };
     }
 
-    function getThemeAwareLogoSource(primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=200f91748cef", invertedLogo = CLIENT_BRANDING.logoInverted || primaryLogo) {
+    function getThemeAwareLogoSource(primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=abff5b14b76e", invertedLogo = CLIENT_BRANDING.logoInverted || primaryLogo) {
       return document.body?.dataset.theme === "dark" ? invertedLogo : primaryLogo;
     }
 
@@ -24068,11 +24125,11 @@
 
     function applyClientBranding() {
       const root = document.documentElement;
-      const primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=200f91748cef";
+      const primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=abff5b14b76e";
       const invertedLogo = CLIENT_BRANDING.logoInverted || primaryLogo;
       const logoTreatment = isPlainObject(CLIENT_BRANDING.logoTreatment) ? CLIENT_BRANDING.logoTreatment : {};
       const logoAlt = CLIENT_BRANDING.logoAlt || CLIENT_BRANDING.venueName || "Track logo";
-      const backgroundImage = CLIENT_BRANDING.backgroundImage || "./assets/track-background.png?v=200f91748cef";
+      const backgroundImage = CLIENT_BRANDING.backgroundImage || "./assets/track-background.png?v=abff5b14b76e";
       const homeHeroImage = CLIENT_BRANDING.homeHeroImage || backgroundImage;
       const browserTitle = CLIENT_PLATFORM.browserTitle || CLIENT_PLATFORM.productName || "Prodigy Event Control";
 
@@ -24318,7 +24375,7 @@
       syncWebsiteAdminUpcomingBannerUi();
     }
 
-    function syncBrandLogoAssetsForTheme(primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=200f91748cef", invertedLogo = CLIENT_BRANDING.logoInverted || primaryLogo, logoAlt = CLIENT_BRANDING.logoAlt || "Prodigy RC logo") {
+    function syncBrandLogoAssetsForTheme(primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=abff5b14b76e", invertedLogo = CLIENT_BRANDING.logoInverted || primaryLogo, logoAlt = CLIENT_BRANDING.logoAlt || "Prodigy RC logo") {
       const themedLogo = getThemeAwareLogoSource(primaryLogo, invertedLogo);
       document.querySelectorAll(".hero-logo, .bracket-stage-logo, .bracket-header-logo, .topbar-brand-mark img, .streamer-topbar-mark img, .native-broadcast-brand img").forEach((logoEl) => {
         logoEl.setAttribute("src", themedLogo);
@@ -27596,7 +27653,7 @@
           ? `#${rankedDrivers[0].seed} ${rankedDrivers[0].name}`
           : "Waiting";
       const queueLabel = nextDriver?.name || queuedBattleTitle || "Queue loading";
-      const cameraSource = escapeAttributeValue(CLIENT_BRANDING.backgroundImage || "./assets/track-background.png?v=200f91748cef");
+      const cameraSource = escapeAttributeValue(CLIENT_BRANDING.backgroundImage || "./assets/track-background.png?v=abff5b14b76e");
       const venueLabel = activeEventMeta?.name || CLIENT_BRANDING.venueName || "Prodigy RC Drift Arena";
 
       return `
@@ -29448,7 +29505,7 @@
       const sceneHeader = `
         <header class="streamer-scene-header">
           <div class="streamer-scene-brand">
-            <img src="./assets/prodigy-rc-logo-transparent.png?v=200f91748cef" alt="Prodigy RC logo" />
+            <img src="./assets/prodigy-rc-logo-transparent.png?v=abff5b14b76e" alt="Prodigy RC logo" />
             <div class="streamer-scene-title">
               <span class="streamer-scene-kicker">${escapeHtml(meta.label)} • ${route.demo ? "Demo Data" : "Live Event"}</span>
               <h1>${escapeHtml(context.eventName)}</h1>
