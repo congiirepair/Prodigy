@@ -446,8 +446,7 @@ const checks = [
   },
   {
     name: "Twin Triple setup exposes its round controls",
-    test: () => html.includes(".battle-flow-panel.twin-comp-flow { display: block !important; }")
-      && renderBracketSource.includes('classList.toggle("twin-comp-flow", twinTripleMode)')
+    test: () => renderBracketSource.includes("renderTwinCompBoard()")
       && html.includes('data-action="twin-start-round"'),
   },
   {

@@ -11,7 +11,7 @@
   <style>
     @font-face {
       font-family: 'Ethnocentric';
-      src: url('./assets/fonts/Ethnocentric-Regular.otf?v=102564447be3') format('opentype');
+      src: url('./assets/fonts/Ethnocentric-Regular.otf?v=899c47ae5213') format('opentype');
       font-weight: 400;
       font-style: normal;
       font-display: swap;
@@ -60,11 +60,11 @@
       --radius-panel: 24px;
       --radius-card: 18px;
       --radius-button: 14px;
-      --brand-track-background-image: url("./assets/track-background.png?v=102564447be3");
-      --brand-watermark-image: url("./assets/prodigy-rc-logo-white-transparent.png?v=102564447be3");
+      --brand-track-background-image: url("./assets/track-background.png?v=899c47ae5213");
+      --brand-watermark-image: url("./assets/prodigy-rc-logo-white-transparent.png?v=899c47ae5213");
       --font-graffiti: 'Ethnocentric', 'Orbitron', 'Inter', sans-serif;
       --font-sans: 'Inter', sans-serif;
-      --brand-home-hero-image: url("./assets/track-background.png?v=102564447be3");
+      --brand-home-hero-image: url("./assets/track-background.png?v=899c47ae5213");
       --accent-rgb: 44, 36, 29;
       --button-accent-rgb: 43, 36, 29;
       --button-accent-dark-rgb: 122, 99, 75;
@@ -493,8 +493,8 @@
     }
 
     /* Current battle: restrained spotlight bias, no strong effect. */
-    body.bracket-fullscreen:has(.battle-flow-card.current) .arena-layer-spotlight {
-      background: radial-gradient(40% 44% at 50% 30%, rgba(208,160,107,0.14), rgba(219, 234, 254, 0.4) 55%, transparent 75%);
+    body.bracket-fullscreen:has(.main-battle[data-battle-state="current"]) .arena-layer-spotlight {
+      background: radial-gradient(40% 44% at 50% 30%, rgba(60,130,200,0.16), rgba(219, 234, 254, 0.4) 55%, transparent 75%);
     }
     /* Winner advancement: brief restrained gold wave, timed by the same
        momentary .incoming-winner marker the existing bracketWinnerLand
@@ -548,7 +548,6 @@
     body.bracket-fullscreen .competition-subtabs,
     body.bracket-fullscreen #summaryStrip,
     body.bracket-fullscreen #bracketLiveHeaderBar,
-    body.bracket-fullscreen #battleFlowPanel,
     body.bracket-fullscreen #championBanner,
     body.bracket-fullscreen #emptyBracketState {
       flex: 0 0 auto;
@@ -581,10 +580,6 @@
       justify-content: center;
       overflow: hidden;
     }
-    body.bracket-fullscreen .bracket-header-layout {
-      grid-template-columns: minmax(220px, 1fr) minmax(250px, auto) minmax(220px, 1fr);
-      gap: 10px;
-    }
     body.bracket-fullscreen .bracket-header-center {
       gap: 4px;
     }
@@ -594,35 +589,6 @@
     }
     body.bracket-fullscreen .main-board-title {
       font-size: clamp(0.98rem, 1.85vw, 1.62rem);
-    }
-    body.bracket-fullscreen .battle-flow-card {
-      width: min(100%, 300px);
-      padding: 10px;
-      gap: 6px;
-      border-radius: 20px;
-    }
-    body.bracket-fullscreen .battle-flow-label {
-      font-size: 0.62rem;
-    }
-    body.bracket-fullscreen .battle-flow-title {
-      font-size: 0.86rem;
-    }
-    body.bracket-fullscreen .battle-flow-meta {
-      font-size: 0.68rem;
-      line-height: 1.2;
-    }
-    body.bracket-fullscreen .battle-flow-vs {
-      gap: 6px;
-    }
-    body.bracket-fullscreen .battle-flow-option {
-      min-height: 34px;
-      padding: 6px 8px;
-      font-size: 0.78rem;
-      border-width: 2px;
-      box-shadow: 3px 3px 0 #000;
-    }
-    body.bracket-fullscreen .battle-flow-option small {
-      font-size: 0.64rem;
     }
     body.bracket-fullscreen .bracket-alert-banner {
       margin-top: -22px;
@@ -1323,6 +1289,8 @@
     }
 
     .bracket-workspace {
+      position: relative;
+      isolation: isolate;
       flex: 1;
       overflow-y: auto;
       overflow-x: auto;
@@ -1334,6 +1302,42 @@
         var(--brand-track-background-image);
       background-position: center center;
       background-size: cover;
+    }
+
+    /* Restrained ambient depth behind the bracket -- pale-blue spotlight,
+       a faint perspective line texture, and a very slow light sweep.
+       Purely decorative: absolutely positioned behind real content, never
+       intercepts pointer events. */
+    .bracket-workspace::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      background:
+        radial-gradient(40% 32% at 50% 20%, rgba(37, 99, 235, 0.07), transparent 72%),
+        repeating-linear-gradient(115deg, rgba(100, 130, 160, 0.05) 0px, rgba(100, 130, 160, 0.05) 1px, transparent 1px, transparent 64px);
+    }
+    .bracket-workspace::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      opacity: 0.5;
+      background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, 0.4) 50%, transparent 70%);
+      background-size: 220% 100%;
+      animation: bracketAmbientSweep 16s ease-in-out infinite;
+    }
+    @keyframes bracketAmbientSweep {
+      0%, 100% { background-position: 160% 0; }
+      50% { background-position: -160% 0; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .bracket-workspace::after { animation: none; opacity: 0.22; }
+    }
+    body.is-tab-hidden .bracket-workspace::after {
+      animation-play-state: paused;
     }
 
     body.competition-page:not(.bracket-fullscreen) .bracket-header-bar {
@@ -1889,7 +1893,6 @@
     .registration-roster-panel,
     .mobile-driver-card,
     .qualifying-live-card,
-    .battle-flow-card,
     .bracket-stage-card,
     .event-admin-panel,
     .modal-panel,
@@ -1978,7 +1981,6 @@
     }
 
     .qualifying-live-card,
-    .battle-flow-card,
     .event-card,
     .role-admin-card,
     .registration-card,
@@ -2313,7 +2315,6 @@
     .mobile-driver-card,
     .qualifying-live-card,
     .qualifying-live-stat,
-    .battle-flow-card,
     .podium-card,
     .champion-banner,
     .slot-button,
@@ -2794,8 +2795,7 @@
     }
 
     .panel-header h2,
-    .competition-header h2,
-    .battle-flow-head h3{
+    .competition-header h2{
       color: #232b30;
       text-shadow: 1px 1px 0 rgba(255,255,255,0.36);
     }
@@ -2809,7 +2809,6 @@
     .mobile-driver-card,
     .event-card,
     .role-admin-card,
-    .battle-flow-card,
     .podium-card{
       border-width: 2px;
       box-shadow:
@@ -2855,12 +2854,6 @@
       background: linear-gradient(90deg, rgba(210, 210, 210, 0.28), rgba(255,255,255,0));
     }
 
-    .battle-flow-option{
-      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(236, 238, 239, 0.98));
-      border-color: rgba(0, 0, 0, 0.9);
-    }
-
-    .battle-flow-option.current,
     .driver-button.selected{
       background: linear-gradient(135deg, var(--accent), var(--accent-dark));
       color: #fff;
@@ -2868,7 +2861,6 @@
       box-shadow: var(--accent-glow);
     }
 
-    .battle-flow-option.current small,
     .driver-button.selected small{
       color: rgba(255,255,255,0.92);
       opacity: 1;
@@ -2904,8 +2896,6 @@
     .hero-stat-label,
     .slot-team,
     .driver-button small,
-    .battle-flow-meta,
-    .battle-flow-label,
     .summary-card span{
       color: #5e687d;
     }
@@ -3681,13 +3671,6 @@
       box-shadow: 0 10px 24px rgba(0,0,0,0.18);
     }
 
-    body[data-role="spectator"] #view-bracket .battle-flow-card {
-      background:
-        linear-gradient(180deg, rgba(255,255,255,0.98), rgba(246,241,232,0.98));
-      box-shadow:
-        0 16px 30px rgba(0,0,0,0.12),
-        5px 5px 0 #000;
-    }
 
     body[data-role="spectator"] #view-results .results-list .event-card,
     body[data-role="spectator"] #view-results .results-list .results-event-card {
@@ -6025,9 +6008,6 @@
       margin-bottom: 24px;
     }
 
-    .battle-flow-panel { display: none !important; }
-    .battle-flow-panel.twin-comp-flow { display: block !important; }
-
     /* Presentation-only bracket context. This stays outside the board so it
        never changes match geometry or captures competition interactions. */
     .bracket-live-header-bar {
@@ -6152,22 +6132,6 @@
       100% { opacity: 0; }
     }
 
-    .bracket-header-layout {
-      display: grid;
-      grid-template-columns: minmax(260px, 1fr) minmax(320px, auto) minmax(260px, 1fr);
-      align-items: start;
-      gap: 20px;
-    }
-
-    .competition-bracket-page.hide-header-battle-flow .bracket-header-layout {
-      grid-template-columns: 1fr;
-      gap: 8px;
-    }
-
-    .competition-bracket-page.hide-header-battle-flow .bracket-flow-slot {
-      display: none;
-    }
-
     .bracket-header-center {
       display: grid;
       justify-items: center;
@@ -6181,277 +6145,227 @@
       letter-spacing: 0.16em;
     }
 
-    .bracket-flow-slot {
-      min-width: 0;
-      display: flex;
-    }
+    /* ============================================================
+       CURRENT BATTLE / UP NEXT -- the bracket's own match card now
+       carries this state directly (no separate Battle Flow card).
+       ============================================================ */
 
-    .bracket-flow-slot.right {
-      justify-content: flex-end;
-    }
-
-    .battle-flow-grid {
-      display: contents;
-    }
-
-    .battle-flow-card {
-      position: relative;
-      width: min(100%, 360px);
-      border: 1px solid var(--line);
-      border-radius: var(--radius-card);
-      background:
-        linear-gradient(180deg, rgba(255, 254, 251, 0.98), rgba(246, 242, 237, 0.94));
-      padding: 12px;
-      display: grid;
-      gap: 8px;
-      box-shadow: var(--card-shadow);
-    }
-
-    .battle-flow-card.current {
-      background:
-        linear-gradient(180deg, rgba(219, 234, 254, 0.6), rgba(219, 234, 254, 0.32));
-      border-color: #1d4ed8;
-      box-shadow: var(--accent-glow);
-    }
-
-    .battle-flow-card.current .battle-flow-title {
-      font-size: 1.18rem;
-    }
-
-    .battle-flow-card.flow-slot-next:not(.current) .battle-flow-label {
-      color: var(--text-soft);
-    }
-
-    .battle-flow-card.flow-slot-next:not(.current) {
-      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.10);
-    }
-
-    /* CURRENT battle reads as unmistakably live: a pulsing Prodigy Gold dot
-       leads its label so it is distinct from the calm UP-NEXT card. Scoped
-       to .current only; presentation-only. */
-    .battle-flow-card.current .battle-flow-label {
-      display: inline-flex;
-      align-items: center;
-      gap: 7px;
-      color: var(--gold-deep);
-    }
-    .battle-flow-card.current .battle-flow-label::before {
-      content: "";
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--gold);
-      box-shadow: 0 0 0 0 var(--gold-pulse);
-      animation: prodigyLivePulse 1.9s ease-out infinite;
-    }
-    @keyframes prodigyLivePulse {
-      0% { box-shadow: 0 0 0 0 var(--gold-pulse); }
-      70% { box-shadow: 0 0 0 7px rgba(208, 160, 107, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(208, 160, 107, 0); }
-    }
-    @media (prefers-reduced-motion: reduce) {
-      .battle-flow-card.current .battle-flow-label::before { animation: none; }
-    }
-
-    .battle-flow-grid.is-animating .battle-flow-card.flow-slot-current {
-      animation: battleFlowCurrentIn var(--motion-state) var(--ease-glide);
-    }
-
-    .battle-flow-grid.is-animating .battle-flow-card.flow-slot-next {
-      animation: battleFlowNextShift var(--motion-state) var(--ease-glide);
-    }
-
-    .bracket-flow-slot.is-animating .battle-flow-card.flow-slot-current {
-      animation: battleFlowCurrentIn var(--motion-state) var(--ease-glide);
-    }
-
-    .bracket-flow-slot.is-animating .battle-flow-card.flow-slot-next {
-      animation: battleFlowNextShift var(--motion-state) var(--ease-glide);
-    }
-
-    .battle-flow-grid.is-animating .battle-flow-card.flow-slot-current::before,
-    .bracket-flow-slot.is-animating .battle-flow-card.flow-slot-current::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      border-radius: inherit;
-      pointer-events: none;
-      z-index: 2;
-      background: linear-gradient(105deg, transparent 34%, rgba(243, 211, 170, 0.26) 50%, transparent 66%);
-      background-size: 260% 100%;
-      background-repeat: no-repeat;
-      animation: prodigyGoldSweep var(--motion-state) ease both;
-    }
-
-    @keyframes prodigyGoldSweep {
-      from { background-position: 135% 0; }
-      to { background-position: -135% 0; }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      .battle-flow-grid.is-animating .battle-flow-card.flow-slot-current::before,
-      .bracket-flow-slot.is-animating .battle-flow-card.flow-slot-current::before {
-        animation: none;
-        opacity: 0;
-      }
-    }
-
-    /* Current Battle: thin traveling border light + slow breathing glow,
-       always-on (not just during the transition sweep above). Up Next stays
-       calm -- dimmer, a slower static-ish pulse, no traveling light. */
-    .battle-flow-card.current {
-      isolation: isolate;
-    }
-    .battle-flow-card.current::after {
-      content: "";
-      position: absolute;
-      inset: -1px;
-      border-radius: inherit;
-      padding: 1px;
-      background: conic-gradient(from var(--flow-trace-angle, 0deg), transparent 0deg, var(--gold-bright) 24deg, transparent 70deg, transparent 360deg);
-      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-      -webkit-mask-composite: xor;
-      mask-composite: exclude;
-      animation: battleFlowBorderTrace 4.5s linear infinite;
-      pointer-events: none;
-      z-index: -1;
-    }
-    @property --flow-trace-angle {
+    @property --current-trace-angle {
       syntax: "<angle>";
       inherits: false;
       initial-value: 0deg;
     }
-    @keyframes battleFlowBorderTrace {
-      from { --flow-trace-angle: 0deg; }
-      to { --flow-trace-angle: 360deg; }
+    @keyframes currentBattleTrace {
+      from { --current-trace-angle: 0deg; }
+      to { --current-trace-angle: 360deg; }
     }
-    .battle-flow-card.current {
-      animation: battleFlowBreathe 3.6s ease-in-out infinite;
+    @keyframes currentBattlePulseDot {
+      0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.55); }
+      70% { box-shadow: 0 0 0 6px rgba(37, 99, 235, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
     }
-    @keyframes battleFlowBreathe {
-      0%, 100% { box-shadow: var(--accent-glow); }
-      50% { box-shadow: var(--accent-glow), 0 0 26px 2px rgba(208,160,107,0.16); }
-    }
-    .battle-flow-card.current .battle-flow-title {
-      color: var(--text);
-      text-shadow: none;
-    }
-    .battle-flow-card.flow-slot-next:not(.current) {
-      animation: battleFlowUpNextPulse 6s ease-in-out infinite;
-    }
-    @keyframes battleFlowUpNextPulse {
-      0%, 100% { opacity: 0.88; }
+    @keyframes upNextPulse {
+      0%, 100% { opacity: 0.9; }
       50% { opacity: 1; }
     }
-    @media (prefers-reduced-motion: reduce) {
-      .battle-flow-card.current::after { animation: none; opacity: 0.5; }
-      .battle-flow-card.current { animation: none; }
-      .battle-flow-card.flow-slot-next:not(.current) { animation: none; }
+    @keyframes currentDividerEnergy {
+      0%, 100% { background-position: 200% 0; opacity: 0.45; }
+      50% { background-position: -200% 0; opacity: 1; }
     }
 
-    @keyframes battleFlowCurrentIn {
-      0% {
-        opacity: 0;
-        transform: translateX(34px) scale(0.97);
-      }
-      100% {
-        opacity: 1;
-        transform: translateX(0) scale(1);
-      }
-    }
-
-    @keyframes battleFlowNextShift {
-      0% {
-        opacity: 0.78;
-        transform: translateX(28px);
-      }
-      100% {
-        opacity: 1;
-        transform: translateX(0);
-      }
-    }
-
-    .battle-flow-label {
-      margin: 0;
-      color: #7a3a28;
-      font-size: 0.72rem;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-    }
-
-    .battle-flow-title {
-      margin: 0;
-      font-family: var(--font-graffiti);
-      font-size: 1rem;
-      line-height: 1.05;
-    }
-
-    .battle-flow-meta {
-      color: var(--text-soft);
-      font-size: 0.78rem;
-      font-weight: 700;
-      line-height: 1.25;
-    }
-
-    .battle-flow-vs {
-      display: grid;
-      gap: 8px;
-    }
-
-    .battle-flow-option {
-      width: 100%;
-      min-height: 42px;
-      display: flex;
+    .battle-state-badge {
+      position: absolute;
+      top: -11px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 4;
+      display: inline-flex;
       align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      padding: 8px 10px;
-      border: 3px solid #000;
-      background: #fff;
-      color: #000;
-      font-size: 0.88rem;
-      font-weight: 800;
+      gap: 6px;
+      padding: 3px 11px;
+      border-radius: 999px;
+      font-size: 0.62rem;
+      font-weight: 900;
       text-transform: uppercase;
-      box-shadow: 4px 4px 0px #000;
+      letter-spacing: 0.09em;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+    .battle-state-badge.is-current {
+      color: #fff;
+      background: linear-gradient(135deg, #1d4ed8, #0ea5c4);
+      box-shadow: 0 4px 12px rgba(29, 78, 216, 0.4);
+    }
+    .battle-state-badge.is-current::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #bae6fd;
+      box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.55);
+      animation: currentBattlePulseDot 1.8s ease-out infinite;
+    }
+    .battle-state-badge.is-next {
+      color: #2c4a68;
+      background: rgba(219, 234, 254, 0.92);
+      border: 1px solid rgba(44, 74, 104, 0.3);
     }
 
-    .battle-flow-option.current {
-      cursor: pointer;
+    .main-battle[data-battle-state] {
+      position: relative;
     }
 
-    .battle-flow-option.current:hover {
-      transform: translate(2px, 2px);
-      box-shadow: 2px 2px 0px #000;
+    .main-battle[data-battle-state="current"] {
+      isolation: isolate;
+      z-index: 2;
     }
 
-    .battle-flow-option.just-advanced {
-      border-color: var(--gold-ring-mid);
-      box-shadow: var(--bracket-advance-glow);
-      animation: judgeSubmitPulse var(--motion-reveal) var(--ease-snap);
+    .main-battle[data-battle-state="current"] .main-battle-stack,
+    .main-battle[data-battle-state="current"] .final-battle-card {
+      position: relative;
+      z-index: 1;
     }
 
-    .battle-flow-option.preview {
-      cursor: default;
-      box-shadow: 2px 2px 0px #000;
-      border-color: #000;
-      background: #f3efe8;
-      color: #000;
+    /* Dark blue/cyan base outline + a brighter conic trace riding on top of
+       it, absolutely positioned around (not inside) the match card so the
+       real .main-battle box used for connector-point geometry never
+       changes size. */
+    .main-battle[data-battle-state="current"]::before {
+      content: "";
+      position: absolute;
+      inset: -5px;
+      border-radius: 18px;
+      background: #123a63;
+      z-index: -2;
+    }
+    .main-battle[data-battle-state="current"]::after {
+      content: "";
+      position: absolute;
+      inset: -5px;
+      border-radius: 18px;
+      padding: 3px;
+      background: conic-gradient(
+        from var(--current-trace-angle, 0deg),
+        transparent 0deg,
+        #7dd3fc 16deg,
+        #2563eb 42deg,
+        #facc15 58deg,
+        #2563eb 74deg,
+        transparent 100deg,
+        transparent 360deg
+      );
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      animation: currentBattleTrace 3.4s linear infinite;
+      pointer-events: none;
+      z-index: -1;
     }
 
-    .battle-flow-option small {
-      color: inherit;
-      font-size: 0.76rem;
+    .main-battle[data-battle-state="current"] .main-battle-slot {
+      box-shadow: 0 16px 32px rgba(16, 46, 84, 0.24);
+    }
+    .main-battle[data-battle-state="current"] .slot-button {
+      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(224, 240, 255, 0.92));
+      color: #0b2f52;
+    }
+    .main-battle[data-battle-state="current"] .slot-name {
+      font-size: clamp(1rem, 1.5vw, 1.22rem);
+      font-weight: 900;
+    }
+    .main-battle[data-battle-state="current"] .final-battle-card {
+      box-shadow: 0 26px 50px rgba(16, 46, 84, 0.24), 0 4px 0 rgba(16, 46, 84, 0.4);
+      border-color: #1d4ed8;
+    }
+
+    /* Compact Lead/Chase separation on the two rows of the current match --
+       CSS-only so it never touches battle-selection/render logic. */
+    .main-battle[data-battle-state="current"] .main-battle-stack > .main-battle-slot:first-child .slot-button::before,
+    .main-battle[data-battle-state="current"] .final-battle-body > .main-battle-slot:first-child .slot-button::before {
+      content: "Lead";
+      display: block;
+      font-size: 0.6rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      color: #2563eb;
+      opacity: 0.85;
+    }
+    .main-battle[data-battle-state="current"] .main-battle-stack > .main-battle-slot:last-child .slot-button::before,
+    .main-battle[data-battle-state="current"] .final-battle-body > .main-battle-slot:last-child .slot-button::before {
+      content: "Chase";
+      display: block;
+      font-size: 0.6rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      color: #2c4a68;
       opacity: 0.72;
     }
 
-    .battle-flow-empty {
-      padding: 18px;
-      border: 2px dashed #8d8d8d;
-      color: #666;
-      font-weight: 700;
-      text-align: center;
-      background: rgba(255,255,255,0.78);
+    /* Subtle animated energy line across the matchup divider. */
+    .main-battle[data-battle-state="current"] .main-battle-stack::after {
+      content: "";
+      position: absolute;
+      left: 10px;
+      right: 10px;
+      top: 50%;
+      height: 2px;
+      transform: translateY(-50%);
+      border-radius: 2px;
+      background: linear-gradient(90deg, transparent, #2563eb, transparent);
+      background-size: 200% 100%;
+      animation: currentDividerEnergy 2.6s ease-in-out infinite;
+      pointer-events: none;
+      z-index: 2;
+    }
+    .main-battle[data-battle-state="current"] .final-vs {
+      position: relative;
+      color: #0b2f52;
+    }
+    .main-battle[data-battle-state="current"] .final-vs::after {
+      content: "";
+      position: absolute;
+      left: 18%;
+      right: 18%;
+      bottom: -2px;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #2563eb, transparent);
+      background-size: 200% 100%;
+      animation: currentDividerEnergy 2.6s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    /* Up Next: pale blue-gray tint, slower/softer pulse, lower priority
+       than Current Battle -- no traveling trace. */
+    .main-battle[data-battle-state="next"] .main-battle-slot,
+    .main-battle[data-battle-state="next"] .final-battle-card {
+      background: linear-gradient(180deg, rgba(219, 234, 254, 0.55), rgba(219, 234, 254, 0.26));
+      border-color: rgba(44, 74, 104, 0.4);
+      animation: upNextPulse 5.5s ease-in-out infinite;
+    }
+    .main-battle[data-battle-state="next"] .slot-button {
+      color: #24405c;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .battle-state-badge.is-current::before { animation: none; }
+      .main-battle[data-battle-state="current"]::after { animation: none; }
+      .main-battle[data-battle-state="current"] .main-battle-stack::after,
+      .main-battle[data-battle-state="current"] .final-vs::after { animation: none; opacity: 0.7; }
+      .main-battle[data-battle-state="next"] .main-battle-slot,
+      .main-battle[data-battle-state="next"] .final-battle-card { animation: none; }
+    }
+
+    /* Pause every continuous decorative animation introduced above while
+       the tab is hidden (see the existing document.visibilityState toggle
+       that sets body.is-tab-hidden). */
+    body.is-tab-hidden .battle-state-badge.is-current::before,
+    body.is-tab-hidden .main-battle[data-battle-state="current"]::after,
+    body.is-tab-hidden .main-battle[data-battle-state="current"] .main-battle-stack::after,
+    body.is-tab-hidden .main-battle[data-battle-state="current"] .final-vs::after,
+    body.is-tab-hidden .main-battle[data-battle-state="next"] .main-battle-slot,
+    body.is-tab-hidden .main-battle[data-battle-state="next"] .final-battle-card,
+    body.is-tab-hidden .main-board-label[data-round-status="active"]::after {
+      animation-play-state: paused;
     }
 
     .summary-strip-tight { margin-top: -6px; }
@@ -6660,18 +6574,77 @@
 
     .bracket-connector-path {
       fill: none;
-      stroke: color-mix(in srgb, var(--line-strong) 72%, transparent);
+      stroke: color-mix(in srgb, var(--line-strong) 82%, transparent);
       stroke-linecap: round;
       stroke-linejoin: round;
-      stroke-width: 2;
-      opacity: 0.72;
+      stroke-width: 2.75;
+      opacity: 0.8;
     }
 
     .bracket-connector-path.is-decided {
-      stroke: color-mix(in srgb, var(--gold-bright) 76%, var(--line-strong));
-      stroke-width: 2.5;
-      opacity: 0.96;
-      filter: drop-shadow(0 0 3px color-mix(in srgb, var(--gold-bright) 48%, transparent));
+      stroke: color-mix(in srgb, var(--gold-bright) 78%, var(--line-strong));
+      stroke-width: 3.25;
+      opacity: 0.98;
+      filter: drop-shadow(0 0 3px color-mix(in srgb, var(--gold-bright) 50%, transparent));
+    }
+
+    /* Current Battle's outgoing path: gentle continuous energy flow toward
+       the next-round junction. Same color regardless of side -- never
+       implies which driver will win. */
+    .bracket-connector-path.is-current-outgoing {
+      stroke: #2563eb;
+      stroke-width: 3;
+      stroke-dasharray: 7 9;
+      opacity: 0.88;
+      animation: connectorEnergyFlow 1.6s linear infinite;
+    }
+    @keyframes connectorEnergyFlow {
+      to { stroke-dashoffset: -32; }
+    }
+
+    /* Up Next's incoming path: restrained pale-blue emphasis, static --
+       lower visual priority than the Current Battle path above. */
+    .bracket-connector-path.is-up-next-incoming {
+      stroke: color-mix(in srgb, #60a5fa 55%, var(--line-strong));
+      stroke-width: 2.75;
+      opacity: 0.78;
+    }
+
+    /* One-time bright streak riding the winning connector at the moment of
+       decision. Keyed off the same transient winnerAnimationState window
+       that the winner-card morph and .winner-just-selected/.incoming-winner
+       pops already use (see renderBracketProgressionConnectors) -- so it
+       can only ever play once per decision, and never replays on
+       refresh/hydration/event-switch/routine snapshot rerender, since that
+       state is not persisted. */
+    .bracket-connector-path.is-just-advanced {
+      stroke: #facc15;
+      stroke-width: 3.5;
+      stroke-dasharray: 14 999;
+      stroke-dashoffset: 14;
+      opacity: 1;
+      filter: drop-shadow(0 0 4px rgba(250, 204, 21, 0.6));
+      animation: connectorJustAdvanced 900ms ease-out both;
+    }
+    @keyframes connectorJustAdvanced {
+      from { stroke-dashoffset: 14; }
+      to { stroke-dashoffset: -600; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .bracket-connector-path.is-current-outgoing {
+        animation: none;
+        stroke-dasharray: none;
+      }
+      .bracket-connector-path.is-just-advanced {
+        animation: none;
+        stroke-dasharray: none;
+        stroke-dashoffset: 0;
+      }
+    }
+
+    body.is-tab-hidden .bracket-connector-path.is-current-outgoing {
+      animation-play-state: paused;
     }
 
     .main-bracket-board.is-fitted {
@@ -6704,6 +6677,7 @@
     /* Round labels as editorial eyebrows: tracked, with a hairline rule beneath
        so the round columns read as a confident header row at projector scale. */
     .main-board-label {
+      position: relative;
       text-align: center;
       font-family: var(--font-graffiti);
       font-size: 1.2rem;
@@ -6711,6 +6685,57 @@
       color: #000;
       padding-bottom: 8px;
       border-bottom: 1px solid var(--line-strong);
+    }
+
+    .main-board-label[data-round-status="active"] {
+      color: #123a63;
+      border-bottom-color: #2563eb;
+      border-bottom-width: 2px;
+    }
+    .main-board-label[data-round-status="active"]::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: -2px;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #38bdf8, transparent);
+      background-size: 200% 100%;
+      animation: roundHeadingSweep 2.6s ease-in-out infinite;
+      pointer-events: none;
+    }
+    @keyframes roundHeadingSweep {
+      0%, 100% { background-position: 200% 0; }
+      50% { background-position: -200% 0; }
+    }
+    .main-board-label[data-round-status="completed"] {
+      color: #4b5563;
+      opacity: 0.86;
+    }
+    .main-board-label[data-round-status="future"] {
+      color: #33404d;
+      opacity: 0.74;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .main-board-label[data-round-status="active"]::after { animation: none; opacity: 0.8; }
+    }
+
+    /* One-time bracket entrance: fade + rise, staggered by round. Only
+       stamped by renderBracketBoard when the caller has genuinely
+       determined this is a fresh reveal (see animateEntrance in
+       renderBracket()) -- a routine snapshot rerender omits the attribute
+       entirely, so newly-created elements simply appear with no animation
+       and this never replays on refresh/hydration/event-switch. */
+    [data-entrance="stagger"] {
+      animation: bracketEntranceRise 420ms ease both;
+      animation-delay: var(--round-delay, 0ms);
+    }
+    @keyframes bracketEntranceRise {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      [data-entrance="stagger"] { animation: none; }
     }
 
     .main-board-round-labels,
@@ -8313,11 +8338,6 @@
       .qualifying-side-column { position: static; }
       .rounds-board { grid-template-columns: repeat(2, minmax(240px, 1fr)); }
       .main-board-canvas { min-width: 0; }
-      .bracket-header-layout { grid-template-columns: 1fr; }
-      .bracket-flow-slot,
-      .bracket-flow-slot.right { justify-content: center; }
-      .battle-flow-card { width: min(100%, 520px); }
-      .bracket-header-center { order: -1; }
     }
 
     @media (max-width: 960px) {
@@ -8557,7 +8577,6 @@
       .table-wrap.mobile-hidden { display: none; }
       .mobile-drivers-list { display: grid; }
       .mobile-score-grid { grid-template-columns: 1fr; }
-      .battle-flow-option { font-size: 0.92rem; }
       .command-center-grid,
       .public-event-spotlight-grid,
       .public-event-roster-grid,
@@ -8814,8 +8833,6 @@
       #view-website-admin > .hero .hero-stat strong {
         font-size: 1rem;
       }
-      .battle-flow-card { width: 100%; box-shadow: 5px 5px 0 #000; }
-      .battle-flow-option { min-height: 48px; }
       body.competition-page .page-shell {
         width: 100vw;
         max-width: 100vw;
@@ -8869,9 +8886,6 @@
       .main-bracket-header {
         margin-bottom: 14px;
       }
-      .bracket-header-layout {
-        gap: 12px;
-      }
       .bracket-header-center {
         gap: 6px;
       }
@@ -8886,18 +8900,6 @@
         max-width: min(12ch, 100%);
         font-size: clamp(1.2rem, 5.5vw, 1.9rem);
         line-height: 0.94;
-      }
-      .battle-flow-card {
-        padding: 10px;
-      }
-      .battle-flow-label {
-        font-size: 0.66rem;
-      }
-      .battle-flow-title {
-        font-size: 0.9rem;
-      }
-      .battle-flow-meta {
-        font-size: 0.72rem;
       }
       .main-board-round-labels {
         gap: 10px;
@@ -12929,7 +12931,6 @@
       .public-event-spotlight,
       .public-event-statline,
       .qualifying-live-card,
-      .battle-flow-card,
       .streamer-hero-panel,
       .streamer-help-card {
         border-radius: 22px;
@@ -13415,23 +13416,6 @@
         font-size: 0.78rem;
       }
 
-      .battle-flow-card {
-        width: 100%;
-        gap: 12px;
-      }
-
-      .battle-flow-vs {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 10px;
-      }
-
-      .battle-flow-option {
-        min-height: 68px;
-        padding: 14px;
-        text-align: left;
-      }
-
       .slot-button,
       .driver-button {
         min-height: 44px;
@@ -13821,14 +13805,12 @@
     }
 
     @supports ((-webkit-mask-composite: xor) or (mask-composite: exclude)) {
-      .battle-flow-card.current,
       .qualifying-live-card.is-advancing,
       .native-live-stage[data-stream-state="live"] {
         position: relative;
         isolation: isolate;
       }
 
-      .battle-flow-card.current::after,
       .qualifying-live-card.is-advancing::after,
       .native-live-stage[data-stream-state="live"]::after {
         content: "";
@@ -13915,7 +13897,6 @@
     }
 
     @media (prefers-reduced-motion: reduce) {
-      .battle-flow-card.current::after,
       .qualifying-live-card.is-advancing::after,
       .native-live-stage[data-stream-state="live"]::after,
       .mode-tab:hover::after,
@@ -13947,7 +13928,7 @@
       <div class="topbar-left">
         <div class="topbar-brand">
           <div class="topbar-brand-mark">
-            <img src="./assets/prodigy-rc-logo-transparent.png?v=102564447be3" alt="Prodigy RC logo" />
+            <img src="./assets/prodigy-rc-logo-transparent.png?v=899c47ae5213" alt="Prodigy RC logo" />
           </div>
           <div class="topbar-brand-copy">
             <span class="topbar-brand-kicker">Prodigy RC Comp</span>
@@ -14003,7 +13984,7 @@
       <div class="streamer-topbar-main">
         <div class="streamer-topbar-brandline">
           <div class="streamer-topbar-mark">
-            <img src="./assets/prodigy-rc-logo-transparent.png?v=102564447be3" alt="Prodigy RC logo" />
+            <img src="./assets/prodigy-rc-logo-transparent.png?v=899c47ae5213" alt="Prodigy RC logo" />
           </div>
           <div class="streamer-topbar-copy">
             <span class="streamer-topbar-kicker">Prodigy Stream Studio</span>
@@ -14202,7 +14183,7 @@
     <div id="view-registration" class="view-section is-active">
       <header class="hero">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=102564447be3" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=899c47ae5213" alt="Prodigy RC logo" /></div>
           <p class="eyebrow">Registration</p>
           <h1>Driver Sign-Up</h1>
           <div class="hero-actions">
@@ -14341,7 +14322,7 @@
     <div id="view-home" class="view-section">
       <header class="hero hero-simple spectator-only">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=102564447be3" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=899c47ae5213" alt="Prodigy RC logo" /></div>
           <p class="eyebrow" id="landingHeroEyebrow">Prodigy RC Drift Arena</p>
           <h1 id="landingHeroTitle"><span class="landing-brand-wordmark" aria-label="Live Drift Event Hub">Live Drift Event Hub</span></h1>
           <p id="landingHeroCopy" class="hero-copy">Check in, follow qualifying, and see results as they happen.</p>
@@ -14418,7 +14399,7 @@
     <div id="view-live" class="view-section">
       <header class="hero hero-simple spectator-only">
         <div class="hero-copy-block">
-          <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=102564447be3" alt="Prodigy RC logo" /></div>
+          <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=899c47ae5213" alt="Prodigy RC logo" /></div>
           <p class="eyebrow">Live Broadcast</p>
           <h1><span class="landing-brand-wordmark">LIVE</span></h1>
           <p class="hero-copy">Watch the active event stream with a layout that follows qualifying, battles, brackets, standings, and results automatically.</p>
@@ -14454,7 +14435,7 @@
     <div id="view-self-register" class="view-section">
       <header class="hero">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=102564447be3" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=899c47ae5213" alt="Prodigy RC logo" /></div>
           <p class="eyebrow">Driver Check-In</p>
           <h1>Self Registration</h1>
           <p class="hero-copy">Pre-register now, then verify your location at the venue to check in.</p>
@@ -14593,7 +14574,7 @@
     <div id="view-qualifying" class="view-section">
       <header class="hero hero-simple">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=102564447be3" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=899c47ae5213" alt="Prodigy RC logo" /></div>
           <div class="spectator-qualifying-title spectator-only">
             <p class="eyebrow">Live Event</p>
             <h1>Qualifying Standings</h1>
@@ -14716,7 +14697,7 @@
     <div id="view-results" class="view-section">
       <header class="hero hero-simple">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=102564447be3" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=899c47ae5213" alt="Prodigy RC logo" /></div>
           <p class="eyebrow">Results</p>
           <h1>Past Events</h1>
           <p class="hero-copy">
@@ -14750,7 +14731,7 @@
     <div id="view-website-admin" class="view-section">
       <header class="hero">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=102564447be3" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=899c47ae5213" alt="Prodigy RC logo" /></div>
           <p class="eyebrow">Website Admin</p>
           <h1>Website Admin</h1>
           <p class="hero-copy">
@@ -14887,7 +14868,7 @@
       <!-- Fixed Fullscreen Toolbar -->
       <div class="bracket-header-bar">
         <div id="bracketHeaderLogoSlot">
-              <img class="bracket-header-logo" src="./assets/prodigy-rc-logo-transparent.png?v=102564447be3" alt="Prodigy RC logo" />
+              <img class="bracket-header-logo" src="./assets/prodigy-rc-logo-transparent.png?v=899c47ae5213" alt="Prodigy RC logo" />
         </div>
         <div class="button-row bracket-header-actions">
           <button id="fullscreenBracketBtn" class="button button-secondary bracket-header-icon-button" type="button" aria-label="Toggle fullscreen bracket" title="Toggle fullscreen">⛶<span class="icon-label">Fullscreen</span></button>
@@ -14931,16 +14912,6 @@
           <span id="bracketLiveHeaderStatus" class="bracket-live-header-status"></span>
         </div>
         <div id="roundTransitionToast" class="round-transition-toast" aria-live="polite"></div>
-        <section id="battleFlowPanel" class="battle-flow-panel hidden">
-          <div class="battle-flow-head">
-            <div>
-              <p class="section-kicker" style="margin-bottom: 4px;">Run Order</p>
-              <h3>Battle Flow</h3>
-            </div>
-            <span id="battleFlowStatus" class="status-pill active">Main Bracket</span>
-          </div>
-          <div id="battleFlowContent"></div>
-        </section>
         <div id="competitionReviewBanner" class="competition-review-banner hidden" aria-live="polite"></div>
         <section id="competitionDecisionPanel" class="competition-decision-panel hidden admin-only" role="dialog" aria-modal="false" aria-label="Battle result" aria-live="polite"></section>
         <section id="competitionJudgePanel" class="competition-judge-panel hidden judge-only" aria-live="polite"></section>
@@ -14952,14 +14923,10 @@
 
         <section id="lowerBracketPage" class="main-bracket-panel competition-bracket-page">
           <div class="main-bracket-header">
-            <div class="bracket-header-layout">
-              <div id="lowerBracketCurrentBattle" class="bracket-flow-slot left"></div>
-              <div class="bracket-header-center">
-                <p class="section-kicker">Play-In</p>
-                <h2 class="main-board-title">Lower Bracket</h2>
-                <img class="bracket-stage-logo" src="./assets/prodigy-rc-logo-transparent.png?v=102564447be3" alt="Prodigy RC logo" />
-              </div>
-              <div id="lowerBracketNextBattle" class="bracket-flow-slot right"></div>
+            <div class="bracket-header-center">
+              <p class="section-kicker">Play-In</p>
+              <h2 class="main-board-title">Lower Bracket</h2>
+              <img class="bracket-stage-logo" src="./assets/prodigy-rc-logo-transparent.png?v=899c47ae5213" alt="Prodigy RC logo" />
             </div>
             <div id="lowerBracketRuleAlert" class="bracket-alert-banner hidden">
               <strong>FIRST TO CRASH IN PLAY</strong>
@@ -14971,14 +14938,10 @@
 
         <section id="mainBracketPage" class="main-bracket-panel competition-bracket-page is-active">
           <div class="main-bracket-header">
-            <div class="bracket-header-layout">
-              <div id="mainBracketCurrentBattle" class="bracket-flow-slot left"></div>
-              <div class="bracket-header-center">
-                <p class="section-kicker">Main Event</p>
-                <h2 id="mainBracketTitle" class="main-board-title">Main Competition</h2>
-                <img class="bracket-stage-logo" src="./assets/prodigy-rc-logo-transparent.png?v=102564447be3" alt="Prodigy RC logo" />
-              </div>
-              <div id="mainBracketNextBattle" class="bracket-flow-slot right"></div>
+            <div class="bracket-header-center">
+              <p class="section-kicker">Main Event</p>
+              <h2 id="mainBracketTitle" class="main-board-title">Main Competition</h2>
+              <img class="bracket-stage-logo" src="./assets/prodigy-rc-logo-transparent.png?v=899c47ae5213" alt="Prodigy RC logo" />
             </div>
           </div>
           <div id="bracketBoard" class="main-bracket-board"></div>
@@ -15299,17 +15262,17 @@
   </div>
 
   <!-- APP LOGIC -->
-  <script src="./client-config.js?v=102564447be3"></script>
+  <script src="./client-config.js?v=899c47ae5213"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script type="module">
-    import { parseVoiceCommandsWithFallback, sendResultsSummaryEmail } from "./assets/js/legacy-client-features.js?v=102564447be3";
-    import { isHistoricalBracketUnavailable, resolveRecoveredBracket, shouldPreserveUnavailableHistoricalBracket } from "./assets/js/historical-bracket.js?v=102564447be3";
+    import { parseVoiceCommandsWithFallback, sendResultsSummaryEmail } from "./assets/js/legacy-client-features.js?v=899c47ae5213";
+    import { isHistoricalBracketUnavailable, resolveRecoveredBracket, shouldPreserveUnavailableHistoricalBracket } from "./assets/js/historical-bracket.js?v=899c47ae5213";
     import {
       createSelectedEventSubscriptionController,
       resolveSelectionEventMeta,
       shouldReplaceCachedSelection,
       getLiveJudgeSelectionMismatch,
-    } from "./assets/js/event-selection-sync.js?v=102564447be3";
+    } from "./assets/js/event-selection-sync.js?v=899c47ae5213";
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, connectAuthEmulator } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, collection, doc, setDoc, onSnapshot, deleteDoc, deleteField, getDoc, runTransaction, connectFirestoreEmulator } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -15325,15 +15288,15 @@
         venueName: "Prodigy RC Drift Arena",
         venueLabelPlaceholder: "Prodigy RC Drift Arena",
         eventNamePlaceholder: "Prodigy RC Drift Arena",
-        logoPrimary: "./assets/prodigy-rc-logo-transparent.png?v=102564447be3",
-        logoInverted: "./assets/prodigy-rc-logo-white-transparent.png?v=102564447be3",
+        logoPrimary: "./assets/prodigy-rc-logo-transparent.png?v=899c47ae5213",
+        logoInverted: "./assets/prodigy-rc-logo-white-transparent.png?v=899c47ae5213",
         logoTreatment: {
           invertLight: false,
           invertDark: false,
         },
         logoAlt: "Prodigy RC logo",
-        backgroundImage: "./assets/track-background.png?v=102564447be3",
-        homeHeroImage: "./assets/track-background.png?v=102564447be3",
+        backgroundImage: "./assets/track-background.png?v=899c47ae5213",
+        homeHeroImage: "./assets/track-background.png?v=899c47ae5213",
         shopUrl: "https://www.prodigydrift.com/",
         shopLabel: "Shop Prodigy RC Here",
         pdfHeaderTitle: "PRODIGY RC",
@@ -19527,15 +19490,6 @@
         <article class="summary-card"><span>Active Teams</span><strong>${activeTeams.length}</strong></article>
         <article class="summary-card"><span>Latest Score</span><strong>${latest ? `${escapeHtml(latest.teamName)} ${formatScore(Number(latest.score))}` : "-"}</strong></article>
       `;
-      document.getElementById("battleFlowPanel").classList.remove("hidden");
-      document.getElementById("battleFlowStatus").textContent = state.status === "complete" ? "Complete" : "Triple Elim";
-      document.getElementById("battleFlowContent").innerHTML = `
-        <div class="battle-flow-empty">
-          <strong>${winner ? `Winner: ${escapeHtml(winner)}` : currentDriver ? `Current Team: ${escapeHtml(currentDriver.name || currentDriver.teamName || "Team")}` : "Waiting for next round"}</strong>
-          <small>${round ? `Round ${round.number} | Lowest 3 finalized scores receive 1 elimination point while 4+ teams remain.` : "Start a round after teams are added."}</small>
-        </div>
-        ${renderTwinCompAdminControls(state)}
-      `;
       document.getElementById("competitionReviewBanner").classList.toggle("hidden", !round?.tieReviewRequired);
       document.getElementById("competitionReviewBanner").innerHTML = tiedReview;
       document.getElementById("competitionDecisionPanel").classList.add("hidden");
@@ -19544,8 +19498,6 @@
       document.getElementById("lowerBracketPage").classList.add("hidden");
       document.getElementById("mainBracketPage").classList.add("is-active");
       document.getElementById("mainBracketTitle").textContent = activeEventMeta?.name || "Twin Comp Triple Elimination";
-      document.getElementById("mainBracketCurrentBattle").innerHTML = currentDriver ? `<div class="battle-flow-title">${escapeHtml(currentDriver.name || currentDriver.teamName || "Team")}</div><div class="battle-flow-meta">Now Running</div>` : "";
-      document.getElementById("mainBracketNextBattle").innerHTML = winner ? `<div class="battle-flow-title">${escapeHtml(winner)}</div><div class="battle-flow-meta">Winner</div>` : "";
       document.getElementById("bracketBoard").innerHTML = `
         <div class="qualifying-layout" style="width:100%;">
           <section class="panel">
@@ -19555,6 +19507,11 @@
                 <h2>Round ${round?.number || "-"}</h2>
               </div>
             </div>
+            <div class="command-center-note">
+              <strong>${winner ? `Winner: ${escapeHtml(winner)}` : currentDriver ? `Current Team: ${escapeHtml(currentDriver.name || currentDriver.teamName || "Team")}` : "Waiting for next round"}</strong>
+              <small>${round ? `Round ${round.number} | Lowest 3 finalized scores receive 1 elimination point while 4+ teams remain.` : "Start a round after teams are added."}</small>
+            </div>
+            ${renderTwinCompAdminControls(state)}
             <div class="table-wrap">
               <table>
                 <thead><tr><th>Team</th><th>Score</th><th>Elim</th><th>Status</th></tr></thead>
@@ -21067,6 +21024,7 @@
     let lastAnnouncedRoundEventId = null;
     let lastAnnouncedRoundKey = null;
     let lastAnnouncedRoundName = null;
+    let bracketEntranceAnimatedForEventId = null;
     let lastStandingsSignature = null;
     let lastPodiumSignature = null;
     let fullscreenPodiumRevealState = { eventKey: null, champion: false, runnerUp: false, third: false, fourth: false };
@@ -22018,6 +21976,7 @@
       });
       lastBattleFlowSignature = null;
       lastPodiumSignature = null;
+      bracketEntranceAnimatedForEventId = null;
       clearWinnerAnimationState();
       saveBracketPagePreference(activeEventId, activeCompetitionBracketPage);
       if (launchWarning) {
@@ -22878,7 +22837,7 @@
       };
     }
 
-    function getThemeAwareLogoSource(primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=102564447be3", invertedLogo = CLIENT_BRANDING.logoInverted || primaryLogo) {
+    function getThemeAwareLogoSource(primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=899c47ae5213", invertedLogo = CLIENT_BRANDING.logoInverted || primaryLogo) {
       return document.body?.dataset.theme === "dark" ? invertedLogo : primaryLogo;
     }
 
@@ -24109,11 +24068,11 @@
 
     function applyClientBranding() {
       const root = document.documentElement;
-      const primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=102564447be3";
+      const primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=899c47ae5213";
       const invertedLogo = CLIENT_BRANDING.logoInverted || primaryLogo;
       const logoTreatment = isPlainObject(CLIENT_BRANDING.logoTreatment) ? CLIENT_BRANDING.logoTreatment : {};
       const logoAlt = CLIENT_BRANDING.logoAlt || CLIENT_BRANDING.venueName || "Track logo";
-      const backgroundImage = CLIENT_BRANDING.backgroundImage || "./assets/track-background.png?v=102564447be3";
+      const backgroundImage = CLIENT_BRANDING.backgroundImage || "./assets/track-background.png?v=899c47ae5213";
       const homeHeroImage = CLIENT_BRANDING.homeHeroImage || backgroundImage;
       const browserTitle = CLIENT_PLATFORM.browserTitle || CLIENT_PLATFORM.productName || "Prodigy Event Control";
 
@@ -24359,7 +24318,7 @@
       syncWebsiteAdminUpcomingBannerUi();
     }
 
-    function syncBrandLogoAssetsForTheme(primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=102564447be3", invertedLogo = CLIENT_BRANDING.logoInverted || primaryLogo, logoAlt = CLIENT_BRANDING.logoAlt || "Prodigy RC logo") {
+    function syncBrandLogoAssetsForTheme(primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=899c47ae5213", invertedLogo = CLIENT_BRANDING.logoInverted || primaryLogo, logoAlt = CLIENT_BRANDING.logoAlt || "Prodigy RC logo") {
       const themedLogo = getThemeAwareLogoSource(primaryLogo, invertedLogo);
       document.querySelectorAll(".hero-logo, .bracket-stage-logo, .bracket-header-logo, .topbar-brand-mark img, .streamer-topbar-mark img, .native-broadcast-brand img").forEach((logoEl) => {
         logoEl.setAttribute("src", themedLogo);
@@ -27637,7 +27596,7 @@
           ? `#${rankedDrivers[0].seed} ${rankedDrivers[0].name}`
           : "Waiting";
       const queueLabel = nextDriver?.name || queuedBattleTitle || "Queue loading";
-      const cameraSource = escapeAttributeValue(CLIENT_BRANDING.backgroundImage || "./assets/track-background.png?v=102564447be3");
+      const cameraSource = escapeAttributeValue(CLIENT_BRANDING.backgroundImage || "./assets/track-background.png?v=899c47ae5213");
       const venueLabel = activeEventMeta?.name || CLIENT_BRANDING.venueName || "Prodigy RC Drift Arena";
 
       return `
@@ -29489,7 +29448,7 @@
       const sceneHeader = `
         <header class="streamer-scene-header">
           <div class="streamer-scene-brand">
-            <img src="./assets/prodigy-rc-logo-transparent.png?v=102564447be3" alt="Prodigy RC logo" />
+            <img src="./assets/prodigy-rc-logo-transparent.png?v=899c47ae5213" alt="Prodigy RC logo" />
             <div class="streamer-scene-title">
               <span class="streamer-scene-kicker">${escapeHtml(meta.label)} • ${route.demo ? "Demo Data" : "Live Event"}</span>
               <h1>${escapeHtml(context.eventName)}</h1>
@@ -36319,75 +36278,6 @@
       return driver.teamName?.trim() ? `Team ${driver.teamName.trim()}` : `Qual ${formatScore(driver.bestScore)}`;
     }
 
-    function renderBattleFlowCard(entry, label, isCurrent = false, slotClass = "") {
-      if (!entry) {
-        return `
-          <article class="battle-flow-card ${slotClass}">
-            <p class="battle-flow-label">${label}</p>
-            <div class="battle-flow-empty">No battle queued yet.</div>
-          </article>
-        `;
-      }
-
-      const leftDriver = entry.match.left;
-      const rightDriver = entry.match.right;
-      const tandemBattle = isTeamTandemMode(activeEventMeta) && isTeamTandemParticipant(leftDriver) && isTeamTandemParticipant(rightDriver);
-      const primarySide = tandemBattle
-        ? "left"
-        : (leftDriver?.seed ?? Number.MAX_SAFE_INTEGER) <= (rightDriver?.seed ?? Number.MAX_SAFE_INTEGER) ? "left" : "right";
-      const secondarySide = primarySide === "left" ? "right" : "left";
-      const primaryDriver = primarySide === "left" ? leftDriver : rightDriver;
-      const secondaryDriver = secondarySide === "left" ? leftDriver : rightDriver;
-      const actionClass = isCurrent ? "current" : "preview";
-      const judgeControl = getCompetitionJudgeControl();
-      const entryKey = buildCompetitionJudgeEntryKey(entry);
-      const isControlledEntry = judgeControl.entry && buildCompetitionJudgeEntryKey(judgeControl.entry) === entryKey;
-      const reviewHold = isControlledEntry && judgeControl.status === "review_hold";
-      const pendingAdminDecision = isControlledEntry && judgeControl.status === "admin_decision";
-      const omtRerun = isControlledEntry && judgeControl.status === "voting" && judgeControl.reason === "omt";
-      const canAdvance = isCurrent
-        && (adminCanEdit())
-        && !currentRole?.startsWith("j")
-        && !isControlledEntry
-        && !bracketReorderModeEnabled
-        && getActiveJudgeRoles(activeEventMeta).length === 0;
-      const actionAttrs = isCurrent ? `data-flow-bracket="${entry.bracketKey}" data-flow-round="${entry.roundIndex}" data-flow-match="${entry.matchIndex}"` : "";
-      const selectedSignature = winnerAnimationState?.selected?.signature || "";
-      const primarySelected = selectedSignature && selectedSignature === buildSlotSignature(entry.bracketKey, entry.roundIndex, entry.matchIndex, primarySide, primaryDriver);
-      const secondarySelected = selectedSignature && selectedSignature === buildSlotSignature(entry.bracketKey, entry.roundIndex, entry.matchIndex, secondarySide, secondaryDriver);
-      const metaText = reviewHold
-        ? "Review in progress"
-        : pendingAdminDecision
-          ? "Awaiting event admin"
-          : omtRerun
-            ? "OMT called | rerun required"
-          : entry.meta;
-      const primaryLabel = tandemBattle
-        ? `#${primaryDriver.seed} ${escapeHtml(primaryDriver.name)}`
-        : `Lead | #${primaryDriver.seed} ${escapeHtml(primaryDriver.name)}`;
-      const secondaryLabel = tandemBattle
-        ? `#${secondaryDriver.seed} ${escapeHtml(secondaryDriver.name)}`
-        : `Chase | #${secondaryDriver.seed} ${escapeHtml(secondaryDriver.name)}`;
-
-      return `
-        <article class="battle-flow-card ${isCurrent ? "current" : ""} ${slotClass}">
-          <p class="battle-flow-label">${label}</p>
-          <h4 class="battle-flow-title">${entry.title}</h4>
-          <div class="battle-flow-meta">${escapeHtml(metaText || "")}</div>
-          <div class="battle-flow-vs">
-            <button class="battle-flow-option ${actionClass} ${primarySelected ? "just-advanced" : ""}" type="button" ${actionAttrs} data-flow-side="${primarySide}" ${canAdvance ? "" : "disabled"}>
-              <span>${primaryLabel}</span>
-              <small>${escapeHtml(getBracketParticipantSecondaryLine(primaryDriver))}</small>
-            </button>
-            <button class="battle-flow-option ${actionClass} ${secondarySelected ? "just-advanced" : ""}" type="button" ${actionAttrs} data-flow-side="${secondarySide}" ${canAdvance ? "" : "disabled"}>
-              <span>${secondaryLabel}</span>
-              <small>${escapeHtml(getBracketParticipantSecondaryLine(secondaryDriver))}</small>
-            </button>
-          </div>
-        </article>
-      `;
-    }
-
     function getStandingsTrophyMarkup(placeIndex) {
       const trophySvg = `
         <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
@@ -36424,23 +36314,6 @@
           </article>
         </section>
       `;
-    }
-
-    function renderBattleFlowPair(currentSlot, nextSlot, entries, shouldAnimate = false) {
-      if (currentSlot) {
-        currentSlot.innerHTML = renderBattleFlowCard(entries[0] || null, "Current Battle", true, "flow-slot-current");
-        currentSlot.classList.toggle("is-animating", shouldAnimate);
-      }
-      if (nextSlot) {
-        nextSlot.innerHTML = renderBattleFlowCard(entries[1] || null, "Next Battle", false, "flow-slot-next");
-        nextSlot.classList.toggle("is-animating", shouldAnimate);
-      }
-      if (shouldAnimate) {
-        setTimeout(() => {
-          currentSlot?.classList.remove("is-animating");
-          nextSlot?.classList.remove("is-animating");
-        }, 420);
-      }
     }
 
     // Presentation-only. Reads the already resolved event/bracket state and
@@ -36512,24 +36385,18 @@
       toast.classList.add("is-announcing");
     }
 
+    // Resolves the authoritative "current battle" / "up next" entries for
+    // the lower and main boards (reusing the exact same order-based
+    // selection already used to drive judge/decision state -- never
+    // reimplemented), and hands them back to renderBracket() so the
+    // bracket's own match cards can carry the current/next markers
+    // directly. Presentation-only: does not touch battle selection, votes,
+    // or admin controls.
     function renderBattleFlow() {
-      const panel = document.getElementById("battleFlowPanel");
-      const content = document.getElementById("battleFlowContent");
-      const status = document.getElementById("battleFlowStatus");
-      const lowerCurrent = document.getElementById("lowerBracketCurrentBattle");
-      const lowerNext = document.getElementById("lowerBracketNextBattle");
-      const mainCurrent = document.getElementById("mainBracketCurrentBattle");
-      const mainNext = document.getElementById("mainBracketNextBattle");
       if (!tournamentState?.mainBracket?.rounds?.length) {
-        panel.classList.add("hidden");
-        content.innerHTML = "";
-        status.textContent = "No Bracket";
-        [lowerCurrent, lowerNext, mainCurrent, mainNext].forEach((slot) => {
-          if (slot) slot.innerHTML = "";
-        });
         renderBracketLiveHeader(null);
         lastBattleFlowSignature = null;
-        return;
+        return { lowerDisplayEntries: [], mainDisplayEntries: [], shouldAnimateCurrent: false };
       }
 
       const lowerEntries = getLowerBattleFlowEntries(tournamentState.lowerBracket?.rounds || []);
@@ -36553,33 +36420,12 @@
       const currentSignature = judgeControl.entry && judgeControl.status !== "idle"
         ? buildCompetitionJudgeEntryKey(judgeControl.entry)
         : (currentEntry ? `${currentEntry.bracketKey}:${currentEntry.roundIndex}:${currentEntry.matchIndex}` : "none");
-      const shouldAnimate = lastBattleFlowSignature !== null && currentSignature !== lastBattleFlowSignature;
+      const shouldAnimateCurrent = lastBattleFlowSignature !== null && currentSignature !== lastBattleFlowSignature;
       lastBattleFlowSignature = currentSignature;
-      status.textContent = judgeControl.status === "review_hold"
-        ? "Review In Progress"
-        : judgeControl.status === "admin_decision"
-          ? "Decision Ready"
-          : currentEntry?.bracketKey === "lower"
-            ? "Lower Bracket"
-            : currentEntry?.bracketKey === "third"
-              ? "3rd Place"
-              : "Main Bracket";
-      panel.classList.remove("hidden");
-      content.innerHTML = "";
-      if (lowerEntries.length) {
-        renderBattleFlowPair(lowerCurrent, lowerNext, lowerDisplayEntries, shouldAnimate && activeCompetitionBracketPage === "lower");
-      } else {
-        if (lowerCurrent) lowerCurrent.innerHTML = "";
-        if (lowerNext) lowerNext.innerHTML = "";
-      }
-      renderBattleFlowPair(mainCurrent, mainNext, mainDisplayEntries, shouldAnimate && (activeCompetitionBracketPage !== "lower" || !lowerEntries.length));
       renderCompetitionReviewBanner();
       renderCompetitionDecisionPanel();
       renderCompetitionJudgePanel();
-    }
-
-    function bracketHasTop32Round(rounds) {
-      return Array.isArray(rounds) && rounds.some((round) => String(round?.name || "").trim() === "Top 32");
+      return { lowerDisplayEntries, mainDisplayEntries, shouldAnimateCurrent };
     }
 
     function renderSummary() {
@@ -36991,19 +36837,43 @@
         : `<div class="${slotClasses}" ${slotAttrs} data-drop-slot="1">${seedChip}${button}</div>`;
     }
 
-    function renderMainBattle(bracketKey, roundIndex, matchIndex, match, align) {
-      const canChoose = Boolean(match.left && match.right);
-      return `<article class="main-battle ${align}" data-bracket-key="${bracketKey}" data-round-index="${roundIndex}" data-match-index="${matchIndex}" data-connector-side="${align}" data-match-decided="${match.winner ? "true" : "false"}"><div class="main-battle-stack">${renderMainSlot(bracketKey, roundIndex, matchIndex, "left", match.left, match.winner, canChoose, align)}${renderMainSlot(bracketKey, roundIndex, matchIndex, "right", match.right, match.winner, canChoose, align)}</div></article>`;
+    // Presentation-only marker: the bracket's own match card now carries
+    // "current battle"/"up next" directly (no separate Battle Flow card).
+    // Reuses whatever entry the caller already resolved via
+    // getMainBattleFlowEntries/getLowerBattleFlowEntries -- never
+    // recomputes battle selection itself.
+    function resolveBattleFlowState(bracketKey, roundIndex, matchIndex, currentEntry, nextEntry) {
+      if (currentEntry && currentEntry.bracketKey === bracketKey && currentEntry.roundIndex === roundIndex && currentEntry.matchIndex === matchIndex) return "current";
+      if (nextEntry && nextEntry.bracketKey === bracketKey && nextEntry.roundIndex === roundIndex && nextEntry.matchIndex === matchIndex) return "next";
+      return null;
     }
 
-    function renderFinalBattle(bracketKey, roundIndex, match, title = "Final Battle") {
-      const canChoose = Boolean(match.left && match.right);
-      return `<article class="main-battle center final-center" data-bracket-key="${bracketKey}" data-round-index="${roundIndex}" data-match-index="0" data-connector-side="center" data-match-decided="${match.winner ? "true" : "false"}"><div class="final-battle-card"><div class="final-battle-head">${title}</div><div class="final-battle-body">${renderMainSlot(bracketKey, roundIndex, 0, "left", match.left, match.winner, canChoose, "center")}<div class="final-vs">VS</div>${renderMainSlot(bracketKey, roundIndex, 0, "right", match.right, match.winner, canChoose, "center")}</div></div></article>`;
+    function renderBattleStateBadge(battleState) {
+      if (battleState === "current") return '<span class="battle-state-badge is-current">Current Battle</span>';
+      if (battleState === "next") return '<span class="battle-state-badge is-next">Up Next</span>';
+      return "";
     }
 
-    function renderPlacementBattle(bracketKey, match, title) {
+    function getRoundLabelStatus(bracketKey, roundIndex, round, currentEntry) {
+      if (currentEntry && currentEntry.bracketKey === bracketKey && currentEntry.roundIndex === roundIndex) return "active";
+      const relevant = (round?.matches || []).filter((m) => m.left && m.right);
+      if (relevant.length && relevant.every((m) => m.winner)) return "completed";
+      return "future";
+    }
+
+    function renderMainBattle(bracketKey, roundIndex, matchIndex, match, align, battleState = null) {
+      const canChoose = Boolean(match.left && match.right);
+      return `<article class="main-battle ${align}" data-bracket-key="${bracketKey}" data-round-index="${roundIndex}" data-match-index="${matchIndex}" data-connector-side="${align}" data-match-decided="${match.winner ? "true" : "false"}" ${battleState ? `data-battle-state="${battleState}"` : ""}>${renderBattleStateBadge(battleState)}<div class="main-battle-stack">${renderMainSlot(bracketKey, roundIndex, matchIndex, "left", match.left, match.winner, canChoose, align)}${renderMainSlot(bracketKey, roundIndex, matchIndex, "right", match.right, match.winner, canChoose, align)}</div></article>`;
+    }
+
+    function renderFinalBattle(bracketKey, roundIndex, match, title = "Final Battle", battleState = null) {
+      const canChoose = Boolean(match.left && match.right);
+      return `<article class="main-battle center final-center" data-bracket-key="${bracketKey}" data-round-index="${roundIndex}" data-match-index="0" data-connector-side="center" data-match-decided="${match.winner ? "true" : "false"}" ${battleState ? `data-battle-state="${battleState}"` : ""}><div class="final-battle-card">${renderBattleStateBadge(battleState)}<div class="final-battle-head">${title}</div><div class="final-battle-body">${renderMainSlot(bracketKey, roundIndex, 0, "left", match.left, match.winner, canChoose, "center")}<div class="final-vs">VS</div>${renderMainSlot(bracketKey, roundIndex, 0, "right", match.right, match.winner, canChoose, "center")}</div></div></article>`;
+    }
+
+    function renderPlacementBattle(bracketKey, match, title, battleState = null) {
       const canChoose = Boolean(match?.left && match?.right);
-      return `<article class="main-battle center placement-center"><div class="final-battle-card third-place-card"><div class="final-battle-head">${title}</div><div class="final-battle-body">${renderMainSlot(bracketKey, 0, 0, "left", match?.left, match?.winner, canChoose, "center")}<div class="final-vs">VS</div>${renderMainSlot(bracketKey, 0, 0, "right", match?.right, match?.winner, canChoose, "center")}</div></div></article>`;
+      return `<article class="main-battle center placement-center" data-bracket-key="${bracketKey}" data-round-index="0" data-match-index="0" ${battleState ? `data-battle-state="${battleState}"` : ""}><div class="final-battle-card third-place-card">${renderBattleStateBadge(battleState)}<div class="final-battle-head">${title}</div><div class="final-battle-body">${renderMainSlot(bracketKey, 0, 0, "left", match?.left, match?.winner, canChoose, "center")}<div class="final-vs">VS</div>${renderMainSlot(bracketKey, 0, 0, "right", match?.right, match?.winner, canChoose, "center")}</div></div></article>`;
     }
 
     function getBracketCssMetric(name, fallback) {
@@ -37033,6 +36903,9 @@
     function renderBracketBoard(bracketKey, rounds, options = {}) {
       const thirdPlaceMatch = options.thirdPlaceMatch || null;
       const finalTitle = options.finalTitle || "Final Battle";
+      const currentEntry = options.currentEntry || null;
+      const nextEntry = options.nextEntry || null;
+      const animateEntrance = Boolean(options.animateEntrance);
       const centerLabel = thirdPlaceMatch ? "Podium" : "Final";
       const roundWidth = getBracketCssMetric("--bracket-round-width", 218);
       const finalCardWidth = getBracketCssMetric("--final-card-width", 300);
@@ -37046,7 +36919,8 @@
       const supportsConnectors = supportsTruthfulMainBracketConnectors(bracketKey, rounds);
       if (!rounds.length) return "";
       if (rounds.length === 1) {
-        return `<div class="main-board-canvas" data-natural-width="320" data-natural-height="${singleBoardHeight}" style="width: 320px; min-width: 320px; height: ${singleBoardHeight}px;"><div class="main-board-scale-shell"><div class="main-board-grid" style="grid-template-columns: 1fr;"><div class="center-stage-stack">${renderFinalBattle(bracketKey, 0, rounds[0].matches[0], finalTitle)}</div></div></div></div>`;
+        const soloBattleState = resolveBattleFlowState(bracketKey, 0, 0, currentEntry, nextEntry);
+        return `<div class="main-board-canvas" data-natural-width="320" data-natural-height="${singleBoardHeight}" style="width: 320px; min-width: 320px; height: ${singleBoardHeight}px;"><div class="main-board-scale-shell"><div class="main-board-grid" style="grid-template-columns: 1fr;"><div class="center-stage-stack" ${animateEntrance ? `data-entrance="stagger"` : ""}>${renderFinalBattle(bracketKey, 0, rounds[0].matches[0], finalTitle, soloBattleState)}</div></div></div></div>`;
       }
 
       const sideRounds = rounds.slice(0, -1);
@@ -37056,6 +36930,11 @@
       const rightRounds = sideRounds.map(r => r.matches.slice(Math.floor(r.matches.length / 2)));
       const rightRoundsReversed = [...rightRounds].reverse();
       const labelColumns = [...sideRounds.map(r => r.name), centerLabel, ...[...sideRounds].reverse().map(r => r.name)];
+      const labelStatuses = [
+        ...sideRounds.map((round, stageIndex) => getRoundLabelStatus(bracketKey, stageIndex, round, currentEntry)),
+        getRoundLabelStatus(bracketKey, rounds.length - 1, finalRound, currentEntry),
+        ...[...sideRounds].reverse().map((round, reverseIndex) => getRoundLabelStatus(bracketKey, sideRounds.length - 1 - reverseIndex, round, currentEntry)),
+      ];
       const gridTemplate = `${Array(sideRounds.length).fill(`${roundWidth}px`).join(" ")} ${centerWidth}px ${Array(sideRounds.length).fill(`${roundWidth}px`).join(" ")}`;
       const columnCount = sideRounds.length * 2 + 1;
       const boardWidth = sideRounds.length * roundWidth * 2 + centerWidth + Math.max(columnCount - 1, 0) * boardGap;
@@ -37068,20 +36947,27 @@
       const finalTop = eliteMetrics.offset;
       const thirdTop = eliteMetrics.offset + baseMatchHeight + eliteMetrics.gap;
 
-      const leftMarkup = leftRounds.map((matches, stageIndex) => `<section class="main-board-round" style="--round-gap: ${metrics[stageIndex].gap}px; --round-offset: ${metrics[stageIndex].offset}px;"><div class="main-board-round-matches">${matches.map((match, matchIndex) => renderMainBattle(bracketKey, stageIndex, matchIndex, match, "left")).join("")}</div></section>`).join("");
+      const entranceAttr = (stageIndex) => animateEntrance ? `data-entrance="stagger" style="--round-gap: ${metrics[stageIndex].gap}px; --round-offset: ${metrics[stageIndex].offset}px; --round-delay: ${Math.min(stageIndex, 4) * 70}ms;"` : `style="--round-gap: ${metrics[stageIndex].gap}px; --round-offset: ${metrics[stageIndex].offset}px;"`;
+      const leftMarkup = leftRounds.map((matches, stageIndex) => `<section class="main-board-round" ${entranceAttr(stageIndex)}><div class="main-board-round-matches">${matches.map((match, matchIndex) => renderMainBattle(bracketKey, stageIndex, matchIndex, match, "left", resolveBattleFlowState(bracketKey, stageIndex, matchIndex, currentEntry, nextEntry))).join("")}</div></section>`).join("");
       const rightMarkup = rightRoundsReversed.map((matches, reverseIndex) => {
         const stageIndex = sideRounds.length - 1 - reverseIndex;
         const originalMatches = rightRounds[stageIndex];
-        return `<section class="main-board-round" style="--round-gap: ${metrics[stageIndex].gap}px; --round-offset: ${metrics[stageIndex].offset}px;"><div class="main-board-round-matches">${matches.map(match => renderMainBattle(bracketKey, stageIndex, Math.floor(sideRounds[stageIndex].matches.length / 2) + originalMatches.indexOf(match), match, "right")).join("")}</div></section>`;
+        return `<section class="main-board-round" ${entranceAttr(stageIndex)}><div class="main-board-round-matches">${matches.map(match => {
+          const matchIndex = Math.floor(sideRounds[stageIndex].matches.length / 2) + originalMatches.indexOf(match);
+          return renderMainBattle(bracketKey, stageIndex, matchIndex, match, "right", resolveBattleFlowState(bracketKey, stageIndex, matchIndex, currentEntry, nextEntry));
+        }).join("")}</div></section>`;
       }).join("");
+      const finalBattleState = resolveBattleFlowState(bracketKey, rounds.length - 1, 0, currentEntry, nextEntry);
+      const thirdPlaceBattleState = thirdPlaceMatch ? resolveBattleFlowState("third", 0, 0, currentEntry, nextEntry) : null;
+      const centerEntranceDelay = animateEntrance ? `--round-delay: ${Math.min(sideRounds.length, 4) * 70}ms;` : "";
 
       return `
         <div class="main-board-canvas" data-natural-width="${boardWidth}" data-natural-height="${boardHeight}" data-progression-connectors="${supportsConnectors ? "enabled" : "disabled"}" style="width: ${boardWidth}px; min-width: ${boardWidth}px; height: ${boardHeight}px;">
           <div class="main-board-scale-shell">
-            <div class="main-board-round-labels" style="grid-template-columns: ${gridTemplate};">${labelColumns.map(label => `<div class="main-board-label">${label}</div>`).join("")}</div>
+            <div class="main-board-round-labels" style="grid-template-columns: ${gridTemplate};">${labelColumns.map((label, labelIndex) => `<div class="main-board-label" data-round-status="${labelStatuses[labelIndex]}">${label}</div>`).join("")}</div>
             <div class="main-board-grid" style="grid-template-columns: ${gridTemplate};">
               <div class="main-board-side left" style="grid-column: 1 / span ${sideRounds.length}; grid-template-columns: repeat(${sideRounds.length}, ${roundWidth}px);">${leftMarkup}</div>
-              <div style="grid-column: ${sideRounds.length + 1} / span 1; height: ${boardHeight}px;"><div class="center-stage-stack" style="--center-stage-min-height:${boardHeight}px; --center-stage-final-top:${finalTop}px; --center-stage-third-top:${thirdTop}px;">${renderFinalBattle(bracketKey, rounds.length - 1, finalRound.matches[0], finalTitle)}${thirdPlaceMatch ? renderPlacementBattle("third", thirdPlaceMatch, "3rd Place Battle") : ""}</div></div>
+              <div style="grid-column: ${sideRounds.length + 1} / span 1; height: ${boardHeight}px;"><div class="center-stage-stack" ${animateEntrance ? `data-entrance="stagger"` : ""} style="--center-stage-min-height:${boardHeight}px; --center-stage-final-top:${finalTop}px; --center-stage-third-top:${thirdTop}px; ${centerEntranceDelay}">${renderFinalBattle(bracketKey, rounds.length - 1, finalRound.matches[0], finalTitle, finalBattleState)}${thirdPlaceMatch ? renderPlacementBattle("third", thirdPlaceMatch, "3rd Place Battle", thirdPlaceBattleState) : ""}</div></div>
               <div class="main-board-side right" style="grid-column: ${sideRounds.length + 2} / span ${sideRounds.length}; grid-template-columns: repeat(${sideRounds.length}, ${roundWidth}px);">${rightMarkup}</div>
             </div>
           </div>
@@ -37279,7 +37165,25 @@
           const bendX = (sourcePoint.x + targetPoint.x) / 2;
           const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
           path.classList.add("bracket-connector-path");
-          if (source.dataset.matchDecided === "true") path.classList.add("is-decided");
+          const isDecided = source.dataset.matchDecided === "true";
+          if (isDecided) {
+            path.classList.add("is-decided");
+            // One-time streak, coordinated with the winner-card morph: only
+            // present while winnerAnimationState is the transient, in-memory
+            // window that also drives .winner-just-selected/.incoming-winner
+            // (see triggerWinnerAnimation) -- never persisted, so a fresh
+            // page load or snapshot rerender can never reproduce this class.
+            if (
+              winnerAnimationState?.selected?.bracketKey === source.dataset.bracketKey
+              && String(winnerAnimationState.selected.roundIndex) === source.dataset.roundIndex
+              && String(winnerAnimationState.selected.matchIndex) === source.dataset.matchIndex
+            ) {
+              path.classList.add("is-just-advanced");
+            }
+          } else {
+            if (source.dataset.battleState === "current") path.classList.add("is-current-outgoing");
+            if (target.dataset.battleState === "next") path.classList.add("is-up-next-incoming");
+          }
           path.setAttribute("d", `M ${sourcePoint.x} ${sourcePoint.y} H ${bendX} V ${targetPoint.y} H ${targetPoint.x}`);
           svg.append(path);
         });
@@ -37366,8 +37270,6 @@
       `;
       panel.classList.remove("hidden");
       document.getElementById("summaryStrip").style.display = "none";
-      document.getElementById("battleFlowPanel").classList.add("hidden");
-      document.getElementById("battleFlowContent").innerHTML = "";
       document.getElementById("competitionBracketTabs").classList.add("hidden");
       document.getElementById("lowerBracketRuleAlert")?.classList.add("hidden");
       document.getElementById("lowerBracketPage").classList.add("hidden");
@@ -37394,7 +37296,6 @@
         return;
       }
       const twinTripleMode = isTwinTripleMode(activeEventMeta);
-      document.getElementById("battleFlowPanel")?.classList.toggle("twin-comp-flow", twinTripleMode);
       if (twinTripleMode) {
         setBracketReorderUiState({ bracketReorderModeEnabled: false });
         const summaryStrip = document.getElementById("summaryStrip");
@@ -37410,8 +37311,6 @@
         const summaryStrip = document.getElementById("summaryStrip");
         summaryStrip.innerHTML = "";
         summaryStrip.style.display = "none";
-        document.getElementById("battleFlowPanel").classList.add("hidden");
-        document.getElementById("battleFlowContent").innerHTML = "";
         document.getElementById("competitionBracketTabs").classList.add("hidden");
         document.getElementById("lowerBracketRuleAlert")?.classList.add("hidden");
         document.getElementById("lowerBracketPage").classList.remove("is-active");
@@ -37438,10 +37337,17 @@
 
       document.getElementById("emptyBracketState").classList.add("hidden");
       renderSummary();
-      renderBattleFlow();
+      const { lowerDisplayEntries, mainDisplayEntries } = renderBattleFlow();
       renderChampion();
       renderFullscreenPodium();
       document.getElementById("lowerBracketRuleAlert")?.classList.toggle("hidden", !shouldShowLowerBracketRuleAlert());
+
+      // One-time entrance stagger: only the first time this event's bracket
+      // is shown in this session (or after switching away and back) --
+      // never on a routine re-render of the same event's bracket.
+      const entranceEventId = activeEventId || activeEventMeta?.id || "";
+      const animateEntrance = bracketEntranceAnimatedForEventId !== entranceEventId;
+      bracketEntranceAnimatedForEventId = entranceEventId;
 
       if (tournamentState.lowerBracket) {
         document.getElementById("competitionBracketTabs").classList.remove("hidden");
@@ -37449,20 +37355,23 @@
         if (activeCompetitionBracketPage !== "lower" && activeCompetitionBracketPage !== "main") {
           setCompetitionBracketPageState("lower");
         }
-        document.getElementById("lowerBracketPage").classList.toggle("hide-header-battle-flow", bracketHasTop32Round(tournamentState.lowerBracket.rounds));
         document.getElementById("lowerBracketBoard").innerHTML = renderBracketBoard("lower", tournamentState.lowerBracket.rounds, {
           finalTitle: "Lower Bracket Final",
+          currentEntry: lowerDisplayEntries[0] || null,
+          nextEntry: lowerDisplayEntries[1] || null,
+          animateEntrance,
         });
       } else {
         document.getElementById("competitionBracketTabs").classList.add("hidden");
         document.querySelector('[data-bracket-page="lower"]').classList.add("hidden");
-        document.getElementById("lowerBracketPage").classList.remove("hide-header-battle-flow");
         setCompetitionBracketPageState("main");
       }
-      document.getElementById("mainBracketPage").classList.toggle("hide-header-battle-flow", bracketHasTop32Round(tournamentState.mainBracket.rounds));
       document.getElementById("bracketBoard").innerHTML = renderBracketBoard("main", tournamentState.mainBracket.rounds, {
         thirdPlaceMatch: tournamentState.mainBracket.thirdPlaceMatch,
         finalTitle: "Final Battle",
+        currentEntry: mainDisplayEntries[0] || null,
+        nextEntry: mainDisplayEntries[1] || null,
+        animateEntrance,
       });
       updateCompetitionBracketPage();
       scheduleBracketRefit();
@@ -37742,9 +37651,6 @@
           return;
         }
       }
-      const btn = e.target.closest(".battle-flow-option.current[data-flow-bracket]");
-      if (!btn) return;
-      chooseWinner(btn.dataset.flowBracket, parseInt(btn.dataset.flowRound || "0", 10), parseInt(btn.dataset.flowMatch || "0", 10), btn.dataset.flowSide);
     });
 
     competitionJudgePanel?.addEventListener("click", async (e) => {

@@ -67,4 +67,129 @@ assert.match(
   "native and fallback fullscreen states must share a safe exit path"
 );
 
+// -- Bracket flow redesign: Battle Flow cards removed, state lives on the
+// bracket's own match cards instead. --
+
+assert.doesNotMatch(
+  html,
+  /id="battleFlowPanel"/,
+  "the standalone Battle Flow panel must be fully removed, not merely hidden"
+);
+assert.doesNotMatch(
+  html,
+  /class="battle-flow-card/,
+  "Battle Flow card markup must be fully removed"
+);
+assert.doesNotMatch(
+  html,
+  /\.battle-flow-card|\.battle-flow-option|\.bracket-flow-slot|\.bracket-header-layout/,
+  "no obsolete Battle Flow CSS selectors may remain"
+);
+
+assert.match(
+  html,
+  /function resolveBattleFlowState\(bracketKey, roundIndex, matchIndex, currentEntry, nextEntry\)/,
+  "the bracket board must resolve current/up-next state per match from the same authoritative entries used elsewhere"
+);
+assert.match(
+  html,
+  /function renderBattleStateBadge\(battleState\)[\s\S]*?"current"[\s\S]*?Current Battle[\s\S]*?"next"[\s\S]*?Up Next/,
+  "the actual match card must render its own Current Battle / Up Next label"
+);
+assert.match(
+  html,
+  /data-battle-state="\$\{battleState\}"/,
+  "the match card wrapper must carry the current/next state as a data attribute for CSS to key off"
+);
+assert.match(
+  html,
+  /\.main-battle\[data-battle-state="current"\]::after \{[\s\S]*?conic-gradient/,
+  "the Current Battle card must have an animated conic-gradient border trace"
+);
+assert.match(
+  html,
+  /\.main-battle\[data-battle-state="next"\][\s\S]*?upNextPulse/,
+  "the Up Next card must have its own calmer, non-traveling pulse"
+);
+
+// -- Connector states: current/up-next/winning-persistent, all reusing
+// authoritative state (winnerAnimationState, data-battle-state) rather
+// than introducing new selection logic. --
+
+assert.match(
+  html,
+  /canvas\.querySelector\(".bracket-connector-layer"\)\?\.remove\(\);/,
+  "the connector layer must be removed before a fresh one is built, so exactly one SVG can ever exist per canvas"
+);
+assert.match(
+  html,
+  /if \(source\.dataset\.battleState === "current"\) path\.classList\.add\("is-current-outgoing"\);/,
+  "the current battle's outgoing connector must be marked from the same data-battle-state the match card already carries"
+);
+assert.match(
+  html,
+  /if \(target\.dataset\.battleState === "next"\) path\.classList\.add\("is-up-next-incoming"\);/,
+  "the up-next match's incoming connector must be marked the same way"
+);
+assert.match(
+  html,
+  /winnerAnimationState\?\.selected\?\.bracketKey === source\.dataset\.bracketKey[\s\S]*?path\.classList\.add\("is-just-advanced"\);/,
+  "the one-time winning-connector streak must be keyed off the same transient winnerAnimationState window the morph and slot-pop animations already use"
+);
+assert.match(
+  html,
+  /if \(!Number\.isInteger\(roundIndex\) \|\| !Number\.isInteger\(matchIndex\) \|\| side === "center"\) return;/,
+  "a center (championship) match must never produce an outgoing connector"
+);
+assert.doesNotMatch(
+  html,
+  /renderPlacementBattle\([^)]*\)[\s\S]{0,40}data-connector-side/,
+  "third-place must never carry a connector-side attribute that could route it into the championship path"
+);
+
+// -- Reduced motion: every new bracket-flow animation collapses to a
+// static state under prefers-reduced-motion. --
+
+assert.match(
+  html,
+  /@media \(prefers-reduced-motion: reduce\) \{[\s\S]*?\.battle-state-badge\.is-current::before \{ animation: none; \}/,
+  "current-battle badge pulse must stop under reduced motion"
+);
+assert.match(
+  html,
+  /@media \(prefers-reduced-motion: reduce\) \{[\s\S]*?\[data-entrance="stagger"\] \{ animation: none; \}/,
+  "bracket entrance stagger must be skipped under reduced motion"
+);
+assert.match(
+  html,
+  /@media \(prefers-reduced-motion: reduce\) \{\s*\.bracket-connector-path\.is-current-outgoing \{[\s\S]*?animation: none;/,
+  "the current-battle connector energy flow must stop under reduced motion"
+);
+
+// -- Hydration/replay safety and preserved advancement guarantees. --
+
+assert.match(
+  html,
+  /let bracketEntranceAnimatedForEventId = null;/,
+  "the one-time bracket entrance stagger must be tracked per-event so a routine rerender of the same event never replays it"
+);
+assert.match(
+  html,
+  /const animateEntrance = bracketEntranceAnimatedForEventId !== entranceEventId;/,
+  "entrance animation must only be requested when this event's bracket has not already been animated in this session"
+);
+assert.match(
+  html,
+  /if \(match && roundIndex < \(rounds\?\.length \|\| 0\) - 1\)/,
+  "a match in the final round must not compute a forward target -- the championship never morphs forward"
+);
+
+// -- Morph selectors untouched by the redesign. --
+
+assert.match(
+  html,
+  /document\.querySelector\(`button\.slot-button\$\{attrSelector\}, button\.driver-button\$\{attrSelector\}`\)/,
+  "findBracketSlotElement's selector contract must remain exactly what the winner-card morph depends on"
+);
+
 console.log("bracket presentation regression tests passed");
