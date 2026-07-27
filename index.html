@@ -11,7 +11,7 @@
   <style>
     @font-face {
       font-family: 'Ethnocentric';
-      src: url('./assets/fonts/Ethnocentric-Regular.otf?v=7df312a3af13') format('opentype');
+      src: url('./assets/fonts/Ethnocentric-Regular.otf?v=e8bd4aac0a8f') format('opentype');
       font-weight: 400;
       font-style: normal;
       font-display: swap;
@@ -57,14 +57,24 @@
       --connector-thickness: 3px;
     --final-card-width: 300px;
     --third-card-width: 280px;
-      --radius-panel: 24px;
-      --radius-card: 18px;
-      --radius-button: 14px;
-      --brand-track-background-image: url("./assets/track-background.png?v=7df312a3af13");
-      --brand-watermark-image: url("./assets/prodigy-rc-logo-white-transparent.png?v=7df312a3af13");
+      /* Restrained admin/operational scale. The bracket board is decoupled
+         from --radius-panel (hardcoded on .main-bracket-panel) so it keeps
+         its own depth treatment regardless of this system. */
+      --radius-button: 8px;
+      --radius-card: 10px;
+      --radius-panel: 12px;
+      --radius-modal: 16px;
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-6: 24px;
+      --space-8: 32px;
+      --brand-track-background-image: url("./assets/track-background.png?v=e8bd4aac0a8f");
+      --brand-watermark-image: url("./assets/prodigy-rc-logo-white-transparent.png?v=e8bd4aac0a8f");
       --font-graffiti: 'Ethnocentric', 'Orbitron', 'Inter', sans-serif;
       --font-sans: 'Inter', sans-serif;
-      --brand-home-hero-image: url("./assets/track-background.png?v=7df312a3af13");
+      --brand-home-hero-image: url("./assets/track-background.png?v=e8bd4aac0a8f");
       --accent-rgb: 44, 36, 29;
       --button-accent-rgb: 43, 36, 29;
       --button-accent-dark-rgb: 122, 99, 75;
@@ -1972,7 +1982,6 @@
     .button-secondary,
     .micro-button:not(.button-accent),
     .mode-tab,
-    .hero-meta-pill,
     .search-field,
     .sync-status{
       background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(243, 239, 233, 0.94));
@@ -2497,30 +2506,28 @@
     .hero-card {
       position: relative;
       display: grid;
-      gap: 12px;
-      padding: 20px;
+      gap: var(--space-3);
+      padding: var(--space-4);
       border: 1px solid var(--line);
       border-radius: var(--radius-card);
-      background:
-        linear-gradient(180deg, rgba(255, 254, 251, 0.94), rgba(246, 242, 237, 0.92)),
-        linear-gradient(135deg, rgba(255,255,255,0.5), rgba(255,255,255,0.1));
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.72), 0 18px 34px rgba(22,29,43,0.1);
+      background: var(--panel);
+      box-shadow: var(--card-shadow);
     }
 
     .hero-card-grid { grid-template-columns: 1fr; }
 
     .hero-stat {
-      padding: 14px 16px;
-      border: 1px solid var(--line);
-      border-radius: 16px;
-      background: linear-gradient(180deg, rgba(255, 254, 251, 0.9), rgba(246, 242, 237, 0.94));
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.72), 0 12px 22px rgba(22,29,43,0.1);
+      padding-block: var(--space-2);
+      border-top: 1px solid var(--line);
+    }
+    .hero-stat:first-child {
+      border-top: none;
+      padding-top: 0;
     }
 
     .hero-stat-emphasis {
-      background: linear-gradient(135deg, rgba(var(--button-accent-rgb), 0.96), rgba(var(--accent-cyan-rgb), 0.84));
+      background: var(--accent);
       color: #fff;
-      box-shadow: var(--accent-glow);
     }
 
     .hero-stat-emphasis .hero-stat-label { color: #ccc; }
@@ -2744,12 +2751,9 @@
     }
 
     .hero-meta-pill {
-      padding: 10px 14px;
-      border: 1px solid rgba(17, 17, 17, 0.18);
-      border-radius: 999px;
-      background: rgba(255,255,255,0.88);
-      font-size: 0.88rem;
-      font-weight: 800;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-soft);
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
@@ -2758,6 +2762,8 @@
       text-transform: none;
       letter-spacing: normal;
       font-size: 1rem;
+      font-weight: 700;
+      color: var(--text);
       margin-left: 6px;
     }
 
@@ -2895,11 +2901,6 @@
     .driver-button.selected small{
       color: rgba(255,255,255,0.92);
       opacity: 1;
-    }
-
-    .hero-meta-pill{
-      border-width: 2px;
-      box-shadow: 0 10px 22px rgba(104, 63, 21, 0.10);
     }
 
     .hero-stat,
@@ -3179,14 +3180,12 @@
 
     .mobile-driver-card {
       display: grid;
-      gap: 16px;
-      padding: 20px;
+      gap: var(--space-4);
+      padding: var(--space-4);
       border: 1px solid var(--line);
-      border-radius: 24px;
-      background:
-        linear-gradient(180deg, rgba(255,255,255,0.97), rgba(247,244,239,0.94)),
-        linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0));
-      box-shadow: 0 16px 32px rgba(11, 15, 24, 0.12), inset 0 1px 0 rgba(255,255,255,0.78);
+      border-radius: var(--radius-panel);
+      background: var(--panel);
+      box-shadow: var(--card-shadow);
     }
 
     .registration-layout {
@@ -3780,16 +3779,9 @@
     .registration-roster-count {
       display: inline-flex;
       align-items: center;
-      justify-content: center;
-      min-height: 42px;
-      padding: 8px 12px;
-      border: 1px solid #000;
-      border-radius: 999px;
-      background: #000;
-      color: #fff;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
+      color: var(--text-soft);
+      font-weight: 700;
+      font-size: 0.9rem;
     }
 
     .mobile-driver-head,
@@ -3967,18 +3959,12 @@
 
     .competition-review-banner {
       display: grid;
-      gap: 6px;
-      padding: 14px 18px;
-      border: 1px solid rgba(17, 21, 32, 0.12);
-      border-radius: 22px;
-      background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(245, 246, 250, 0.78)),
-        linear-gradient(135deg, rgba(var(--button-accent-rgb), 0.12), rgba(var(--accent-cyan-rgb), 0.08));
-      box-shadow:
-        0 18px 40px rgba(11, 15, 24, 0.12),
-        inset 0 1px 0 rgba(255, 255, 255, 0.72);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
+      gap: var(--space-1);
+      padding: var(--space-3) var(--space-4);
+      border: 1px solid var(--line-strong);
+      border-radius: var(--radius-card);
+      background: var(--panel);
+      box-shadow: var(--card-shadow);
     }
 
     .competition-review-banner strong {
@@ -5170,14 +5156,12 @@
 
     .judge-lane-submitbar {
       display: grid;
-      gap: 12px;
-      padding: 16px;
+      gap: var(--space-3);
+      padding: var(--space-4);
       border: 1px solid var(--line-strong);
-      border-radius: 22px;
-      background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(247, 248, 251, 0.92)),
-        linear-gradient(135deg, rgba(var(--button-accent-rgb), 0.08), rgba(var(--accent-cyan-rgb), 0.06));
-      box-shadow: 0 18px 36px rgba(11, 15, 24, 0.14), inset 0 1px 0 rgba(255,255,255,0.72);
+      border-radius: var(--radius-card);
+      background: rgba(255, 254, 251, 0.94);
+      box-shadow: var(--card-shadow);
       margin-top: 4px;
       position: sticky;
       bottom: 16px;
@@ -5569,11 +5553,12 @@
 
     .event-card {
       display: grid;
-      gap: 16px;
-      padding: 20px;
-      border: 3px solid var(--line);
-      background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(241,241,241,0.92));
-      box-shadow: 4px 4px 0px #000;
+      gap: var(--space-4);
+      padding: var(--space-4);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-card);
+      background: var(--panel);
+      box-shadow: var(--card-shadow);
     }
 
     #view-results .results-list .event-card,
@@ -5664,10 +5649,8 @@
     }
 
     .event-stat {
-      padding: 14px 14px 12px;
-      border: 2px solid #000;
-      border-radius: 14px;
-      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(242,242,242,0.96));
+      padding-block: var(--space-2);
+      border-top: 1px solid var(--line);
       align-self: start;
     }
 
@@ -5701,11 +5684,9 @@
     .event-card-overview,
     .event-card-podium {
       display: grid;
-      gap: 8px;
-      padding: 16px;
-      border: 2px solid #000;
-      border-radius: 16px;
-      background: linear-gradient(180deg, rgba(255,255,255,0.985), rgba(244,244,244,0.96));
+      gap: var(--space-2);
+      padding-top: var(--space-3);
+      border-top: 1px solid var(--line);
       align-content: start;
       align-self: start;
     }
@@ -5849,22 +5830,22 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 12px;
-      padding: 16px 18px;
-      border: 1px solid rgba(17, 17, 17, 0.12);
-      border-radius: 22px;
-      background: linear-gradient(180deg, rgba(255,255,255,0.94), rgba(241,241,241,0.92));
-      box-shadow: 0 14px 28px rgba(11, 15, 24, 0.1), inset 0 1px 0 rgba(255,255,255,0.72);
+      gap: var(--space-3);
+      padding: var(--space-3) var(--space-4);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-card);
+      background: var(--panel);
+      box-shadow: var(--card-shadow);
     }
 
     .role-admin-card {
       display: grid;
-      gap: 14px;
-      padding: 18px;
-      border: 1px solid rgba(17, 17, 17, 0.12);
-      border-radius: 24px;
-      background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(243,243,243,0.92));
-      box-shadow: 0 16px 32px rgba(11, 15, 24, 0.12), inset 0 1px 0 rgba(255,255,255,0.8);
+      gap: var(--space-3);
+      padding: var(--space-4);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-card);
+      background: var(--panel);
+      box-shadow: var(--card-shadow);
     }
 
     .role-admin-head,
@@ -5899,12 +5880,9 @@
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
       align-items: center;
-      gap: 12px;
-      padding: 12px 14px;
-      border: 1px solid rgba(17, 17, 17, 0.12);
-      border-radius: 18px;
-      background: #f7f7f7;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.72);
+      gap: var(--space-3);
+      padding-block: var(--space-2);
+      border-top: 1px solid var(--line);
     }
 
     .invite-code-value {
@@ -6491,7 +6469,7 @@
       position: relative;
       padding: 26px 28px 34px;
       border: 2px solid var(--bracket-ink);
-      border-radius: calc(var(--radius-panel) + 2px);
+      border-radius: 26px;
       background:
         radial-gradient(120% 90% at 50% 0%, rgba(255,255,255,0.6), transparent 60%),
         radial-gradient(90% 70% at 50% 100%, rgba(85, 112, 125, 0.06), transparent 70%),
@@ -7832,9 +7810,9 @@
         linear-gradient(180deg, rgba(255,255,255,0.96), rgba(245, 242, 237, 0.94)),
         #fff;
       border: 1px solid rgba(17, 17, 17, 0.14);
-      border-radius: 28px;
-      box-shadow: 0 28px 72px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255,255,255,0.82);
-      padding: 32px;
+      border-radius: var(--radius-modal);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255,255,255,0.82);
+      padding: 24px;
       width: 90%;
       max-width: 400px;
       max-height: min(calc(100vh - 40px), calc(100dvh - 40px));
@@ -7899,12 +7877,13 @@
 
     .modal-section {
       display: grid;
-      gap: 14px;
-      padding: 18px 20px;
-      border: 1px solid rgba(17, 17, 17, 0.1);
-      border-radius: 24px;
-      background: linear-gradient(180deg, rgba(255,255,255,0.78), rgba(245,242,237,0.84));
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.72);
+      gap: var(--space-3);
+      padding-block: var(--space-3);
+      border-top: 1px solid var(--line);
+    }
+    .modal-section:first-child {
+      padding-top: 0;
+      border-top: none;
     }
 
     .modal-section-header {
@@ -8106,44 +8085,8 @@
     #view-home .panel {
       position: relative;
       overflow: hidden;
-      isolation: isolate;
-      border-color: rgba(255, 255, 255, 0.34);
-      background:
-        linear-gradient(180deg, rgba(255,255,255,0.46), rgba(255,255,255,0.18)),
-        linear-gradient(135deg, rgba(255,255,255,0.30), rgba(255,255,255,0.10) 48%, rgba(255,255,255,0.03)),
-        rgba(245, 248, 252, 0.18);
-      box-shadow:
-        0 24px 48px rgba(18, 28, 40, 0.14),
-        inset 0 1px 0 rgba(255,255,255,0.78),
-        inset 0 -1px 0 rgba(255,255,255,0.18);
-      backdrop-filter: blur(24px) saturate(1.16);
-      -webkit-backdrop-filter: blur(24px) saturate(1.16);
-    }
-
-    #view-home .panel::before {
-      content: "";
-      position: absolute;
-      inset: 0 18px auto;
-      height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.9), transparent);
-      pointer-events: none;
-      opacity: 0.95;
-    }
-
-    #view-home .panel::after {
-      content: "";
-      position: absolute;
-      inset: auto -42px -56px auto;
-      width: 210px;
-      height: 210px;
-      background: radial-gradient(circle, rgba(255,255,255,0.34), transparent 72%);
-      pointer-events: none;
-      opacity: 0.8;
-    }
-
-    #view-home .panel > * {
-      position: relative;
-      z-index: 1;
+      background: rgba(255, 255, 255, 0.5);
+      box-shadow: var(--panel-shadow);
     }
 
     .landing-feature-grid,
@@ -8988,8 +8931,7 @@
         margin-bottom: 14px;
       }
       .competition-review-banner {
-        padding: 12px 14px;
-        border-radius: 18px;
+        padding: var(--space-2) var(--space-3);
       }
       .competition-review-banner strong {
         font-size: 0.82rem;
@@ -9290,24 +9232,12 @@
     .simulation-summary-card,
     .simulation-action-card {
       position: relative;
-      border: 2px solid var(--line);
-      border-radius: 22px;
-      background:
-        linear-gradient(180deg, rgba(255,255,255,0.9), rgba(244,231,215,0.96)),
-        var(--panel);
-      box-shadow: 10px 10px 0 rgba(36, 23, 14, 0.12);
-      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-card);
+      background: var(--panel);
+      box-shadow: var(--card-shadow);
+      padding: var(--space-4);
       overflow: hidden;
-    }
-
-    .simulation-stage-card::before,
-    .simulation-summary-card::before,
-    .simulation-action-card::before {
-      content: "";
-      position: absolute;
-      inset: 0 0 auto 0;
-      height: 5px;
-      background: linear-gradient(90deg, var(--accent), #90a4af, #e4eaed);
     }
 
     .simulation-stage-top,
@@ -9685,13 +9615,9 @@
       color: var(--gold-deep);
     }
 
-    .command-center-card.cc-now.is-live::before {
-      background: linear-gradient(90deg, var(--gold-deep), var(--gold) 42%, var(--gold-bright));
-    }
-
     .command-center-card.cc-now.is-live {
       border-color: var(--gold-ring-mid);
-      box-shadow: 0 18px 34px rgba(36, 23, 14, 0.12), var(--gold-glow);
+      box-shadow: var(--gold-glow);
     }
 
     .command-center-card.cc-now.is-live span::before {
@@ -9711,11 +9637,6 @@
 
     .command-center-card.is-waiting strong { color: #a9701a; }
     .command-center-card.is-ready strong { color: #2f7d46; }
-
-    .command-center-card.cc-tool::before {
-      height: 3px;
-      opacity: 0.55;
-    }
 
     .command-center-card.cc-tool strong {
       font-size: clamp(1.05rem, 1.6vw, 1.3rem);
@@ -9740,25 +9661,11 @@
     .self-register-profile-card {
       position: relative;
       border: 1px solid var(--line);
-      border-radius: 22px;
-      padding: 18px;
-      background:
-        linear-gradient(180deg, rgba(255,255,255,0.92), rgba(244,231,215,0.96)),
-        var(--panel);
-      box-shadow: 0 18px 34px rgba(36, 23, 14, 0.12), inset 0 1px 0 rgba(255,255,255,0.72);
+      border-radius: var(--radius-card);
+      padding: var(--space-4);
+      background: var(--panel);
+      box-shadow: var(--card-shadow);
       overflow: hidden;
-    }
-
-    .command-center-card::before,
-    .public-event-card::before,
-    .public-event-spotlight::before,
-    .public-event-statline::before,
-    .self-register-profile-card::before {
-      content: "";
-      position: absolute;
-      inset: 0 0 auto 0;
-      height: 5px;
-      background: linear-gradient(90deg, #000000, #777777, #efefef);
     }
 
     .command-center-card span,
@@ -10845,12 +10752,10 @@
       grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
       gap: 18px;
       align-items: start;
-      padding: 22px 24px;
-      border-radius: 28px;
+      padding: var(--space-4) var(--space-6);
+      border-radius: var(--radius-panel);
       border: 1px solid var(--line-strong);
-      background:
-        linear-gradient(180deg, rgba(255, 254, 251, 0.94), rgba(244, 241, 235, 0.96)),
-        linear-gradient(135deg, rgba(255,255,255,0.5), rgba(255,255,255,0.15));
+      background: var(--panel);
       box-shadow: var(--panel-shadow);
       backdrop-filter: blur(18px);
       margin-bottom: 22px;
@@ -10990,11 +10895,9 @@
     }
 
     .streamer-hero-panel {
-      padding: 28px;
-      border-radius: 30px;
-      background:
-        linear-gradient(135deg, rgba(255, 254, 251, 0.95), rgba(244, 241, 235, 0.97)),
-        linear-gradient(135deg, rgba(255,255,255,0.5), rgba(255,255,255,0.15));
+      padding: var(--space-6);
+      border-radius: var(--radius-panel);
+      background: var(--panel);
       border: 1px solid var(--line-strong);
       box-shadow: var(--panel-shadow);
     }
@@ -11050,12 +10953,10 @@
     .streamer-help-card,
     .streamer-demo-card {
       position: relative;
-      padding: 18px;
-      border-radius: 22px;
+      padding: var(--space-4);
+      border-radius: var(--radius-card);
       border: 1px solid var(--line);
-      background:
-        linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0.3)),
-        rgba(255, 254, 251, 0.72);
+      background: var(--panel);
       box-shadow: var(--card-shadow);
       overflow: hidden;
     }
@@ -12167,7 +12068,14 @@
       }
 
       #view-website-admin > .hero .hero-stat {
-        padding: 9px 11px;
+        padding: 6px var(--space-3);
+        border-top: none;
+        border-inline-start: 1px solid var(--line);
+      }
+
+      #view-website-admin > .hero .hero-stat:first-child {
+        border-inline-start: none;
+        padding-inline-start: 0;
       }
 
       .streamer-topbar {
@@ -12175,8 +12083,7 @@
         grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.2fr);
         gap: 14px;
         margin-bottom: 16px;
-        padding: 16px 18px;
-        border-radius: 22px;
+        padding: var(--space-3) var(--space-4);
       }
 
       .streamer-topbar-main,
@@ -12234,8 +12141,7 @@
       }
 
       .streamer-hero-panel {
-        padding: 22px;
-        border-radius: 24px;
+        padding: var(--space-4);
       }
 
       .streamer-hero-grid {
@@ -12869,8 +12775,7 @@
 
       .streamer-topbar,
       .streamer-hero-panel {
-        padding: 18px;
-        border-radius: 24px;
+        padding: var(--space-3);
       }
 
       .streamer-topbar-brandline,
@@ -13985,7 +13890,7 @@
       <div class="topbar-left">
         <div class="topbar-brand">
           <div class="topbar-brand-mark">
-            <img src="./assets/prodigy-rc-logo-transparent.png?v=7df312a3af13" alt="Prodigy RC logo" />
+            <img src="./assets/prodigy-rc-logo-transparent.png?v=e8bd4aac0a8f" alt="Prodigy RC logo" />
           </div>
           <div class="topbar-brand-copy">
             <span class="topbar-brand-kicker">Prodigy RC Comp</span>
@@ -14041,7 +13946,7 @@
       <div class="streamer-topbar-main">
         <div class="streamer-topbar-brandline">
           <div class="streamer-topbar-mark">
-            <img src="./assets/prodigy-rc-logo-transparent.png?v=7df312a3af13" alt="Prodigy RC logo" />
+            <img src="./assets/prodigy-rc-logo-transparent.png?v=e8bd4aac0a8f" alt="Prodigy RC logo" />
           </div>
           <div class="streamer-topbar-copy">
             <span class="streamer-topbar-kicker">Prodigy Stream Studio</span>
@@ -14240,7 +14145,7 @@
     <div id="view-registration" class="view-section is-active">
       <header class="hero">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=7df312a3af13" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=e8bd4aac0a8f" alt="Prodigy RC logo" /></div>
           <p class="eyebrow">Registration</p>
           <h1>Driver Sign-Up</h1>
           <div class="hero-actions">
@@ -14379,7 +14284,7 @@
     <div id="view-home" class="view-section">
       <header class="hero hero-simple spectator-only">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=7df312a3af13" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=e8bd4aac0a8f" alt="Prodigy RC logo" /></div>
           <p class="eyebrow" id="landingHeroEyebrow">Prodigy RC Drift Arena</p>
           <h1 id="landingHeroTitle"><span class="landing-brand-wordmark" aria-label="Live Drift Event Hub">Live Drift Event Hub</span></h1>
           <p id="landingHeroCopy" class="hero-copy">Check in, follow qualifying, and see results as they happen.</p>
@@ -14451,7 +14356,7 @@
     <div id="view-live" class="view-section">
       <header class="hero hero-simple spectator-only">
         <div class="hero-copy-block">
-          <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=7df312a3af13" alt="Prodigy RC logo" /></div>
+          <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=e8bd4aac0a8f" alt="Prodigy RC logo" /></div>
           <p class="eyebrow">Live Broadcast</p>
           <h1><span class="landing-brand-wordmark">LIVE</span></h1>
           <p class="hero-copy">The stream follows the event automatically as it moves through qualifying, battles, and results.</p>
@@ -14487,7 +14392,7 @@
     <div id="view-self-register" class="view-section">
       <header class="hero">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=7df312a3af13" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=e8bd4aac0a8f" alt="Prodigy RC logo" /></div>
           <p class="eyebrow">Driver Check-In</p>
           <h1>Self Registration</h1>
           <p class="hero-copy">Pre-register now, then verify your location at the venue to check in.</p>
@@ -14625,7 +14530,7 @@
     <div id="view-qualifying" class="view-section">
       <header class="hero hero-simple">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=7df312a3af13" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=e8bd4aac0a8f" alt="Prodigy RC logo" /></div>
           <div class="spectator-qualifying-title spectator-only">
             <p class="eyebrow">Live Event</p>
             <h1>Qualifying Standings</h1>
@@ -14747,7 +14652,7 @@
     <div id="view-results" class="view-section">
       <header class="hero hero-simple">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=7df312a3af13" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=e8bd4aac0a8f" alt="Prodigy RC logo" /></div>
           <p class="eyebrow">Results</p>
           <h1>Past Events</h1>
           <p class="hero-copy">
@@ -14781,7 +14686,7 @@
     <div id="view-website-admin" class="view-section">
       <header class="hero">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=7df312a3af13" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=e8bd4aac0a8f" alt="Prodigy RC logo" /></div>
           <p class="eyebrow">Administration</p>
           <h1>Website Admin</h1>
           <p class="hero-copy">
@@ -14918,7 +14823,7 @@
       <!-- Fixed Fullscreen Toolbar -->
       <div class="bracket-header-bar">
         <div id="bracketHeaderLogoSlot">
-              <img class="bracket-header-logo" src="./assets/prodigy-rc-logo-transparent.png?v=7df312a3af13" alt="Prodigy RC logo" />
+              <img class="bracket-header-logo" src="./assets/prodigy-rc-logo-transparent.png?v=e8bd4aac0a8f" alt="Prodigy RC logo" />
         </div>
         <div class="button-row bracket-header-actions">
           <button id="fullscreenBracketBtn" class="button button-secondary bracket-header-icon-button" type="button" aria-label="Toggle fullscreen bracket" title="Toggle fullscreen">⛶<span class="icon-label">Fullscreen</span></button>
@@ -14976,7 +14881,7 @@
             <div class="bracket-header-center">
               <p class="section-kicker">Play-In</p>
               <h2 class="main-board-title">Lower Bracket</h2>
-              <img class="bracket-stage-logo" src="./assets/prodigy-rc-logo-transparent.png?v=7df312a3af13" alt="Prodigy RC logo" />
+              <img class="bracket-stage-logo" src="./assets/prodigy-rc-logo-transparent.png?v=e8bd4aac0a8f" alt="Prodigy RC logo" />
             </div>
             <div id="lowerBracketRuleAlert" class="bracket-alert-banner hidden">
               <strong>FIRST TO CRASH IN PLAY</strong>
@@ -14991,7 +14896,7 @@
             <div class="bracket-header-center">
               <p class="section-kicker">Main Event</p>
               <h2 id="mainBracketTitle" class="main-board-title">Main Competition</h2>
-              <img class="bracket-stage-logo" src="./assets/prodigy-rc-logo-transparent.png?v=7df312a3af13" alt="Prodigy RC logo" />
+              <img class="bracket-stage-logo" src="./assets/prodigy-rc-logo-transparent.png?v=e8bd4aac0a8f" alt="Prodigy RC logo" />
             </div>
           </div>
           <div id="bracketBoard" class="main-bracket-board"></div>
@@ -15312,17 +15217,17 @@
   </div>
 
   <!-- APP LOGIC -->
-  <script src="./client-config.js?v=7df312a3af13"></script>
+  <script src="./client-config.js?v=e8bd4aac0a8f"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script type="module">
-    import { parseVoiceCommandsWithFallback, sendResultsSummaryEmail } from "./assets/js/legacy-client-features.js?v=7df312a3af13";
-    import { isHistoricalBracketUnavailable, resolveRecoveredBracket, shouldPreserveUnavailableHistoricalBracket } from "./assets/js/historical-bracket.js?v=7df312a3af13";
+    import { parseVoiceCommandsWithFallback, sendResultsSummaryEmail } from "./assets/js/legacy-client-features.js?v=e8bd4aac0a8f";
+    import { isHistoricalBracketUnavailable, resolveRecoveredBracket, shouldPreserveUnavailableHistoricalBracket } from "./assets/js/historical-bracket.js?v=e8bd4aac0a8f";
     import {
       createSelectedEventSubscriptionController,
       resolveSelectionEventMeta,
       shouldReplaceCachedSelection,
       getLiveJudgeSelectionMismatch,
-    } from "./assets/js/event-selection-sync.js?v=7df312a3af13";
+    } from "./assets/js/event-selection-sync.js?v=e8bd4aac0a8f";
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, connectAuthEmulator } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, collection, doc, setDoc, onSnapshot, deleteDoc, deleteField, getDoc, runTransaction, connectFirestoreEmulator } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -15338,15 +15243,15 @@
         venueName: "Prodigy RC Drift Arena",
         venueLabelPlaceholder: "Prodigy RC Drift Arena",
         eventNamePlaceholder: "Prodigy RC Drift Arena",
-        logoPrimary: "./assets/prodigy-rc-logo-transparent.png?v=7df312a3af13",
-        logoInverted: "./assets/prodigy-rc-logo-white-transparent.png?v=7df312a3af13",
+        logoPrimary: "./assets/prodigy-rc-logo-transparent.png?v=e8bd4aac0a8f",
+        logoInverted: "./assets/prodigy-rc-logo-white-transparent.png?v=e8bd4aac0a8f",
         logoTreatment: {
           invertLight: false,
           invertDark: false,
         },
         logoAlt: "Prodigy RC logo",
-        backgroundImage: "./assets/track-background.png?v=7df312a3af13",
-        homeHeroImage: "./assets/track-background.png?v=7df312a3af13",
+        backgroundImage: "./assets/track-background.png?v=e8bd4aac0a8f",
+        homeHeroImage: "./assets/track-background.png?v=e8bd4aac0a8f",
         shopUrl: "https://www.prodigydrift.com/",
         shopLabel: "Shop Prodigy RC Here",
         pdfHeaderTitle: "PRODIGY RC",
@@ -22887,7 +22792,7 @@
       };
     }
 
-    function getThemeAwareLogoSource(primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=7df312a3af13", invertedLogo = CLIENT_BRANDING.logoInverted || primaryLogo) {
+    function getThemeAwareLogoSource(primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=e8bd4aac0a8f", invertedLogo = CLIENT_BRANDING.logoInverted || primaryLogo) {
       return document.body?.dataset.theme === "dark" ? invertedLogo : primaryLogo;
     }
 
@@ -24118,11 +24023,11 @@
 
     function applyClientBranding() {
       const root = document.documentElement;
-      const primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=7df312a3af13";
+      const primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=e8bd4aac0a8f";
       const invertedLogo = CLIENT_BRANDING.logoInverted || primaryLogo;
       const logoTreatment = isPlainObject(CLIENT_BRANDING.logoTreatment) ? CLIENT_BRANDING.logoTreatment : {};
       const logoAlt = CLIENT_BRANDING.logoAlt || CLIENT_BRANDING.venueName || "Track logo";
-      const backgroundImage = CLIENT_BRANDING.backgroundImage || "./assets/track-background.png?v=7df312a3af13";
+      const backgroundImage = CLIENT_BRANDING.backgroundImage || "./assets/track-background.png?v=e8bd4aac0a8f";
       const homeHeroImage = CLIENT_BRANDING.homeHeroImage || backgroundImage;
       const browserTitle = CLIENT_PLATFORM.browserTitle || CLIENT_PLATFORM.productName || "Prodigy Event Control";
 
@@ -24368,7 +24273,7 @@
       syncWebsiteAdminUpcomingBannerUi();
     }
 
-    function syncBrandLogoAssetsForTheme(primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=7df312a3af13", invertedLogo = CLIENT_BRANDING.logoInverted || primaryLogo, logoAlt = CLIENT_BRANDING.logoAlt || "Prodigy RC logo") {
+    function syncBrandLogoAssetsForTheme(primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=e8bd4aac0a8f", invertedLogo = CLIENT_BRANDING.logoInverted || primaryLogo, logoAlt = CLIENT_BRANDING.logoAlt || "Prodigy RC logo") {
       const themedLogo = getThemeAwareLogoSource(primaryLogo, invertedLogo);
       document.querySelectorAll(".hero-logo, .bracket-stage-logo, .bracket-header-logo, .topbar-brand-mark img, .streamer-topbar-mark img, .native-broadcast-brand img").forEach((logoEl) => {
         logoEl.setAttribute("src", themedLogo);
@@ -27646,7 +27551,7 @@
           ? `#${rankedDrivers[0].seed} ${rankedDrivers[0].name}`
           : "Waiting";
       const queueLabel = nextDriver?.name || queuedBattleTitle || "Queue loading";
-      const cameraSource = escapeAttributeValue(CLIENT_BRANDING.backgroundImage || "./assets/track-background.png?v=7df312a3af13");
+      const cameraSource = escapeAttributeValue(CLIENT_BRANDING.backgroundImage || "./assets/track-background.png?v=e8bd4aac0a8f");
       const venueLabel = activeEventMeta?.name || CLIENT_BRANDING.venueName || "Prodigy RC Drift Arena";
 
       return `
@@ -29498,7 +29403,7 @@
       const sceneHeader = `
         <header class="streamer-scene-header">
           <div class="streamer-scene-brand">
-            <img src="./assets/prodigy-rc-logo-transparent.png?v=7df312a3af13" alt="Prodigy RC logo" />
+            <img src="./assets/prodigy-rc-logo-transparent.png?v=e8bd4aac0a8f" alt="Prodigy RC logo" />
             <div class="streamer-scene-title">
               <span class="streamer-scene-kicker">${escapeHtml(meta.label)} • ${route.demo ? "Demo Data" : "Live Event"}</span>
               <h1>${escapeHtml(context.eventName)}</h1>
