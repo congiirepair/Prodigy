@@ -78,8 +78,15 @@ const nativeStreamLayoutSource = sourceBetween("function resolveNativeStreamLayo
 const nativeStreamPhaseSource = sourceBetween("function getNativeStreamPhaseLabel", "function getNativeLiveViewerUrl");
 const autoBracketSource = sourceBetween("function maybeAutoBuildBracket", "function syncNetworkStatusIndicator");
 const eventFinalizeSource = sourceBetween("async function finalizeCurrentEventResults()", "function syncSelfRegisterProfileCard()");
+const clientThemeTokenSource = sourceBetween("function syncClientThemeTokens()", "function syncClientFontImports()");
 
 const checks = [
+  {
+    name: "client theme-token sync does not reference an undefined theme name",
+    test: () => clientThemeTokenSource.includes('const isDarkTheme = document.body?.dataset.theme === "dark";')
+      && clientThemeTokenSource.includes("buildAccentGlow(palette.accent, palette.accentDark, isDarkTheme)")
+      && !clientThemeTokenSource.includes("themeName"),
+  },
   {
     name: "completed historical recovery never fabricates a competition bracket",
     test: () => historicalBracketSource.includes('HISTORICAL_BRACKET_UNAVAILABLE = "unavailable"')
