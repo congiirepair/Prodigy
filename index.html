@@ -11,7 +11,7 @@
   <style>
     @font-face {
       font-family: 'Ethnocentric';
-      src: url('./assets/fonts/Ethnocentric-Regular.otf?v=eca059ff587b') format('opentype');
+      src: url('./assets/fonts/Ethnocentric-Regular.otf?v=ca4111f55557') format('opentype');
       font-weight: 400;
       font-style: normal;
       font-display: swap;
@@ -70,11 +70,11 @@
       --space-4: 16px;
       --space-6: 24px;
       --space-8: 32px;
-      --brand-track-background-image: url("./assets/track-background.png?v=eca059ff587b");
-      --brand-watermark-image: url("./assets/prodigy-rc-logo-white-transparent.png?v=eca059ff587b");
+      --brand-track-background-image: url("./assets/track-background.png?v=ca4111f55557");
+      --brand-watermark-image: url("./assets/prodigy-rc-logo-white-transparent.png?v=ca4111f55557");
       --font-graffiti: 'Ethnocentric', 'Orbitron', 'Inter', sans-serif;
       --font-sans: 'Inter', sans-serif;
-      --brand-home-hero-image: url("./assets/track-background.png?v=eca059ff587b");
+      --brand-home-hero-image: url("./assets/track-background.png?v=ca4111f55557");
       --accent-rgb: 44, 36, 29;
       --button-accent-rgb: 43, 36, 29;
       --button-accent-dark-rgb: 122, 99, 75;
@@ -7145,9 +7145,68 @@
       overflow: hidden;
     }
 
+    /* Third Place shares the Final's card frame (border/radius/elevation)
+       but not its center-stage slot geometry or head/VS layout -- it uses
+       the plain side-battle stack so its height matches a standard battle
+       card. The "3RD PLACE" label is an absolutely-positioned badge (same
+       technique as .battle-state-badge) so it adds zero stack height. */
     .third-place-card {
+      position: relative;
       width: var(--third-card-width, 230px);
+      border-color: rgba(205, 127, 50, 0.45);
       box-shadow: var(--bracket-shadow-4);
+    }
+
+    .third-place-badge {
+      position: absolute;
+      top: -11px;
+      left: 16px;
+      z-index: 4;
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 11px;
+      border-radius: 999px;
+      font-size: 0.62rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      white-space: nowrap;
+      pointer-events: none;
+      color: #fff;
+      background: linear-gradient(135deg, #8a5323, #cd7f32);
+      box-shadow: 0 4px 12px rgba(120, 76, 30, 0.35);
+    }
+
+    /* No padding: the slots' own border-radius (16px) is close enough to
+       the card frame's (24px) that they read as one nested unit without a
+       buffer. Any padding here would re-inflate the height past a normal
+       battle card's. */
+    .placement-center .main-battle-stack {
+      padding: 0;
+    }
+
+    .main-battle.center.placement-center .main-battle-slot {
+      grid-template-columns: var(--seed-chip-width, 42px) 1fr;
+      grid-template-rows: none;
+      min-height: var(--slot-height, 56px);
+      height: var(--slot-height, 56px);
+    }
+
+    .main-battle.center.placement-center .seed-chip {
+      width: auto;
+      min-height: 0;
+      padding: 0;
+      border-right: 2px solid rgba(36, 27, 20, 0.78);
+      border-bottom: none;
+    }
+
+    .main-battle.center.placement-center .slot-button {
+      min-height: var(--slot-height, 56px);
+      height: 100%;
+      padding: 0 var(--slot-padding-x, 12px);
+      align-items: flex-start;
+      justify-content: center;
+      border-radius: 12px;
     }
 
     .final-battle-head {
@@ -7175,16 +7234,6 @@
     .center-stage-stack:has(.placement-center) .final-center .final-battle-body {
       padding: 22px 18px 20px;
       gap: 12px;
-    }
-
-    .center-stage-stack:has(.placement-center) .placement-center .final-battle-head {
-      font-size: clamp(1.28rem, 1.7vw, 1.5rem);
-      padding-block: 12px;
-    }
-
-    .center-stage-stack:has(.placement-center) .placement-center .final-battle-body {
-      padding: 18px 16px 16px;
-      gap: 10px;
     }
 
     .final-vs {
@@ -13902,7 +13951,7 @@
       <div class="topbar-left">
         <div class="topbar-brand">
           <div class="topbar-brand-mark">
-            <img src="./assets/prodigy-rc-logo-transparent.png?v=eca059ff587b" alt="Prodigy RC logo" />
+            <img src="./assets/prodigy-rc-logo-transparent.png?v=ca4111f55557" alt="Prodigy RC logo" />
           </div>
           <div class="topbar-brand-copy">
             <span class="topbar-brand-kicker">Prodigy RC Comp</span>
@@ -13958,7 +14007,7 @@
       <div class="streamer-topbar-main">
         <div class="streamer-topbar-brandline">
           <div class="streamer-topbar-mark">
-            <img src="./assets/prodigy-rc-logo-transparent.png?v=eca059ff587b" alt="Prodigy RC logo" />
+            <img src="./assets/prodigy-rc-logo-transparent.png?v=ca4111f55557" alt="Prodigy RC logo" />
           </div>
           <div class="streamer-topbar-copy">
             <span class="streamer-topbar-kicker">Prodigy Stream Studio</span>
@@ -14157,7 +14206,7 @@
     <div id="view-registration" class="view-section is-active">
       <header class="hero">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=eca059ff587b" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=ca4111f55557" alt="Prodigy RC logo" /></div>
           <p class="eyebrow">Registration</p>
           <h1>Driver Sign-Up</h1>
           <div class="hero-actions">
@@ -14297,7 +14346,7 @@
     <div id="view-home" class="view-section">
       <header class="hero hero-simple spectator-only">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=eca059ff587b" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=ca4111f55557" alt="Prodigy RC logo" /></div>
           <p class="eyebrow" id="landingHeroEyebrow">Prodigy RC Drift Arena</p>
           <h1 id="landingHeroTitle"><span class="landing-brand-wordmark" aria-label="Live Drift Event Hub">Live Drift Event Hub</span></h1>
           <p id="landingHeroCopy" class="hero-copy">Check in, follow qualifying, and see results as they happen.</p>
@@ -14369,7 +14418,7 @@
     <div id="view-live" class="view-section">
       <header class="hero hero-simple spectator-only">
         <div class="hero-copy-block">
-          <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=eca059ff587b" alt="Prodigy RC logo" /></div>
+          <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=ca4111f55557" alt="Prodigy RC logo" /></div>
           <p class="eyebrow">Live Broadcast</p>
           <h1><span class="landing-brand-wordmark">LIVE</span></h1>
           <p class="hero-copy">The stream follows the event automatically as it moves through qualifying, battles, and results.</p>
@@ -14405,7 +14454,7 @@
     <div id="view-self-register" class="view-section">
       <header class="hero">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=eca059ff587b" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=ca4111f55557" alt="Prodigy RC logo" /></div>
           <p class="eyebrow">Driver Check-In</p>
           <h1>Self Registration</h1>
           <p class="hero-copy">Pre-register now, then verify your location at the venue to check in.</p>
@@ -14543,7 +14592,7 @@
     <div id="view-qualifying" class="view-section">
       <header class="hero hero-simple">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=eca059ff587b" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=ca4111f55557" alt="Prodigy RC logo" /></div>
           <div class="spectator-qualifying-title spectator-only">
             <p class="eyebrow">Live Event</p>
             <h1>Qualifying Standings</h1>
@@ -14666,7 +14715,7 @@
     <div id="view-results" class="view-section">
       <header class="hero hero-simple">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=eca059ff587b" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=ca4111f55557" alt="Prodigy RC logo" /></div>
           <p class="eyebrow">Results</p>
           <h1>Past Events</h1>
           <p class="hero-copy">
@@ -14700,7 +14749,7 @@
     <div id="view-website-admin" class="view-section">
       <header class="hero">
         <div class="hero-copy-block">
-        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=eca059ff587b" alt="Prodigy RC logo" /></div>
+        <div class="hero-logo-shell"><img class="hero-logo" src="./assets/prodigy-rc-logo-transparent.png?v=ca4111f55557" alt="Prodigy RC logo" /></div>
           <p class="eyebrow">Administration</p>
           <h1>Website Admin</h1>
           <p class="hero-copy">
@@ -14837,7 +14886,7 @@
       <!-- Fixed Fullscreen Toolbar -->
       <div class="bracket-header-bar">
         <div id="bracketHeaderLogoSlot">
-              <img class="bracket-header-logo" src="./assets/prodigy-rc-logo-transparent.png?v=eca059ff587b" alt="Prodigy RC logo" />
+              <img class="bracket-header-logo" src="./assets/prodigy-rc-logo-transparent.png?v=ca4111f55557" alt="Prodigy RC logo" />
         </div>
         <div class="button-row bracket-header-actions">
           <button id="fullscreenBracketBtn" class="button button-secondary bracket-header-icon-button" type="button" aria-label="Toggle fullscreen bracket" title="Toggle fullscreen">⛶<span class="icon-label">Fullscreen</span></button>
@@ -14895,7 +14944,7 @@
             <div class="bracket-header-center">
               <p class="section-kicker">Play-In</p>
               <h2 class="main-board-title">Lower Bracket</h2>
-              <img class="bracket-stage-logo" src="./assets/prodigy-rc-logo-transparent.png?v=eca059ff587b" alt="Prodigy RC logo" />
+              <img class="bracket-stage-logo" src="./assets/prodigy-rc-logo-transparent.png?v=ca4111f55557" alt="Prodigy RC logo" />
             </div>
             <div id="lowerBracketRuleAlert" class="bracket-alert-banner hidden">
               <strong>FIRST TO CRASH IN PLAY</strong>
@@ -14910,7 +14959,7 @@
             <div class="bracket-header-center">
               <p class="section-kicker">Main Event</p>
               <h2 id="mainBracketTitle" class="main-board-title">Main Competition</h2>
-              <img class="bracket-stage-logo" src="./assets/prodigy-rc-logo-transparent.png?v=eca059ff587b" alt="Prodigy RC logo" />
+              <img class="bracket-stage-logo" src="./assets/prodigy-rc-logo-transparent.png?v=ca4111f55557" alt="Prodigy RC logo" />
             </div>
           </div>
           <div id="bracketBoard" class="main-bracket-board"></div>
@@ -15231,18 +15280,18 @@
   </div>
 
   <!-- APP LOGIC -->
-  <script src="./client-config.js?v=eca059ff587b"></script>
+  <script src="./client-config.js?v=ca4111f55557"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script type="module">
-    import { parseVoiceCommandsWithFallback, sendResultsSummaryEmail } from "./assets/js/legacy-client-features.js?v=eca059ff587b";
-    import { isHistoricalBracketUnavailable, resolveRecoveredBracket, shouldPreserveUnavailableHistoricalBracket } from "./assets/js/historical-bracket.js?v=eca059ff587b";
-    import { getPreBracketLineup, hasStartedPreBracketCompetition } from "./assets/js/lineup-preview.js?v=eca059ff587b";
+    import { parseVoiceCommandsWithFallback, sendResultsSummaryEmail } from "./assets/js/legacy-client-features.js?v=ca4111f55557";
+    import { isHistoricalBracketUnavailable, resolveRecoveredBracket, shouldPreserveUnavailableHistoricalBracket } from "./assets/js/historical-bracket.js?v=ca4111f55557";
+    import { getPreBracketLineup, hasStartedPreBracketCompetition } from "./assets/js/lineup-preview.js?v=ca4111f55557";
     import {
       createSelectedEventSubscriptionController,
       resolveSelectionEventMeta,
       shouldReplaceCachedSelection,
       getLiveJudgeSelectionMismatch,
-    } from "./assets/js/event-selection-sync.js?v=eca059ff587b";
+    } from "./assets/js/event-selection-sync.js?v=ca4111f55557";
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, connectAuthEmulator } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, collection, doc, setDoc, onSnapshot, deleteDoc, deleteField, getDoc, runTransaction, connectFirestoreEmulator } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -15258,15 +15307,15 @@
         venueName: "Prodigy RC Drift Arena",
         venueLabelPlaceholder: "Prodigy RC Drift Arena",
         eventNamePlaceholder: "Prodigy RC Drift Arena",
-        logoPrimary: "./assets/prodigy-rc-logo-transparent.png?v=eca059ff587b",
-        logoInverted: "./assets/prodigy-rc-logo-white-transparent.png?v=eca059ff587b",
+        logoPrimary: "./assets/prodigy-rc-logo-transparent.png?v=ca4111f55557",
+        logoInverted: "./assets/prodigy-rc-logo-white-transparent.png?v=ca4111f55557",
         logoTreatment: {
           invertLight: false,
           invertDark: false,
         },
         logoAlt: "Prodigy RC logo",
-        backgroundImage: "./assets/track-background.png?v=eca059ff587b",
-        homeHeroImage: "./assets/track-background.png?v=eca059ff587b",
+        backgroundImage: "./assets/track-background.png?v=ca4111f55557",
+        homeHeroImage: "./assets/track-background.png?v=ca4111f55557",
         shopUrl: "https://www.prodigydrift.com/",
         shopLabel: "Shop Prodigy RC Here",
         pdfHeaderTitle: "PRODIGY RC",
@@ -22807,7 +22856,7 @@
       };
     }
 
-    function getThemeAwareLogoSource(primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=eca059ff587b", invertedLogo = CLIENT_BRANDING.logoInverted || primaryLogo) {
+    function getThemeAwareLogoSource(primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=ca4111f55557", invertedLogo = CLIENT_BRANDING.logoInverted || primaryLogo) {
       return document.body?.dataset.theme === "dark" ? invertedLogo : primaryLogo;
     }
 
@@ -24039,11 +24088,11 @@
 
     function applyClientBranding() {
       const root = document.documentElement;
-      const primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=eca059ff587b";
+      const primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=ca4111f55557";
       const invertedLogo = CLIENT_BRANDING.logoInverted || primaryLogo;
       const logoTreatment = isPlainObject(CLIENT_BRANDING.logoTreatment) ? CLIENT_BRANDING.logoTreatment : {};
       const logoAlt = CLIENT_BRANDING.logoAlt || CLIENT_BRANDING.venueName || "Track logo";
-      const backgroundImage = CLIENT_BRANDING.backgroundImage || "./assets/track-background.png?v=eca059ff587b";
+      const backgroundImage = CLIENT_BRANDING.backgroundImage || "./assets/track-background.png?v=ca4111f55557";
       const homeHeroImage = CLIENT_BRANDING.homeHeroImage || backgroundImage;
       const browserTitle = CLIENT_PLATFORM.browserTitle || CLIENT_PLATFORM.productName || "Prodigy Event Control";
 
@@ -24289,7 +24338,7 @@
       syncWebsiteAdminUpcomingBannerUi();
     }
 
-    function syncBrandLogoAssetsForTheme(primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=eca059ff587b", invertedLogo = CLIENT_BRANDING.logoInverted || primaryLogo, logoAlt = CLIENT_BRANDING.logoAlt || "Prodigy RC logo") {
+    function syncBrandLogoAssetsForTheme(primaryLogo = CLIENT_BRANDING.logoPrimary || "./assets/prodigy-rc-logo-transparent.png?v=ca4111f55557", invertedLogo = CLIENT_BRANDING.logoInverted || primaryLogo, logoAlt = CLIENT_BRANDING.logoAlt || "Prodigy RC logo") {
       const themedLogo = getThemeAwareLogoSource(primaryLogo, invertedLogo);
       document.querySelectorAll(".hero-logo, .bracket-stage-logo, .bracket-header-logo, .topbar-brand-mark img, .streamer-topbar-mark img, .native-broadcast-brand img").forEach((logoEl) => {
         logoEl.setAttribute("src", themedLogo);
@@ -27567,7 +27616,7 @@
           ? `#${rankedDrivers[0].seed} ${rankedDrivers[0].name}`
           : "Waiting";
       const queueLabel = nextDriver?.name || queuedBattleTitle || "Queue loading";
-      const cameraSource = escapeAttributeValue(CLIENT_BRANDING.backgroundImage || "./assets/track-background.png?v=eca059ff587b");
+      const cameraSource = escapeAttributeValue(CLIENT_BRANDING.backgroundImage || "./assets/track-background.png?v=ca4111f55557");
       const venueLabel = activeEventMeta?.name || CLIENT_BRANDING.venueName || "Prodigy RC Drift Arena";
 
       return `
@@ -29419,7 +29468,7 @@
       const sceneHeader = `
         <header class="streamer-scene-header">
           <div class="streamer-scene-brand">
-            <img src="./assets/prodigy-rc-logo-transparent.png?v=eca059ff587b" alt="Prodigy RC logo" />
+            <img src="./assets/prodigy-rc-logo-transparent.png?v=ca4111f55557" alt="Prodigy RC logo" />
             <div class="streamer-scene-title">
               <span class="streamer-scene-kicker">${escapeHtml(meta.label)} • ${route.demo ? "Demo Data" : "Live Event"}</span>
               <h1>${escapeHtml(context.eventName)}</h1>
@@ -36879,7 +36928,7 @@
 
     function renderPlacementBattle(bracketKey, match, title, battleState = null) {
       const canChoose = Boolean(match?.left && match?.right);
-      return `<article class="main-battle center placement-center" data-bracket-key="${bracketKey}" data-round-index="0" data-match-index="0" ${battleState ? `data-battle-state="${battleState}"` : ""}><div class="final-battle-card third-place-card">${renderBattleStateBadge(battleState)}<div class="final-battle-head">${title}</div><div class="final-battle-body">${renderMainSlot(bracketKey, 0, 0, "left", match?.left, match?.winner, canChoose, "center")}<div class="final-vs">VS</div>${renderMainSlot(bracketKey, 0, 0, "right", match?.right, match?.winner, canChoose, "center")}</div></div></article>`;
+      return `<article class="main-battle center placement-center" data-bracket-key="${bracketKey}" data-round-index="0" data-match-index="0" ${battleState ? `data-battle-state="${battleState}"` : ""}><div class="final-battle-card third-place-card"><span class="third-place-badge">${title}</span>${renderBattleStateBadge(battleState)}<div class="main-battle-stack">${renderMainSlot(bracketKey, 0, 0, "left", match?.left, match?.winner, canChoose, "center")}${renderMainSlot(bracketKey, 0, 0, "right", match?.right, match?.winner, canChoose, "center")}</div></div></article>`;
     }
 
     function getBracketCssMetric(name, fallback) {
