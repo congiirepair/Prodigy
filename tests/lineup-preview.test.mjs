@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import { getPreBracketLineup } from "../assets/js/lineup-preview.js";
+import { getPreBracketLineup, hasStartedPreBracketCompetition } from "../assets/js/lineup-preview.js";
 
 function participant(index, prefix = "Driver") {
   return { id: `${prefix}-${index}`, name: `${prefix} ${index}`, registrationNumber: index };
@@ -28,6 +28,12 @@ assert.equal(getPreBracketLineup(state(8, "team-tandem"), { competitionMode: "te
 assert.equal(getPreBracketLineup(state(8), { competitionMode: "twin-triple", status: "active" }).reason, "twin");
 assert.equal(getPreBracketLineup(state(8), { competitionMode: "solo", status: "completed" }).reason, "historical");
 assert.equal(getPreBracketLineup({ mainBracket: { rounds: [{ matches: [{ left: participant(1), right: null }] }] } }, { competitionMode: "solo", status: "active" }).reason, "not-ready");
+const autoAdvancedBye = { mainBracket: { rounds: [{ matches: [{ left: participant(1), right: null, winner: participant(1) }] }] } };
+const completedBattle = { mainBracket: { rounds: [{ matches: [{ left: participant(1), right: participant(2), winner: participant(1) }] }] } };
+const sdcPlayInBeforeCompetition = { lowerBracket: { rounds: [{ matches: [{ left: participant(1), right: participant(2), winner: null }] }] }, mainBracket: autoAdvancedBye.mainBracket };
+assert.equal(hasStartedPreBracketCompetition(autoAdvancedBye), false, "an auto-advanced bye does not start competition or hide the lineup");
+assert.equal(hasStartedPreBracketCompetition(sdcPlayInBeforeCompetition), false, "an unresolved SDC play-in remains reviewable despite main-bracket byes");
+assert.equal(hasStartedPreBracketCompetition(completedBattle), true, "a completed two-participant battle starts competition and hides the lineup");
 const html = fs.readFileSync(new URL("../index.html", import.meta.url), "utf8");
 assert.match(html, /id="lineupPreview"[\s\S]*?hidden/, "the read-only preview is placed in the qualifying pre-launch workflow");
 assert.match(html, /id="registrationLineupPreviewHost"/, "Team Tandem has the same single preview in its registration launch workflow");

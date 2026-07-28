@@ -29,3 +29,9 @@ export function getPreBracketLineup(state = {}, eventMeta = {}) {
   }
   return { available: false, reason: "not-ready" };
 }
+
+export function hasStartedPreBracketCompetition(state = {}) {
+  return [state?.mainBracket, state?.lowerBracket]
+    .some((bracket) => (bracket?.rounds || []).some((round) => (round?.matches || [])
+      .some((match) => match?.winner && match?.left && match?.right)));
+}
