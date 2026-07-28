@@ -655,7 +655,10 @@ const checks = [
     name: "mobile bracket slots can shrink without clipping participant text",
     test: () => html.includes('.slot-button {\n      width: 100%;\n      min-width: 0;')
       && html.includes('.slot-name {\n      display: block;\n      width: 100%;')
-      && html.includes('fitTextToAvailableWidth(element, minimumPx);'),
+      && html.includes('.slot-name.is-wrapped {')
+      && html.includes('function fitBracketNameElement(nameEl) {')
+      && html.includes('fitTextToAvailableWidth(nameEl, singleLineFloor);')
+      && html.includes('fitTextToAvailableWidth(nameEl, wrapFloor);'),
   },
   {
     name: "incomplete historical result summaries render missing scores safely",
