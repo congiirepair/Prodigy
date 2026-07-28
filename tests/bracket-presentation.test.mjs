@@ -67,6 +67,25 @@ assert.match(
   "native and fallback fullscreen states must share a safe exit path"
 );
 
+// -- Name fitting: preserve a readable floor, use controlled wrapping, and
+// prefer hiding secondary metadata over truncating a primary participant name.
+
+assert.match(
+  html,
+  /currentSize = Math\.max\(minimumPx, currentSize - 0\.5\);/,
+  "name fitting must never shrink below its configured readable floor"
+);
+assert.match(
+  html,
+  /function fitBracketNameElement\(nameEl\)[\s\S]*?const nameIsClamped = \(\) => nameEl\.scrollHeight > nameEl\.clientHeight \+ 1;[\s\S]*?const teamIsClipped = \(\) => Boolean\(teamEl\) && teamEl\.scrollHeight > teamEl\.clientHeight \+ 1;[\s\S]*?teamEl\.style\.display = "none";[\s\S]*?two-line clamp is the final fallback/,
+  "a clamped primary name must reclaim vertical room by hiding only the secondary label"
+);
+assert.match(
+  html,
+  /const shrinkWrappedNameToSlot = \(\) => \{[\s\S]*?while \(currentSize > wrapFloor && overflowsSlot\(\)\)[\s\S]*?Math\.max\(wrapFloor, currentSize - 0\.5\)/,
+  "wrapped names must fit the fixed slot height without dropping below their readable floor"
+);
+
 // -- Bracket flow redesign: Battle Flow cards removed, state lives on the
 // bracket's own match cards instead. --
 
